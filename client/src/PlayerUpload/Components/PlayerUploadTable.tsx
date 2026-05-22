@@ -2,31 +2,60 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import styled from "styled-components";
 
+type PlayerInfo = {
+  uid: string;
+  playerName: string;
+  playerPic: any;
+  cameraLink: string;
+};
+
+type TeamSection = {
+  teamId: string;
+  players: PlayerInfo[];
+};
+
 type PlayerUploadTableProps = {
-  createPlayerUploads: (data: any) => void;
+  createPlayerUploads: (data: FormValues) => void;
   playerUploads?: Array<{
     id?: string | number;
     teamId: string;
     teamName?: string;
     playerPhotos?: string[];
+    players?: Array<{
+      uid?: string;
+      playerName?: string;
+      playerPic?: string;
+      cameraLink?: string;
+    }>;
   }>;
   loading?: boolean;
   error?: string | null;
 };
 
 type FormValues = {
-  sections: Array<{
-    teamId: string;
-    playerPhotos: any;
-  }>;
+  sections: TeamSection[];
+};
+
+type SavedPlayer = {
+  uid?: string;
+  playerName?: string;
+  playerPic?: string;
+  cameraLink?: string;
 };
 
 type TeamDivision = {
   id?: string | number;
   teamId: string;
   teamName?: string;
-  playerPhotos: string[];
+  players: SavedPlayer[];
 };
+
+const emptyPlayer = (): PlayerInfo => ({
+  uid: "",
+  playerName: "",
+  playerPic: null,
+  cameraLink: "",
+});
 
 const groupUploadsByTeam = (
   uploads: NonNullable<PlayerUploadTableProps["playerUploads"]>,
@@ -36,13 +65,15 @@ const groupUploadsByTeam = (
   uploads.forEach((upload) => {
     const key = upload.teamId || String(upload.id || "unknown");
     const current = grouped.get(key);
-    const nextPhotos = upload.playerPhotos || [];
+    const photoPlayers = (upload.playerPhotos || []).map((photoUrl, index) => ({
+      playerName: `Player ${index + 1}`,
+      playerPic: photoUrl,
+    }));
+    const nextPlayers = upload.players?.length ? upload.players : photoPlayers;
 
     if (current) {
       current.teamName = current.teamName || upload.teamName;
-      current.playerPhotos = Array.from(
-        new Set([...current.playerPhotos, ...nextPhotos]),
-      );
+      current.players = [...current.players, ...nextPlayers];
       return;
     }
 
@@ -50,11 +81,124 @@ const groupUploadsByTeam = (
       id: upload.id,
       teamId: upload.teamId,
       teamName: upload.teamName,
-      playerPhotos: nextPhotos,
+      players: nextPlayers,
     });
   });
 
-  return Array.from(grouped.values());
+  return Array.from(grouped.values()).sort((left, right) =>
+    String(left.teamId || "").localeCompare(String(right.teamId || ""), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }),
+  );
+};
+
+const getFirstFile = (fileField: any): File | null => {
+  if (!fileField) return null;
+  if (fileField instanceof File) return fileField;
+  if (fileField instanceof FileList && fileField[0]) return fileField[0];
+  if (Array.isArray(fileField) && fileField[0] instanceof File) return fileField[0];
+  if (typeof fileField === "object" && fileField[0] instanceof File) return fileField[0];
+  return null;
+};
+
+type TeamPlayersProps = {
+  control: any;
+  register: any;
+  sectionIndex: number;
+  errors: any;
+  previewUrls: Record<string, string>;
+};
+
+const TeamPlayers = ({
+  control,
+  register,
+  sectionIndex,
+  errors,
+  previewUrls,
+}: TeamPlayersProps) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `sections.${sectionIndex}.players` as any,
+  });
+
+  return (
+    <PlayersPanel>
+      <PlayersHeader>
+        <span>Players</span>
+        <SmallButton type="button" onClick={() => append(emptyPlayer())}>
+          Add Player
+        </SmallButton>
+      </PlayersHeader>
+
+      <PlayerRows>
+        {fields.map((field, playerIndex) => {
+          const playerErrors = errors.sections?.[sectionIndex]?.players?.[playerIndex];
+          const previewKey = `${sectionIndex}-${playerIndex}`;
+
+          return (
+            <PlayerRow key={field.id}>
+              <PlayerNumber>{playerIndex + 1}</PlayerNumber>
+              <InputStack>
+                <InputField
+                  type="text"
+                  placeholder="Player UID"
+                  $hasError={!!playerErrors?.uid}
+                  {...register(`sections.${sectionIndex}.players.${playerIndex}.uid`, {
+                    required: "UID is required",
+                  })}
+                />
+                {playerErrors?.uid && <ErrorText>{playerErrors.uid.message}</ErrorText>}
+              </InputStack>
+              <InputStack>
+                <InputField
+                  type="text"
+                  placeholder="Player name"
+                  $hasError={!!playerErrors?.playerName}
+                  {...register(
+                    `sections.${sectionIndex}.players.${playerIndex}.playerName`,
+                    { required: "Player name is required" },
+                  )}
+                />
+                {playerErrors?.playerName && (
+                  <ErrorText>{playerErrors.playerName.message}</ErrorText>
+                )}
+              </InputStack>
+              <InputStack>
+                <FileField
+                  type="file"
+                  accept="image/*"
+                  {...register(`sections.${sectionIndex}.players.${playerIndex}.playerPic`)}
+                />
+                {previewUrls[previewKey] && (
+                  <InlinePreview>
+                    <img src={previewUrls[previewKey]} alt={`Player ${playerIndex + 1}`} />
+                  </InlinePreview>
+                )}
+              </InputStack>
+              <InputStack>
+                <InputField
+                  type="url"
+                  placeholder="Camera link"
+                  $hasError={false}
+                  {...register(
+                    `sections.${sectionIndex}.players.${playerIndex}.cameraLink`,
+                  )}
+                />
+              </InputStack>
+              <SmallButton
+                type="button"
+                disabled={fields.length === 1}
+                onClick={() => remove(playerIndex)}
+              >
+                Delete
+              </SmallButton>
+            </PlayerRow>
+          );
+        })}
+      </PlayerRows>
+    </PlayersPanel>
+  );
 };
 
 const PlayerUploadTable = ({
@@ -72,7 +216,7 @@ const PlayerUploadTable = ({
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
-      sections: [{ teamId: "", playerPhotos: null }],
+      sections: [{ teamId: "", players: [emptyPlayer()] }],
     },
   });
 
@@ -87,9 +231,10 @@ const PlayerUploadTable = ({
     const nextUrls: Record<string, string> = {};
 
     watchedSections?.forEach((section, sectionIndex) => {
-      Array.from(section?.playerPhotos || []).forEach((file, photoIndex) => {
-        if (file instanceof File) {
-          nextUrls[`${sectionIndex}-${photoIndex}`] = URL.createObjectURL(file);
+      section?.players?.forEach((player, playerIndex) => {
+        const file = getFirstFile(player?.playerPic);
+        if (file) {
+          nextUrls[`${sectionIndex}-${playerIndex}`] = URL.createObjectURL(file);
         }
       });
     });
@@ -104,7 +249,6 @@ const PlayerUploadTable = ({
     };
   }, [watchedSections]);
 
-  const canRemove = useMemo(() => fields.length > 1, [fields.length]);
   const teamDivisions = useMemo(
     () => groupUploadsByTeam(playerUploads),
     [playerUploads],
@@ -122,7 +266,7 @@ const PlayerUploadTable = ({
             <h2>
               Player Upload <span>Manager</span>
             </h2>
-            <p>Save team id with any number of player photos.</p>
+            <p>Add any number of teams, then add any number of players per team.</p>
           </TitleBlock>
         </HeaderPanel>
 
@@ -131,12 +275,10 @@ const PlayerUploadTable = ({
             <Table>
               <TableHead>
                 <tr>
-                  <th style={{ width: "4rem", textAlign: "center" }}>ID</th>
-                  <th style={{ width: "14rem" }}>Team Id *</th>
-                  <th>Player Photos</th>
-                  <th style={{ width: "5.5rem", textAlign: "center" }}>
-                    Actions
-                  </th>
+                  <th style={{ width: "4rem", textAlign: "center" }}>No.</th>
+                  <th style={{ width: "12rem" }}>Team ID *</th>
+                  <th>Player Info</th>
+                  <th style={{ width: "6rem", textAlign: "center" }}>Actions</th>
                 </tr>
               </TableHead>
 
@@ -164,43 +306,20 @@ const PlayerUploadTable = ({
                       </TableCell>
 
                       <TableCell>
-                        <PhotoUploadCell>
-                          <PreviewGrid>
-                            {Object.entries(previewUrls)
-                              .filter(([key]) => key.startsWith(`${sectionIndex}-`))
-                              .map(([key, url], photoIndex) => (
-                                <PhotoPreview key={key}>
-                                  <img
-                                    src={url}
-                                    alt={`Team ${sectionIndex + 1} player ${
-                                      photoIndex + 1
-                                    }`}
-                                  />
-                                </PhotoPreview>
-                              ))}
-                            {Object.keys(previewUrls).every(
-                              (key) => !key.startsWith(`${sectionIndex}-`),
-                            ) && (
-                              <PhotoPreview>
-                                <PreviewPlaceholder>+</PreviewPlaceholder>
-                              </PhotoPreview>
-                            )}
-                          </PreviewGrid>
-                          <FileInput
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            {...register(`sections.${sectionIndex}.playerPhotos`)}
-                          />
-                        </PhotoUploadCell>
+                        <TeamPlayers
+                          control={control}
+                          register={register}
+                          sectionIndex={sectionIndex}
+                          errors={errors}
+                          previewUrls={previewUrls}
+                        />
                       </TableCell>
 
                       <TableCell style={{ verticalAlign: "middle" }}>
                         <ActionWrapper>
                           <ActionButton
                             type="button"
-                            title="Delete section"
-                            disabled={!canRemove}
+                            disabled={fields.length === 1}
                             onClick={() => remove(sectionIndex)}
                           >
                             Delete
@@ -217,15 +336,12 @@ const PlayerUploadTable = ({
           {error && <SubmitError>{error}</SubmitError>}
 
           <FooterPanel>
-            <AddRowButton
+            <AddTeamButton
               type="button"
-              onClick={() =>
-                append({ teamId: "", playerPhotos: null })
-              }
-              title="Add section"
+              onClick={() => append({ teamId: "", players: [emptyPlayer()] })}
             >
-              +
-            </AddRowButton>
+              Add Team
+            </AddTeamButton>
 
             <SaveButton type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save"}
@@ -236,8 +352,8 @@ const PlayerUploadTable = ({
         <ExistingPanel>
           <SectionHeader>
             <div>
-              <SectionTitle>Team Player Divisions</SectionTitle>
-              <SectionNote>Each team id contains all saved player images.</SectionNote>
+              <SectionTitle>Saved Team Players</SectionTitle>
+              <SectionNote>Loaded from the player upload API.</SectionNote>
             </div>
           </SectionHeader>
           {loading && playerUploads.length === 0 ? (
@@ -252,31 +368,39 @@ const PlayerUploadTable = ({
                     <TeamTitle>{team.teamName || `Team ${team.teamId || "-"}`}</TeamTitle>
                     <TeamBadge>ID: {team.teamId || "-"}</TeamBadge>
                   </SavedCardHeader>
-                  {team.playerPhotos.length ? (
-                    <SavedPhotoGrid>
-                      {team.playerPhotos.map((photoUrl, photoIndex) => (
-                        <PlayerTile key={`${photoUrl}-${photoIndex}`}>
-                          <PlayerNumber>Player {photoIndex + 1}</PlayerNumber>
+                  {team.players.length ? (
+                    <SavedPlayerGrid>
+                      {team.players.map((player, playerIndex) => (
+                        <PlayerTile key={`${team.teamId}-${player.uid || playerIndex}`}>
+                          <PlayerNumberLabel>Player {playerIndex + 1}</PlayerNumberLabel>
                           <SavedPhoto>
-                            <img
-                              src={photoUrl}
-                              alt={`Team ${team.teamId} player ${photoIndex + 1}`}
-                            />
+                            {player.playerPic ? (
+                              <img
+                                src={player.playerPic}
+                                alt={player.playerName || `Player ${playerIndex + 1}`}
+                              />
+                            ) : (
+                              <PhotoFallback>No Pic</PhotoFallback>
+                            )}
                           </SavedPhoto>
-                          <PlayerLinksRow>
+                          <SavedPlayerName>{player.playerName || "Unnamed Player"}</SavedPlayerName>
+                          <SavedMeta>UID: {player.uid || "-"}</SavedMeta>
+                          {player.cameraLink ? (
                             <PlayerLink
-                              href={photoUrl}
+                              href={player.cameraLink}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              Player Pic
+                              Camera Link
                             </PlayerLink>
-                          </PlayerLinksRow>
+                          ) : (
+                            <SavedMeta>No camera link</SavedMeta>
+                          )}
                         </PlayerTile>
                       ))}
-                    </SavedPhotoGrid>
+                    </SavedPlayerGrid>
                   ) : (
-                    <NoPhotoText>No player photos uploaded</NoPhotoText>
+                    <NoPhotoText>No players saved</NoPhotoText>
                   )}
                 </SavedCard>
               ))}
@@ -295,33 +419,26 @@ const PageWrapper = styled.div`
   width: 100vw;
   box-sizing: border-box;
   margin: 0;
-  padding: 2.5rem 1.5rem;
+  padding: 2rem 1.25rem;
   background-color: #0d0f12;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-x: hidden;
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #ffffff;
 `;
 
 const Container = styled.div`
-  width: 100%;
-  max-width: 95rem;
+  width: min(100%, 95rem);
+  margin: 0 auto;
   background-color: #14171c;
   border-radius: 0.5rem;
   border: 1px solid #1f242d;
   border-left: 4px solid #ef4444;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   padding: 2rem;
-  color: #ffffff;
 `;
 
 const HeaderPanel = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding-bottom: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   border-bottom: 1px dashed #2a313d;
 `;
 
@@ -348,15 +465,15 @@ const TitleBlock = styled.div`
 
 const TableContainer = styled.div`
   overflow: auto;
-  border-radius: 0.25rem;
+  border-radius: 0.35rem;
   border: 1px solid #2a313d;
   background-color: #090b0e;
-  max-height: 620px;
+  max-height: 640px;
 `;
 
 const Table = styled.table`
   width: 100%;
-  min-width: 760px;
+  min-width: 1020px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.8rem;
@@ -372,7 +489,7 @@ const TableHead = styled.thead`
     padding: 1rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: #8c9ba5;
     border-bottom: 2px solid #2a313d;
   }
@@ -400,6 +517,10 @@ const TableCell = styled.td`
   vertical-align: top;
 `;
 
+const InputStack = styled.div`
+  min-width: 0;
+`;
+
 const InputField = styled.input<{ $hasError: boolean }>`
   width: 100%;
   box-sizing: border-box;
@@ -416,45 +537,7 @@ const InputField = styled.input<{ $hasError: boolean }>`
   }
 `;
 
-const PhotoUploadCell = styled.div`
-  display: grid;
-  gap: 0.65rem;
-  min-width: 18rem;
-`;
-
-const PreviewGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(4.25rem, 4.25rem));
-  gap: 0.5rem;
-`;
-
-const PhotoPreview = styled.div`
-  width: 4.25rem;
-  height: 4.25rem;
-  border-radius: 0.25rem;
-  overflow: hidden;
-  border: 1px solid #2a313d;
-  background-color: #0d1015;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-`;
-
-const PreviewPlaceholder = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #627282;
-  font-weight: 900;
-`;
-
-const FileInput = styled.input<{ $hasError?: boolean }>`
+const FileField = styled.input`
   width: 100%;
   font-size: 0.72rem;
   color: #8c9ba5;
@@ -463,12 +546,68 @@ const FileInput = styled.input<{ $hasError?: boolean }>`
     margin-right: 0.5rem;
     padding: 0.45rem 0.7rem;
     border-radius: 0.25rem;
-    border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#2a313d")};
+    border: 1px solid #2a313d;
     font-size: 0.68rem;
     font-weight: 800;
     cursor: pointer;
     background-color: #14171c;
-    color: ${(props) => (props.$hasError ? "#ef4444" : "#ffffff")};
+    color: #ffffff;
+  }
+`;
+
+const PlayersPanel = styled.div`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const PlayersHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #8c9ba5;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+`;
+
+const PlayerRows = styled.div`
+  display: grid;
+  gap: 0.65rem;
+`;
+
+const PlayerRow = styled.div`
+  display: grid;
+  grid-template-columns: 2rem minmax(8rem, 1fr) minmax(10rem, 1.1fr) minmax(12rem, 1.2fr) minmax(12rem, 1.2fr) 4.75rem;
+  align-items: start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid #1f242d;
+  border-radius: 0.35rem;
+  background-color: #0d1015;
+`;
+
+const PlayerNumber = styled.div`
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  color: #8c9ba5;
+  font-weight: 900;
+`;
+
+const InlinePreview = styled.div`
+  width: 3rem;
+  height: 3rem;
+  margin-top: 0.45rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  border: 1px solid #2a313d;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 `;
 
@@ -507,22 +646,29 @@ const ActionButton = styled.button`
   }
 `;
 
+const SmallButton = styled(ActionButton)`
+  padding: 0.5rem 0.6rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+`;
+
 const FooterPanel = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-top: 1.5rem;
 `;
 
-const AddRowButton = styled.button`
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1.2rem;
-  line-height: 1;
-  font-weight: 900;
+const AddTeamButton = styled.button`
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   border-radius: 0.25rem;
-  border: none;
-  background-color: #ef4444;
+  border: 1px solid #2a313d;
+  background-color: #14171c;
   color: #ffffff;
   cursor: pointer;
 `;
@@ -532,7 +678,7 @@ const SaveButton = styled.button`
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #ffffff;
   background-color: #ef4444;
   border: none;
@@ -563,7 +709,7 @@ const SectionTitle = styled.h3`
   margin: 0;
   font-size: 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 `;
 
 const SectionNote = styled.p`
@@ -613,10 +759,10 @@ const TeamBadge = styled.div`
   font-weight: 800;
 `;
 
-const SavedPhotoGrid = styled.div`
+const SavedPlayerGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.85rem;
 `;
 
 const PlayerTile = styled.div`
@@ -624,28 +770,11 @@ const PlayerTile = styled.div`
   gap: 0.45rem;
 `;
 
-const PlayerNumber = styled.div`
+const PlayerNumberLabel = styled.div`
   color: #8c9ba5;
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
-`;
-
-const PlayerLinksRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const PlayerLink = styled.a`
-  color: #58a6ff;
-  font-size: 0.78rem;
-  text-decoration: none;
-  white-space: nowrap;
-
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 const SavedPhoto = styled.div`
@@ -660,6 +789,43 @@ const SavedPhoto = styled.div`
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+`;
+
+const PhotoFallback = styled.div`
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #627282;
+  font-size: 0.75rem;
+  font-weight: 900;
+`;
+
+const SavedPlayerName = styled.div`
+  font-size: 0.86rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SavedMeta = styled.div`
+  color: #8c9ba5;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const PlayerLink = styled.a`
+  color: #58a6ff;
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
   }
 `;
 
