@@ -1,5 +1,5 @@
-export const API_BASE_URL = "http://82.29.155.252:3000";
-// export const API_BASE_URL = "http://localhost:3000";
+// export const API_BASE_URL = "http://82.29.155.252:3000";
+export const API_BASE_URL = "http://localhost:3000";
 export const REAL_TIME_API = "/tablestandings";
 export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";
@@ -26,3 +26,10 @@ export const UPDATE_PLAYER_BY_UID = (playerUid: string | number) =>
   `/team-players/by-player-uid/${playerUid}`;
 export const DELETE_PLAYER_BY_UID = (playerUid: string | number) =>
   `/team-players/by-player-uid/${playerUid}`;
+export const GET_PROJECT_COLOR_THEME = "/api/theme/colors";
+export const CREATE_PROJECT_COLOR_THEME = "/api/theme/colors";
+export const UPDATE_PROJECT_COLOR_THEME = "/api/theme/colors";
+export const PATCH_PROJECT_COLOR_THEME = "/api/theme/colors";
+export const LOGIN_ADMIN = "/api/auth/login";
+export const REGISTER_ADMIN = "/api/auth/register";
+export const GET_AUTH_ME = "/api/auth/me";

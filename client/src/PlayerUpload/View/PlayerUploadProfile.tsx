@@ -357,9 +357,9 @@ const PageWrapper = styled.div`
   box-sizing: border-box;
   margin: 0;
   padding: 3rem 2rem;
-  background-color: #0b0f19;
+  background-color: var(--project-background, #0b0f19);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #f3f4f6;
+  color: var(--project-text-primary, #f3f4f6);
   display: flex;
   justify-content: center;
 `;
@@ -374,7 +374,7 @@ const Container = styled.div`
 
 const HeaderPanel = styled.div`
   padding-bottom: 1.25rem;
-  border-bottom: 1px solid #1f293d;
+  border-bottom: 1px solid var(--project-border, #1f293d);
 `;
 
 const TitleBlock = styled.div`
@@ -383,17 +383,17 @@ const TitleBlock = styled.div`
     font-weight: 700;
     letter-spacing: 0;
     margin: 0;
-    color: #ffffff;
+    color: var(--project-text-primary, #ffffff);
 
     span {
-      color: #38bdf8;
+      color: var(--project-secondary, #38bdf8);
       font-weight: 400;
     }
   }
 
   p {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: var(--project-text-secondary, #9ca3af);
     margin: 0.35rem 0 0 0;
   }
 `;
@@ -405,24 +405,24 @@ const Grid = styled.div`
 `;
 
 const ErrorBanner = styled.div`
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid rgba(var(--project-danger-rgb, 239, 68, 68), 0.35);
   border-radius: 0.5rem;
-  background: rgba(239, 68, 68, 0.12);
-  color: #fecaca;
+  background: rgba(var(--project-danger-rgb, 239, 68, 68), 0.12);
+  color: var(--project-danger, #fecaca);
   padding: 0.85rem 1rem;
   font-size: 0.85rem;
 `;
 
 const TeamCard = styled.div`
   border-radius: 0.625rem;
-  border: 1px solid #1f293d;
-  background-color: #111827;
+  border: 1px solid var(--project-border, #1f293d);
+  background-color: var(--project-surface, #111827);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 `;
 
 const TeamHeaderRow = styled.div`
-  background-color: #1e293b;
+  background-color: var(--project-surface-alt, #1e293b);
   padding: 1rem 1.5rem;
   display: flex;
   align-items: center;

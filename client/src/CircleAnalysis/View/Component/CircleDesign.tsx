@@ -26,10 +26,10 @@ const instantPopBooyah = keyframes`
 // ==========================================
 
 const DashboardContainer = styled.div`
-  background-color: #310062; 
+  background-color: var(--project-surface, #310062);
   padding: 24px;
   font-family: 'Montserrat', sans-serif;
-  color: #fff;
+  color: var(--project-text-primary, #fff);
   width: 100%;
   max-width: 1300px;
   margin: 20px auto;
@@ -52,15 +52,15 @@ const TimelineHeaderGrid = styled(GridBase)`
 `;
 
 const CircleHeader = styled.div`
-  background: #bfff00; 
-  color: #000;
+  background: var(--project-accent, #bfff00);
+  color: var(--project-background, #000);
   text-align: center;
   font-weight: 900;
   font-style: italic;
   padding: 8px 0;
   font-size: 13px;
   text-transform: uppercase;
-  border-right: 2px solid #310062;
+  border-right: 2px solid var(--project-background, #310062);
   &:last-child {
     border-right: none;
   }

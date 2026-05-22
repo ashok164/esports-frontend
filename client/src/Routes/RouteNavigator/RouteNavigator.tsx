@@ -53,6 +53,18 @@ const routeGroups: RouteGroup[] = [
     ],
   },
   {
+    title: "Theme",
+    description: "Project colors, default color mode, and broadcast theme setup.",
+    routes: [
+      {
+        title: "Broadcast Theme",
+        path: "/broadcast-theme",
+        note: "Create or update project theme colors.",
+        type: "Admin",
+      },
+    ],
+  },
+  {
     title: "Live Broadcast",
     description: "Overlay pages intended for live production windows.",
     routes: [
@@ -111,7 +123,7 @@ const broadcastGroups = routeGroups
 
 const RouteNavigator: React.FC = () => {
   return (
-    <Page>
+    <Page data-theme-surface="page">
       <GlobalRouteStyles />
       <Shell>
         <WindowBar>
@@ -143,14 +155,14 @@ const RouteNavigator: React.FC = () => {
           </Stats>
         </Header>
 
-        <RouteHalf $variant="admin">
+        <RouteHalf $variant="admin" data-theme-surface="panel">
           <SectionHeader>
             <SectionTitle>Admin Navigator</SectionTitle>
             <SectionHint>Same tab controls</SectionHint>
           </SectionHeader>
           <Groups aria-label="Admin route groups">
             {adminGroups.map((group) => (
-              <GroupSection key={group.title} $variant="admin">
+              <GroupSection key={group.title} $variant="admin" data-theme-surface="card">
                 <GroupHeader>
                   <GroupTitle>{group.title}</GroupTitle>
                   <GroupDescription>{group.description}</GroupDescription>
@@ -168,14 +180,14 @@ const RouteNavigator: React.FC = () => {
           </Groups>
         </RouteHalf>
 
-        <RouteHalf $variant="broadcast">
+        <RouteHalf $variant="broadcast" data-theme-surface="panel">
           <SectionHeader>
             <SectionTitle>Broadcast Navigator</SectionTitle>
             <SectionHint>New tab overlays</SectionHint>
           </SectionHeader>
           <Groups aria-label="Broadcast route groups">
             {broadcastGroups.map((group) => (
-              <GroupSection key={group.title} $variant="broadcast">
+              <GroupSection key={group.title} $variant="broadcast" data-theme-surface="card">
                 <GroupHeader>
                   <GroupTitle>{group.title}</GroupTitle>
                   <GroupDescription>{group.description}</GroupDescription>
@@ -212,7 +224,7 @@ const GlobalRouteStyles = createGlobalStyle`
   #root {
     min-height: 100%;
     margin: 0;
-    background: #090d14;
+    background: var(--project-background, #090d14);
   }
 
   body {
@@ -223,9 +235,14 @@ const GlobalRouteStyles = createGlobalStyle`
 const Page = styled.main`
   min-height: 100vh;
   background:
-    linear-gradient(180deg, #0a1220 0%, #10151e 48%, #161017 100%),
-    #090d14;
-  color: #e5edf8;
+    linear-gradient(
+      180deg,
+      var(--project-background, #0a1220) 0%,
+      var(--project-surface, #10151e) 48%,
+      var(--project-surface-alt, #161017) 100%
+    ),
+    var(--project-background, #090d14);
+  color: var(--project-text-primary, #e5edf8);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 `;
 
@@ -244,7 +261,7 @@ const WindowBar = styled.div`
   padding: 0 16px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
-  background: rgba(2, 6, 23, 0.66);
+  background: rgba(var(--project-primary-rgb, 2, 6, 23), 0.12);
 `;
 
 const WindowControls = styled.div`
@@ -264,6 +281,7 @@ const ControlDot = styled.span<{ $tone: "red" | "amber" | "green" }>`
 
 const WindowTitle = styled.div`
   color: #cbd5e1;
+  color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.86rem;
   font-weight: 800;
 `;
@@ -286,7 +304,7 @@ const TitleBlock = styled.div`
 `;
 
 const Kicker = styled.div`
-  color: #5eead4;
+  color: var(--project-accent, #5eead4);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -295,7 +313,7 @@ const Kicker = styled.div`
 
 const Title = styled.h1`
   margin: 0;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   font-size: clamp(2rem, 4vw, 3.5rem);
   line-height: 0.95;
   letter-spacing: 0;
@@ -304,7 +322,7 @@ const Title = styled.h1`
 const Subtitle = styled.p`
   max-width: 720px;
   margin: 0;
-  color: #a8b3c7;
+  color: var(--project-text-secondary, #a8b3c7);
   font-size: 1rem;
   line-height: 1.6;
 `;
@@ -322,9 +340,9 @@ const Stat = styled.div`
   gap: 4px;
   min-height: 104px;
   padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--project-border, rgba(148, 163, 184, 0.22));
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.74);
+  background: rgba(var(--project-secondary-rgb, 15, 23, 42), 0.12);
 `;
 
 const RouteHalf = styled.section<{ $variant: "admin" | "broadcast" }>`
@@ -336,16 +354,20 @@ const RouteHalf = styled.section<{ $variant: "admin" | "broadcast" }>`
   padding: 18px;
   border: 1px solid
     ${({ $variant }) =>
-      $variant === "admin" ? "rgba(59, 130, 246, 0.22)" : "rgba(244, 114, 182, 0.2)"};
+      $variant === "admin"
+        ? "rgba(var(--project-secondary-rgb, 59, 130, 246), 0.22)"
+        : "rgba(var(--project-primary-rgb, 244, 114, 182), 0.22)"};
   border-radius: 8px;
   background:
     linear-gradient(
       135deg,
       ${({ $variant }) =>
-        $variant === "admin" ? "rgba(30, 64, 175, 0.18)" : "rgba(136, 19, 55, 0.16)"},
+        $variant === "admin"
+          ? "rgba(var(--project-secondary-rgb, 30, 64, 175), 0.18)"
+          : "rgba(var(--project-primary-rgb, 136, 19, 55), 0.16)"},
       rgba(15, 23, 42, 0.7)
     ),
-    #101722;
+    var(--project-surface, #101722);
   box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28);
 `;
 
@@ -364,26 +386,26 @@ const SectionHeader = styled.div`
 
 const SectionTitle = styled.h2`
   margin: 0;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   font-size: 1.15rem;
   letter-spacing: 0;
 `;
 
 const SectionHint = styled.span`
-  color: rgba(226, 232, 240, 0.78);
+  color: var(--project-text-secondary, rgba(226, 232, 240, 0.78));
   font-size: 0.82rem;
   font-weight: 800;
   text-transform: uppercase;
 `;
 
 const StatValue = styled.strong`
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   font-size: 2rem;
   line-height: 1;
 `;
 
 const StatLabel = styled.span`
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.88rem;
   font-weight: 700;
 `;
@@ -401,13 +423,15 @@ const Groups = styled.section`
 const GroupSection = styled.section<{ $variant: "admin" | "broadcast" }>`
   min-width: 0;
   padding: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid var(--project-border, rgba(148, 163, 184, 0.2));
   border-radius: 8px;
   background:
     linear-gradient(
       180deg,
       ${({ $variant }) =>
-        $variant === "admin" ? "rgba(59, 130, 246, 0.12)" : "rgba(244, 114, 182, 0.11)"},
+        $variant === "admin"
+          ? "rgba(var(--project-secondary-rgb, 59, 130, 246), 0.12)"
+          : "rgba(var(--project-primary-rgb, 244, 114, 182), 0.11)"},
       rgba(10, 15, 24, 0.82)
     );
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
@@ -421,13 +445,13 @@ const GroupHeader = styled.div`
 
 const GroupTitle = styled.h3`
   margin: 0;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   font-size: 1.25rem;
 `;
 
 const GroupDescription = styled.p`
   margin: 0;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.86rem;
   line-height: 1.5;
 `;
@@ -448,7 +472,7 @@ const chipStyles = `
   border: 1px solid var(--chip-border);
   border-radius: 999px;
   background: rgba(2, 6, 23, 0.7);
-  color: #e0f2fe;
+  color: var(--project-text-primary, #e0f2fe);
   font-size: 0.86rem;
   font-weight: 800;
   text-decoration: none;
@@ -467,7 +491,7 @@ const chipStyles = `
   }
 
   &:focus-visible {
-    outline: 2px solid #5eead4;
+    outline: 2px solid var(--project-accent, #5eead4);
     outline-offset: 2px;
   }
 `;
@@ -475,21 +499,33 @@ const chipStyles = `
 const RouteChip = styled(Link)<{ $variant: "admin" | "broadcast" }>`
   ${chipStyles}
   --chip-border: ${({ $variant }) =>
-    $variant === "admin" ? "rgba(125, 211, 252, 0.28)" : "rgba(251, 113, 133, 0.26)"};
+    $variant === "admin"
+      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.28)"
+      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.26)"};
   --chip-hover-border: ${({ $variant }) =>
-    $variant === "admin" ? "rgba(125, 211, 252, 0.58)" : "rgba(251, 113, 133, 0.54)"};
+    $variant === "admin"
+      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.58)"
+      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.54)"};
   --chip-hover-bg: ${({ $variant }) =>
-    $variant === "admin" ? "rgba(14, 116, 144, 0.16)" : "rgba(190, 24, 93, 0.15)"};
+    $variant === "admin"
+      ? "rgba(var(--project-secondary-rgb, 14, 116, 144), 0.16)"
+      : "rgba(var(--project-primary-rgb, 190, 24, 93), 0.15)"};
 `;
 
 const AnchorChip = styled.a<{ $variant: "admin" | "broadcast" }>`
   ${chipStyles}
   --chip-border: ${({ $variant }) =>
-    $variant === "admin" ? "rgba(125, 211, 252, 0.28)" : "rgba(251, 113, 133, 0.26)"};
+    $variant === "admin"
+      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.28)"
+      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.26)"};
   --chip-hover-border: ${({ $variant }) =>
-    $variant === "admin" ? "rgba(125, 211, 252, 0.58)" : "rgba(251, 113, 133, 0.54)"};
+    $variant === "admin"
+      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.58)"
+      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.54)"};
   --chip-hover-bg: ${({ $variant }) =>
-    $variant === "admin" ? "rgba(14, 116, 144, 0.16)" : "rgba(190, 24, 93, 0.15)"};
+    $variant === "admin"
+      ? "rgba(var(--project-secondary-rgb, 14, 116, 144), 0.16)"
+      : "rgba(var(--project-primary-rgb, 190, 24, 93), 0.15)"};
 `;
 
 const ChipDot = styled.span<{ $variant: "admin" | "broadcast" }>`
@@ -497,7 +533,11 @@ const ChipDot = styled.span<{ $variant: "admin" | "broadcast" }>`
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: ${({ $variant }) => ($variant === "admin" ? "#67e8f9" : "#fb7185")};
+  background: ${({ $variant }) =>
+    $variant === "admin" ? "var(--project-secondary, #67e8f9)" : "var(--project-primary, #fb7185)"};
   box-shadow: 0 0 14px
-    ${({ $variant }) => ($variant === "admin" ? "rgba(103, 232, 249, 0.62)" : "rgba(251, 113, 133, 0.58)")};
+    ${({ $variant }) =>
+      $variant === "admin"
+        ? "rgba(var(--project-secondary-rgb, 103, 232, 249), 0.62)"
+        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.58)"};
 `;

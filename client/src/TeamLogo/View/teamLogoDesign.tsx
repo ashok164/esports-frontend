@@ -119,9 +119,9 @@ const Page = styled.div`
   padding: 2rem 1.25rem;
   box-sizing: border-box;
   background:
-    linear-gradient(180deg, rgba(8, 13, 21, 0.96), rgba(15, 23, 42, 0.98)),
-    linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(20, 184, 166, 0.05));
-  color: #f8fafc;
+    linear-gradient(180deg, var(--project-background, rgba(8, 13, 21, 0.96)), var(--project-surface, rgba(15, 23, 42, 0.98))),
+    linear-gradient(90deg, rgba(var(--project-primary-rgb, 239, 68, 68), 0.08), rgba(var(--project-secondary-rgb, 20, 184, 166), 0.05));
+  color: var(--project-text-primary, #f8fafc);
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 `;
 
@@ -142,7 +142,7 @@ const Header = styled.div`
 
   p {
     margin: 0.55rem 0 0;
-    color: #94a3b8;
+    color: var(--project-text-secondary, #94a3b8);
     font-size: 0.92rem;
   }
 
@@ -153,11 +153,11 @@ const Header = styled.div`
 `;
 
 const Counter = styled.div`
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.45rem;
   padding: 0.55rem 0.8rem;
-  background: rgba(15, 23, 42, 0.82);
-  color: #cbd5e1;
+  background: var(--project-surface, rgba(15, 23, 42, 0.82));
+  color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -174,10 +174,10 @@ const Grid = styled.div`
 const Card = styled.article<{ $selected?: boolean }>`
   overflow: hidden;
   border-radius: 0.5rem;
-  border: 1px solid ${({ $selected }) => ($selected ? "#fca5a5" : "#243244")};
-  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid ${({ $selected }) => ($selected ? "var(--project-primary, #fca5a5)" : "var(--project-border, #243244)")};
+  background: var(--project-surface, rgba(15, 23, 42, 0.9));
   box-shadow: ${({ $selected }) =>
-    $selected ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : "0 16px 35px rgba(0, 0, 0, 0.24)"};
+    $selected ? "0 0 0 3px rgba(var(--project-primary-rgb, 239, 68, 68), 0.18)" : "0 16px 35px rgba(0, 0, 0, 0.24)"};
 `;
 
 const LogoStage = styled.div`
@@ -187,7 +187,7 @@ const LogoStage = styled.div`
   place-items: center;
   background:
     linear-gradient(145deg, rgba(30, 41, 59, 0.62), rgba(2, 6, 23, 0.95)),
-    radial-gradient(circle at 50% 38%, rgba(239, 68, 68, 0.14), transparent 42%);
+    radial-gradient(circle at 50% 38%, rgba(var(--project-primary-rgb, 239, 68, 68), 0.14), transparent 42%);
 `;
 
 const TeamLogo = styled.img`

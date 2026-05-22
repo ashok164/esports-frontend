@@ -22,7 +22,7 @@ const OverlayContainer = styled.div`
 
 // Left branding panel (Black/Charcoal with right slant)
 const BrandPanel = styled.div`
-  background: linear-gradient(135deg, #151515 0%, #0d0d0d 100%);
+  background: linear-gradient(135deg, var(--project-surface, #151515) 0%, var(--project-background, #0d0d0d) 100%);
   padding: 20px 40px 20px 30px;
   display: flex;
   align-items: center;
@@ -30,13 +30,13 @@ const BrandPanel = styled.div`
   clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
   margin-right: -40px; /* Overlaps with the main panel */
   z-index: 2;
-  border-left: 4px solid #ffcc00; /* Subtle accent line */
+  border-left: 4px solid var(--project-accent, #ffcc00); /* Subtle accent line */
 `;
 
 const PlaceholderLogo = styled.div`
   width: 80px;
   height: 80px;
-  background: #ffcc00;
+  background: var(--project-accent, #ffcc00);
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
   display: flex;
   align-items: center;

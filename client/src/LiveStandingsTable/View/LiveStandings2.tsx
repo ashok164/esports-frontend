@@ -38,19 +38,19 @@ interface StandingsTableProps {
 }
 
 const Theme = {
-  aliveYellow: "#ffd35a",
-  aliveBlue: "#2575fc",
-  knocked: "#ff3158",
+  aliveYellow: "var(--project-accent, #ffd35a)",
+  aliveBlue: "var(--project-secondary, #2575fc)",
+  knocked: "var(--project-danger, #ff3158)",
   deadBg: "transparent",
-  panel: "#071c13",
-  panel2: "#0d2b1d",
-  rowA: "#111513", 
-  rowB: "#161b18",
-  rowDead: "#0f1210",
-  text: "#ffffff", 
-  white: "#ffffff",
-  navy: "#2575fc",
-  border: "rgba(0,255,136,0.32)",
+  panel: "var(--project-surface, #071c13)",
+  panel2: "var(--project-surface-alt, #0d2b1d)",
+  rowA: "var(--project-surface, #111513)",
+  rowB: "var(--project-surface-alt, #161b18)",
+  rowDead: "rgba(var(--project-danger-rgb, 15, 18, 16), 0.14)",
+  text: "var(--project-text-primary, #ffffff)",
+  white: "var(--project-text-primary, #ffffff)",
+  navy: "var(--project-secondary, #2575fc)",
+  border: "rgba(var(--project-accent-rgb, 0,255,136),0.32)",
 };
 
 const glow = keyframes`
@@ -90,7 +90,7 @@ const HeaderRow = styled.div`
   display: grid;
   grid-template-columns: 55px 1fr 120px 72px 76px;
   align-items: center;
-  background: linear-gradient(90deg, #020907, #0b2d1f 50%, #020907);
+  background: linear-gradient(90deg, var(--project-background, #020907), var(--project-surface-alt, #0b2d1f) 50%, var(--project-background, #020907));
   color: ${Theme.white};
   font-size: 14px;
   font-weight: 900;

@@ -104,8 +104,8 @@ const RankBadge = styled.div`
   position: absolute;
   top: 20px;
   left: 60px;
-  background-color: #ff003c;
-  color: #ffffff;
+  background-color: var(--project-primary, #ff003c);
+  color: var(--project-text-primary, #ffffff);
   padding: 6px 24px;
   font-size: 24px;
   font-weight: 900;
@@ -125,8 +125,8 @@ const RedEliminatedGeometry = styled.div`
   transform: translateX(-50%) skewX(-12deg);
   width: 500px;
   height: 240px;
-  background: linear-gradient(135deg, #7a091a 0%, #3a0209 100%);
-  border: 4px solid #ff003c;
+  background: linear-gradient(135deg, rgba(var(--project-primary-rgb, 122, 9, 26), 0.72) 0%, var(--project-surface, #3a0209) 100%);
+  border: 4px solid var(--project-primary, #ff003c);
   z-index: 1;
 
   animation: ${slamDown} 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
@@ -138,7 +138,7 @@ const RedEliminatedGeometry = styled.div`
     right: 0px;
     width: 120px;
     height: 100%;
-    background: #111116;
+    background: var(--project-surface, #111116);
     opacity: 0.4;
     transform: skewX(5deg);
   }
@@ -190,14 +190,14 @@ const BannerRow = styled.div`
 `;
 
 const LogoBlock = styled.div`
-  background-color: #111116;
+  background-color: var(--project-surface, #111116);
   padding: 15px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border-radius: 2px;
-  border-bottom: 4px solid #ff003c;
+  border-bottom: 4px solid var(--project-primary, #ff003c);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.6);
   transform: skewX(-12deg);
   margin-right: -10px;
@@ -221,18 +221,18 @@ const TeamLogo = styled.img`
 `;
 
 const EliminatedBanner = styled.div`
-  background: linear-gradient(90deg, #ff003c 0%, #b30024 100%);
+  background: linear-gradient(90deg, var(--project-primary, #ff003c) 0%, var(--project-danger, #b30024) 100%);
   padding: 12px 60px 12px 40px;
   transform: skewX(-12deg);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
-  border-left: 2px solid #ffffff;
+  border-left: 2px solid var(--project-text-primary, #ffffff);
 `;
 
 const EliminatedText = styled.h1`
   margin: 0;
   font-size: 36px;
   font-weight: 900;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   text-transform: uppercase;
   font-style: italic;
   letter-spacing: 2px;

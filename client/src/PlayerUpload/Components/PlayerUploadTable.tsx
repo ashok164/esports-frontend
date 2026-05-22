@@ -420,18 +420,18 @@ const PageWrapper = styled.div`
   box-sizing: border-box;
   margin: 0;
   padding: 2rem 1.25rem;
-  background-color: #0d0f12;
+  background-color: var(--project-background, #0d0f12);
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
 `;
 
 const Container = styled.div`
   width: min(100%, 95rem);
   margin: 0 auto;
-  background-color: #14171c;
+  background-color: var(--project-surface, #14171c);
   border-radius: 0.5rem;
-  border: 1px solid #1f242d;
-  border-left: 4px solid #ef4444;
+  border: 1px solid var(--project-border, #1f242d);
+  border-left: 4px solid var(--project-primary, #ef4444);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   padding: 2rem;
 `;
@@ -439,7 +439,7 @@ const Container = styled.div`
 const HeaderPanel = styled.div`
   padding-bottom: 1.5rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px dashed #2a313d;
+  border-bottom: 1px dashed var(--project-border, #2a313d);
 `;
 
 const TitleBlock = styled.div`
@@ -448,17 +448,17 @@ const TitleBlock = styled.div`
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #ffffff;
+    color: var(--project-text-primary, #ffffff);
     margin: 0;
 
     span {
-      color: #ef4444;
+      color: var(--project-primary, #ef4444);
     }
   }
 
   p {
     font-size: 0.8rem;
-    color: #8c9ba5;
+    color: var(--project-text-secondary, #8c9ba5);
     margin: 0.4rem 0 0 0;
   }
 `;
@@ -466,8 +466,8 @@ const TitleBlock = styled.div`
 const TableContainer = styled.div`
   overflow: auto;
   border-radius: 0.35rem;
-  border: 1px solid #2a313d;
-  background-color: #090b0e;
+  border: 1px solid var(--project-border, #2a313d);
+  background-color: var(--project-surface-alt, #090b0e);
   max-height: 640px;
 `;
 
@@ -480,7 +480,7 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-  background-color: #0d1015;
+  background-color: var(--project-surface-alt, #0d1015);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -490,16 +490,16 @@ const TableHead = styled.thead`
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #8c9ba5;
-    border-bottom: 2px solid #2a313d;
+    color: var(--project-text-secondary, #8c9ba5);
+    border-bottom: 2px solid var(--project-border, #2a313d);
   }
 `;
 
 const TableRow = styled.tr`
-  border-bottom: 1px solid #1a2029;
+  border-bottom: 1px solid var(--project-border, #1a2029);
 
   &:hover {
-    background-color: #0e1116;
+    background-color: rgba(var(--project-primary-rgb, 14, 17, 22), 0.08);
   }
 `;
 
@@ -507,9 +507,9 @@ const SerialColumn = styled.td`
   padding: 1rem;
   text-align: center;
   font-weight: 900;
-  color: #ffffff;
-  background-color: #0d1015;
-  border-right: 1px solid #1a2029;
+  color: var(--project-text-primary, #ffffff);
+  background-color: var(--project-surface-alt, #0d1015);
+  border-right: 1px solid var(--project-border, #1a2029);
 `;
 
 const TableCell = styled.td`
@@ -525,33 +525,33 @@ const InputField = styled.input<{ $hasError: boolean }>`
   width: 100%;
   box-sizing: border-box;
   border-radius: 0.25rem;
-  background-color: #14171c;
-  border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#2a313d")};
+  background-color: var(--project-surface, #14171c);
+  border: 1px solid ${(props) => (props.$hasError ? "var(--project-danger, #ef4444)" : "var(--project-border, #2a313d)")};
   padding: 0.65rem 0.8rem;
   font-size: 0.8rem;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
 
   &:focus {
     outline: none;
-    border-color: ${(props) => (props.$hasError ? "#ef4444" : "#ffffff")};
+    border-color: ${(props) => (props.$hasError ? "var(--project-danger, #ef4444)" : "var(--project-accent, #ffffff)")};
   }
 `;
 
 const FileField = styled.input`
   width: 100%;
   font-size: 0.72rem;
-  color: #8c9ba5;
+  color: var(--project-text-secondary, #8c9ba5);
 
   &::file-selector-button {
     margin-right: 0.5rem;
     padding: 0.45rem 0.7rem;
     border-radius: 0.25rem;
-    border: 1px solid #2a313d;
+    border: 1px solid var(--project-border, #2a313d);
     font-size: 0.68rem;
     font-weight: 800;
     cursor: pointer;
-    background-color: #14171c;
-    color: #ffffff;
+    background-color: var(--project-surface, #14171c);
+    color: var(--project-text-primary, #ffffff);
   }
 `;
 
@@ -565,7 +565,7 @@ const PlayersHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: #8c9ba5;
+  color: var(--project-text-secondary, #8c9ba5);
   font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -582,16 +582,16 @@ const PlayerRow = styled.div`
   align-items: start;
   gap: 0.65rem;
   padding: 0.75rem;
-  border: 1px solid #1f242d;
+  border: 1px solid var(--project-border, #1f242d);
   border-radius: 0.35rem;
-  background-color: #0d1015;
+  background-color: var(--project-surface-alt, #0d1015);
 `;
 
 const PlayerNumber = styled.div`
   height: 2.25rem;
   display: grid;
   place-items: center;
-  color: #8c9ba5;
+  color: var(--project-text-secondary, #8c9ba5);
   font-weight: 900;
 `;
 
@@ -601,7 +601,7 @@ const InlinePreview = styled.div`
   margin-top: 0.45rem;
   border-radius: 0.25rem;
   overflow: hidden;
-  border: 1px solid #2a313d;
+  border: 1px solid var(--project-border, #2a313d);
 
   img {
     width: 100%;
@@ -612,7 +612,7 @@ const InlinePreview = styled.div`
 `;
 
 const ErrorText = styled.p`
-  color: #ef4444;
+  color: var(--project-danger, #ef4444);
   font-size: 11px;
   margin: 0.35rem 0 0 0;
   font-weight: 700;
@@ -620,9 +620,9 @@ const ErrorText = styled.p`
 
 const SubmitError = styled.div`
   margin-top: 1rem;
-  color: #fecaca;
-  background-color: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--project-danger, #fecaca);
+  background-color: rgba(var(--project-danger-rgb, 239, 68, 68), 0.12);
+  border: 1px solid rgba(var(--project-danger-rgb, 239, 68, 68), 0.3);
   border-radius: 0.25rem;
   padding: 0.75rem 1rem;
 `;
@@ -634,9 +634,9 @@ const ActionWrapper = styled.div`
 
 const ActionButton = styled.button`
   border-radius: 0.25rem;
-  border: 1px solid #2a313d;
-  background-color: #14171c;
-  color: #ffffff;
+  border: 1px solid var(--project-border, #2a313d);
+  background-color: var(--project-surface, #14171c);
+  color: var(--project-text-primary, #ffffff);
   cursor: pointer;
   padding: 0.5rem 0.75rem;
 
@@ -667,9 +667,9 @@ const AddTeamButton = styled.button`
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-radius: 0.25rem;
-  border: 1px solid #2a313d;
-  background-color: #14171c;
-  color: #ffffff;
+  border: 1px solid var(--project-border, #2a313d);
+  background-color: var(--project-surface, #14171c);
+  color: var(--project-text-primary, #ffffff);
   cursor: pointer;
 `;
 
@@ -680,7 +680,7 @@ const SaveButton = styled.button`
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #ffffff;
-  background-color: #ef4444;
+  background-color: var(--project-primary, #ef4444);
   border: none;
   border-radius: 0.25rem;
   cursor: pointer;

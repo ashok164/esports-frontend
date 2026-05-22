@@ -83,9 +83,9 @@ const PageWrapper = styled.div`
   box-sizing: border-box;
   padding: 2rem 1.25rem;
   background:
-    linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(8, 13, 21, 0.98)),
-    linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(20, 184, 166, 0.05));
-  color: #f8fafc;
+    linear-gradient(180deg, rgba(var(--project-primary-rgb, 17, 24, 39), 0.08), var(--project-background, rgba(8, 13, 21, 0.98))),
+    linear-gradient(90deg, rgba(var(--project-primary-rgb, 239, 68, 68), 0.08), rgba(var(--project-secondary-rgb, 20, 184, 166), 0.05));
+  color: var(--project-text-primary, #f8fafc);
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 `;
 
@@ -117,7 +117,7 @@ const TitleBlock = styled.div`
 
   p {
     margin: 0.55rem 0 0;
-    color: #94a3b8;
+    color: var(--project-text-secondary, #94a3b8);
     max-width: 680px;
     font-size: 0.92rem;
   }
@@ -133,16 +133,16 @@ const Button = styled.button<{ $variant?: "danger" | "ghost" | "primary" }>`
   min-height: 2.35rem;
   border: 1px solid
     ${({ $variant }) =>
-      $variant === "danger" ? "#ef4444" : $variant === "ghost" ? "#334155" : "#ef4444"};
+      $variant === "danger" ? "var(--project-danger, #ef4444)" : $variant === "ghost" ? "var(--project-border, #334155)" : "var(--project-primary, #ef4444)"};
   border-radius: 0.45rem;
   padding: 0.55rem 0.85rem;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   background: ${({ $variant }) =>
     $variant === "danger"
-      ? "#dc2626"
+      ? "var(--project-danger, #dc2626)"
       : $variant === "ghost"
-        ? "rgba(15, 23, 42, 0.82)"
-        : "#ef4444"};
+        ? "var(--project-surface, rgba(15, 23, 42, 0.82))"
+        : "var(--project-primary, #ef4444)"};
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 800;
@@ -155,7 +155,7 @@ const Button = styled.button<{ $variant?: "danger" | "ghost" | "primary" }>`
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    border-color: #ffffff;
+    border-color: var(--project-accent, #ffffff);
   }
 
   &:disabled {
@@ -165,10 +165,10 @@ const Button = styled.button<{ $variant?: "danger" | "ghost" | "primary" }>`
 `;
 
 const StatusBar = styled.div<{ $tone?: "error" | "info" }>`
-  border: 1px solid ${({ $tone }) => ($tone === "error" ? "#7f1d1d" : "#1e3a8a")};
+  border: 1px solid ${({ $tone }) => ($tone === "error" ? "var(--project-danger, #7f1d1d)" : "var(--project-secondary, #1e3a8a)")};
   background: ${({ $tone }) =>
-    $tone === "error" ? "rgba(127, 29, 29, 0.32)" : "rgba(30, 58, 138, 0.22)"};
-  color: ${({ $tone }) => ($tone === "error" ? "#fecaca" : "#bfdbfe")};
+    $tone === "error" ? "rgba(var(--project-danger-rgb, 127, 29, 29), 0.32)" : "rgba(var(--project-secondary-rgb, 30, 58, 138), 0.22)"};
+  color: ${({ $tone }) => ($tone === "error" ? "var(--project-danger, #fecaca)" : "var(--project-secondary, #bfdbfe)")};
   border-radius: 0.45rem;
   padding: 0.7rem 0.85rem;
   margin-bottom: 1rem;
