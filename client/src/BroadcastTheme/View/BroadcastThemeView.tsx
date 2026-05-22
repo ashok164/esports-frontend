@@ -29,12 +29,26 @@ const colorFields: ColorField[] = [
   { key: "danger", label: "Danger", description: "Errors and destructive actions." },
 ];
 
-const isHexColor = (value: string) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value?.trim());
+// Production-safe hex checker: gracefully handles non-strings, nulls, and undefined
+const isHexColor = (value: unknown): boolean => {
+  if (typeof value !== "string") return false;
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+};
+
+// Formats 3-digit short hex values (#fff) to 6-digits (#ffffff) so native <input type="color"> doesn't break
+const convertToFullHex = (value: unknown): string => {
+  if (typeof value !== "string") return "#000000";
+  const clean = value.trim();
+  if (/^#[0-9a-f]{3}$/i.test(clean)) {
+    return `#${clean[1]}${clean[1]}${clean[2]}${clean[2]}${clean[3]}${clean[3]}`;
+  }
+  return /^#[0-9a-f]{6}$/i.test(clean) ? clean : "#000000";
+};
 
 const normalizeThemePayload = (data: Partial<ProjectColorTheme>): ProjectColorTheme => ({
   ...DEFAULT_PROJECT_THEME,
   ...data,
-  useDefaultColors: data.useDefaultColors !== false,
+  useDefaultColors: data?.useDefaultColors !== false,
 });
 
 const BroadcastThemeView: React.FC = () => {
@@ -48,6 +62,7 @@ const BroadcastThemeView: React.FC = () => {
     () => colorFields.filter((field) => !isHexColor(theme[field.key])).map((field) => field.label),
     [theme]
   );
+  
   const canSave = invalidFields.length === 0 && !isSaving;
   const jsonPreview = useMemo(() => JSON.stringify(theme, null, 2), [theme]);
 
@@ -132,7 +147,7 @@ const BroadcastThemeView: React.FC = () => {
           <DefaultToggle>
             <input
               type="checkbox"
-              checked={theme.useDefaultColors}
+              checked={!!theme.useDefaultColors}
               onChange={(event) => updateDefaultMode(event.target.checked)}
             />
             <span>
@@ -156,29 +171,34 @@ const BroadcastThemeView: React.FC = () => {
             </PanelHeader>
 
             <FieldGrid>
-              {colorFields.map((field) => (
-                <ColorFieldCard key={field.key} $invalid={!isHexColor(theme[field.key])}>
-                  <FieldText>
-                    <label htmlFor={field.key}>{field.label}</label>
-                    <span>{field.description}</span>
-                  </FieldText>
-                  <ColorControls>
-                    <ColorInput
-                      id={field.key}
-                      type="color"
-                      value={isHexColor(theme[field.key]) ? theme[field.key] : DEFAULT_PROJECT_THEME[field.key]}
-                      onChange={(event) => updateColor(field.key, event.target.value)}
-                      disabled={theme.useDefaultColors}
-                    />
-                    <HexInput
-                      value={theme[field.key]}
-                      onChange={(event) => updateColor(field.key, event.target.value)}
-                      disabled={theme.useDefaultColors}
-                      aria-label={`${field.label} hex color`}
-                    />
-                  </ColorControls>
-                </ColorFieldCard>
-              ))}
+              {colorFields.map((field) => {
+                const rawValue = theme[field.key];
+                const isValid = isHexColor(rawValue);
+                
+                return (
+                  <ColorFieldCard key={field.key} $invalid={!isValid}>
+                    <FieldText>
+                      <label htmlFor={field.key}>{field.label}</label>
+                      <span>{field.description}</span>
+                    </FieldText>
+                    <ColorControls>
+                      <ColorInput
+                        id={field.key}
+                        type="color"
+                        value={convertToFullHex(isValid ? rawValue : DEFAULT_PROJECT_THEME[field.key])}
+                        onChange={(event) => updateColor(field.key, event.target.value)}
+                        disabled={!!theme.useDefaultColors}
+                      />
+                      <HexInput
+                        value={typeof rawValue === "string" ? rawValue : ""}
+                        onChange={(event) => updateColor(field.key, event.target.value)}
+                        disabled={!!theme.useDefaultColors}
+                        aria-label={`${field.label} hex color`}
+                      />
+                    </ColorControls>
+                  </ColorFieldCard>
+                );
+              })}
             </FieldGrid>
 
             <Actions>
@@ -211,6 +231,7 @@ const BroadcastThemeView: React.FC = () => {
 
 export default BroadcastThemeView;
 
+// Styled components remain down here exactly as you designed them...
 const Page = styled.main`
   min-height: 100vh;
   background:
