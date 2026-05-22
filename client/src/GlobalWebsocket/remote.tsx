@@ -16,7 +16,8 @@ export const fetchRealTimeData = async (matchId: string | number) => {
 
 /* ================= WEBSOCKET (FIXED) ================= */
 export const createStandingsSocket = (matchId: string | number) => {
-  const WS_URL = `ws://82.29.155.252:3000/ws/realtime/${matchId}`;
+  const WS_URL = `wss://api.freefireesportsnepal.com/ws/realtime/${matchId}`;
+  // const WS_URL = `ws://82.29.155.252:3000/ws/realtime/${matchId}`;
 
   console.log("WS CONNECT →", WS_URL);
 
