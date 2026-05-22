@@ -29,7 +29,7 @@ const colorFields: ColorField[] = [
   { key: "danger", label: "Danger", description: "Errors and destructive actions." },
 ];
 
-const isHexColor = (value: string) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+const isHexColor = (value: string) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value?.trim());
 
 const normalizeThemePayload = (data: Partial<ProjectColorTheme>): ProjectColorTheme => ({
   ...DEFAULT_PROJECT_THEME,
