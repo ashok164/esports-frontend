@@ -36,7 +36,9 @@ export const mapTeamData = (
   previousTeamsState?: Team[],
 ): Team[] => {
   console.log(data,'data')
+
   const mapped = (data || []).map((team, teamIndex) => {
+
     const rawPlayers = team?.players || team?.player_stats || [];
 
     const sortedRawPlayers = [...rawPlayers].sort((a, b) =>
@@ -129,7 +131,7 @@ export const mapTeamData = (
       name: team?.team_name || "UNKNOWN",
       logoUrl: team?.logo || team?.team_logo || team?.logoUrl || "",
       countryUrl: team?.flag || team?.country_logo || team?.countryUrl || "",
-      kills: team?.kill_count || 0,
+      kills: team?.killing_score || 0,
       players: mappedPlayers,
       playersAlive: aliveCount,
       totalPlayers: mappedPlayers.length,

@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import usePlayerUploadController from "../Controller/usePlayerUploadController";
 
+// ==========================================
+// Types & Interfaces
+// ==========================================
 type PlayerProfile = {
   uid?: string;
   playerName?: string;
@@ -13,6 +16,8 @@ type TeamDivision = {
   id?: string | number;
   teamId: string;
   teamName?: string;
+  teamLogo?: string;
+  countryLogo?: string;
   players: PlayerProfile[];
 };
 
@@ -22,23 +27,31 @@ type EditingPlayer = {
   uid: string;
   playerName: string;
   cameraLink: string;
-  playerPic: any;
+  playerPic: FileList | null;
 };
 
+// ==========================================
+// Helper Utility Functions
+// ==========================================
 const groupUploadsByTeam = (uploads: any[]): TeamDivision[] => {
   const grouped = new Map<string, TeamDivision>();
 
   uploads.forEach((upload) => {
     const key = upload.teamId || String(upload.id || "unknown");
     const current = grouped.get(key);
-    const photoPlayers = (upload.playerPhotos || []).map((photoUrl: string, index: number) => ({
-      playerName: `Player ${index + 1}`,
-      playerPic: photoUrl,
-    }));
+    
+    const photoPlayers = (upload.playerPhotos || []).map(
+      (photoUrl: string, index: number) => ({
+        playerName: `Player ${index + 1}`,
+        playerPic: photoUrl,
+      }),
+    );
     const nextPlayers = upload.players?.length ? upload.players : photoPlayers;
 
     if (current) {
       current.teamName = current.teamName || upload.teamName;
+      current.teamLogo = current.teamLogo || upload.teamLogo;
+      current.countryLogo = current.countryLogo || upload.countryLogo;
       current.players = [...current.players, ...nextPlayers];
       return;
     }
@@ -47,18 +60,27 @@ const groupUploadsByTeam = (uploads: any[]): TeamDivision[] => {
       id: upload.id,
       teamId: upload.teamId,
       teamName: upload.teamName,
+      teamLogo: upload.teamLogo,
+      countryLogo: upload.countryLogo,
       players: nextPlayers,
     });
   });
 
   return Array.from(grouped.values()).sort((left, right) =>
-    String(left.teamId || "").localeCompare(String(right.teamId || ""), undefined, {
-      numeric: true,
-      sensitivity: "base",
-    }),
+    String(left.teamId || "").localeCompare(
+      String(right.teamId || ""),
+      undefined,
+      {
+        numeric: true,
+        sensitivity: "base",
+      },
+    ),
   );
 };
 
+// ==========================================
+// SVG Icon Components
+// ==========================================
 const EditIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M16.9 3.6a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.2 19.3 4 20l.7-4.2L16.9 3.6Z" />
@@ -76,6 +98,9 @@ const DeleteIcon = () => (
   </svg>
 );
 
+// ==========================================
+// Main Component
+// ==========================================
 const PlayerUploadProfile = () => {
   const {
     deletePlayerByUid,
@@ -85,8 +110,9 @@ const PlayerUploadProfile = () => {
     playerUploads,
     updatePlayerByUid,
   } = usePlayerUploadController();
+
   const [editingPlayer, setEditingPlayer] = useState<EditingPlayer | null>(null);
-  const teamDivisions = groupUploadsByTeam(playerUploads);
+  const teamDivisions = groupUploadsByTeam(playerUploads || []);
 
   const getPlayerKey = (
     teamId: string | number,
@@ -117,18 +143,22 @@ const PlayerUploadProfile = () => {
       await updatePlayerByUid(playerUid, editingPlayer);
       setEditingPlayer(null);
     } catch {
-      // Keep edit mode open so the user can retry without retyping.
+      // Keep edit mode open so user can retry safely
     }
   };
 
   const handleDeletePlayer = async (playerUid?: string | number) => {
     if (!playerUid) return;
-    await deletePlayerByUid(playerUid);
+    if (window.confirm("Are you sure you want to remove this player profile?")) {
+      await deletePlayerByUid(playerUid);
+    }
   };
 
   const handleDeleteTeam = async (team: TeamDivision) => {
     if (!team.teamId) return;
-    await deletePlayerUpload(team.teamId);
+    if (window.confirm(`Are you sure you want to delete all players for team ${team.teamName || team.teamId}?`)) {
+      await deletePlayerUpload(team.teamId);
+    }
   };
 
   return (
@@ -145,22 +175,38 @@ const PlayerUploadProfile = () => {
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        {loading && playerUploads.length === 0 ? (
+        {loading && teamDivisions.length === 0 ? (
           <EmptyState>
             <Spinner />
             <span>Loading player upload data...</span>
           </EmptyState>
         ) : teamDivisions.length === 0 ? (
-          <EmptyState>No player upload data is available from API yet.</EmptyState>
+          <EmptyState>
+            No player upload data is available from API yet.
+          </EmptyState>
         ) : (
           <Grid>
             {teamDivisions.map((team) => (
-              <TeamCard key={`${team.teamId}-${team.id}`}>
+              <TeamCard key={`${team.teamId || "team"}-${team.id || "id"}`}>
                 <TeamHeaderRow>
                   <TeamMainInfo>
+                    {/* 1. Country Logo First */}
+                    {team.countryLogo && (
+                      <CountryLogoImg src={team.countryLogo} alt="Country Logo" />
+                    )}
+
+                    {/* 2. Team Name right after */}
                     <TeamName>{team.teamName || "Unnamed Team"}</TeamName>
-                    <TeamBadge>ID: {team.teamId || "-"}</TeamBadge>
+
+                    {/* 3. Team ID badge following the name */}
+                    <TeamBadge>ID: {team.teamId}</TeamBadge>
+
+                    {/* 4. Team Logo positioned next to ID */}
+                    {team.teamLogo && (
+                      <TeamLogoImg src={team.teamLogo} alt="Team Logo" />
+                    )}
                   </TeamMainInfo>
+                  
                   <HeaderActions>
                     <PlayerCount>{team.players.length} Players</PlayerCount>
                     <DeleteTeamButton
@@ -230,7 +276,9 @@ const PlayerUploadProfile = () => {
                                     <PlayerNameText>
                                       {player.playerName || "Unnamed Player"}
                                     </PlayerNameText>
-                                    <PlayerIndexLabel>Slot {playerIndex + 1}</PlayerIndexLabel>
+                                    <PlayerIndexLabel>
+                                      Slot {playerIndex + 1}
+                                    </PlayerIndexLabel>
                                   </>
                                 )}
                               </PlayerTextInfo>
@@ -287,7 +335,9 @@ const PlayerUploadProfile = () => {
                                     </AssetLink>
                                   )}
                                   {!player.playerPic && !player.cameraLink && (
-                                    <NoAssetsText>No external assets available</NoAssetsText>
+                                    <NoAssetsText>
+                                      No external assets available
+                                    </NoAssetsText>
                                   )}
                                 </>
                               )}
@@ -317,7 +367,11 @@ const PlayerUploadProfile = () => {
                                     type="button"
                                     title="Edit Player"
                                     onClick={() =>
-                                      handleStartEditPlayer(team.teamId, player, playerIndex)
+                                      handleStartEditPlayer(
+                                        team.teamId,
+                                        player,
+                                        playerIndex,
+                                      )
                                     }
                                   >
                                     <EditIcon />
@@ -337,7 +391,9 @@ const PlayerUploadProfile = () => {
                       })}
                     </PlayerListContainer>
                   ) : (
-                    <NoPlayersMessage>No roster players mapped to this profile division.</NoPlayersMessage>
+                    <NoPlayersMessage>
+                      No roster players mapped to this profile division.
+                    </NoPlayersMessage>
                   )}
                 </TeamContent>
               </TeamCard>
@@ -349,8 +405,9 @@ const PlayerUploadProfile = () => {
   );
 };
 
-export default PlayerUploadProfile;
-
+// ==========================================
+// Styled Components Stylesheet
+// ==========================================
 const PageWrapper = styled.div`
   min-height: 100vh;
   width: 100%;
@@ -405,9 +462,9 @@ const Grid = styled.div`
 `;
 
 const ErrorBanner = styled.div`
-  border: 1px solid rgba(var(--project-danger-rgb, 239, 68, 68), 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: 0.5rem;
-  background: rgba(var(--project-danger-rgb, 239, 68, 68), 0.12);
+  background: rgba(239, 68, 68, 0.12);
   color: var(--project-danger, #fecaca);
   padding: 0.85rem 1rem;
   font-size: 0.85rem;
@@ -433,13 +490,15 @@ const TeamHeaderRow = styled.div`
   @media (max-width: 768px) {
     align-items: flex-start;
     flex-direction: column;
+    gap: 1.25rem;
   }
 `;
 
 const TeamMainInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   min-width: 0;
 `;
 
@@ -447,6 +506,7 @@ const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  flex-shrink: 0;
 `;
 
 const TeamName = styled.h3`
@@ -457,6 +517,24 @@ const TeamName = styled.h3`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+const CountryLogoImg = styled.img`
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: #1f293d;
+  flex-shrink: 0;
+`;
+
+const TeamLogoImg = styled.img`
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  background-color: #1f293d;
+  flex-shrink: 0;
 `;
 
 const TeamBadge = styled.span`
@@ -566,6 +644,7 @@ const PlayerTextInfo = styled.div`
   flex-direction: column;
   gap: 0.35rem;
   min-width: 0;
+  width: 100%;
 `;
 
 const PlayerNameText = styled.span`
@@ -610,9 +689,7 @@ const AssetLink = styled.a`
   color: #38bdf8;
   text-decoration: none;
   border-bottom: 1px transparent solid;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     color: #7dd3fc;
@@ -711,6 +788,7 @@ const DeleteTeamButton = styled(DeleteButton)`
   font-size: 0.75rem;
   font-weight: 700;
   display: inline-flex;
+  align-items: center;
 `;
 
 const InlineInput = styled.input`
@@ -734,6 +812,7 @@ const InlineFile = styled.input`
   width: 100%;
   color: #94a3b8;
   font-size: 0.72rem;
+  margin-top: 0.25rem;
 `;
 
 const NoPlayersMessage = styled.div`
@@ -773,3 +852,5 @@ const Spinner = styled.div`
     }
   }
 `;
+
+export default PlayerUploadProfile;

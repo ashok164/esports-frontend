@@ -18,6 +18,8 @@ export interface PlayerUploadRecord {
   teamName?: string;
   playerPhotos?: string[];
   players?: PlayerUploadPlayer[];
+  countryLogo?: any;
+  teamLogo?: any;
 }
 
 export interface PlayerUploadPlayer {
@@ -178,7 +180,10 @@ const normalizePlayers = (record: any): PlayerUploadPlayer[] => {
   }));
 };
 
-const normalizePlayerUpload = (record: any, index: number): PlayerUploadRecord => ({
+const normalizePlayerUpload = (
+  record: any,
+  index: number,
+): PlayerUploadRecord => ({
   id: record?.id || record?._id || record?.teamId || record?.team_id || index,
   teamId: String(record?.teamId || record?.team_id || record?.team || ""),
   teamName:
@@ -190,6 +195,8 @@ const normalizePlayerUpload = (record: any, index: number): PlayerUploadRecord =
     "",
   playerPhotos: normalizePhotos(record),
   players: normalizePlayers(record),
+  countryLogo: record?.countryLogo,
+  teamLogo: record?.teamLogo,
 });
 
 const getResponseRows = (result: any) => {
@@ -209,7 +216,9 @@ const extractFiles = (fileField: any): File[] => {
   if (!fileField) return [];
   if (fileField instanceof File) return [fileField];
   if (Array.isArray(fileField) || fileField instanceof FileList) {
-    return Array.from(fileField).filter((file): file is File => file instanceof File);
+    return Array.from(fileField).filter(
+      (file): file is File => file instanceof File,
+    );
   }
   if (typeof fileField === "object" && fileField["0"] instanceof File) {
     return Array.from(fileField as FileList).filter(

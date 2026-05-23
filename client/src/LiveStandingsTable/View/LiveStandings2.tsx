@@ -34,7 +34,6 @@ interface Team {
 interface StandingsTableProps {
   teams?: Team[];
   maxRows?: number;
-  position?: "left" | "right";
 }
 
 const Theme = {
@@ -49,77 +48,90 @@ const Theme = {
   rowDead: "rgba(var(--project-danger-rgb, 15, 18, 16), 0.14)",
   text: "var(--project-text-primary, #ffffff)",
   white: "var(--project-text-primary, #ffffff)",
-  navy: "var(--project-secondary, #2575fc)",
-  border: "rgba(var(--project-accent-rgb, 0,255,136),0.32)",
 };
-
-const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 12px rgba(0,255,136,.24), 0 0 26px rgba(0,255,136,.10); }
-  50% { box-shadow: 0 0 18px rgba(0,255,136,.42), 0 0 38px rgba(0,255,136,.18); }
-`;
 
 const pulseRed = keyframes`
   0%, 100% { opacity: .45; }
   50% { opacity: 1; }
 `;
 
-const Board = styled.div<{ $position: "left" | "right" }>`
+const Board = styled.div`
   position: fixed;
   top: 50%;
-  ${(p) => (p.$position === "left" ? "left: 36px;" : "right: 36px;")}
+  right: 36px;
   transform: translateY(-50%);
-  width: 580px; 
+  width: 580px; /* Kept strictly at 580px */
   font-family: "Rajdhani", "Teko", "Oswald", "Inter", sans-serif;
-  pointer-events: none;
+  pointer-events: auto;
   user-select: none;
-  filter: drop-shadow(0 18px 30px rgba(0,0,0,.45));
+  z-index: 999;
+
+  filter: drop-shadow(0 25px 35px rgba(0, 0, 0, 0.65))
+    drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4));
 `;
 
 const Frame = styled.div`
   position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, ${Theme.panel}, #03120b);
-  border: 2px solid ${Theme.border};
-  clip-path: polygon(0 0, 96% 0, 100% 4%, 100% 100%, 4% 100%, 0 96%);
-  animation: ${glow} 2.8s infinite;
+  border-radius: 8px;
 `;
 
-// Unified matching grid system across header and data rows for perfect alignment
+const GRID_LAYOUT = css`
+  display: grid;
+  /* Rebalanced tracks: Expanded logos from 54px to 68px, team text column scales down to absorb it */
+  grid-template-columns: 58px 68px 68px 1fr 110px 64px 68px;
+  align-items: center;
+`;
+
 const HeaderRow = styled.div`
   height: 44px;
-  display: grid;
-  grid-template-columns: 55px 1fr 120px 72px 76px;
-  align-items: center;
-  background: linear-gradient(90deg, var(--project-background, #020907), var(--project-surface-alt, #0b2d1f) 50%, var(--project-background, #020907));
+  ${GRID_LAYOUT}
+  background: linear-gradient(
+    90deg,
+    var(--project-background, #020907),
+    var(--project-surface-alt, #0b2d1f) 50%,
+    var(--project-background, #020907)
+  );
   color: ${Theme.white};
   font-size: 14px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 1.2px;
+  flex-shrink: 0;
 `;
 
 const HeaderCell = styled.div<{ $center?: boolean; $last?: boolean }>`
   text-align: ${(p) => (p.$center ? "center" : "left")};
   padding: 0 4px;
-  ${(p) => p.$last && css`padding-right: 14px; text-align: center;`}
+
+  ${(p) =>
+    p.$last &&
+    css`
+      padding-right: 14px;
+      text-align: center;
+    `}
 `;
 
 const Rows = styled.div``;
 
-const Row = styled(motion.div)<{ $dead: boolean; $odd: boolean; $top: boolean }>`
+const Row = styled(motion.div)<{
+  $dead: boolean;
+  $odd: boolean;
+  $top: boolean;
+}>`
   position: relative;
-  height: 52px;
-  display: grid;
-  grid-template-columns: 55px 1fr 120px 72px 76px;
-  align-items: center;
-  overflow: hidden;
+  height: 64px;
+  ${GRID_LAYOUT}
   background: ${(p) => (p.$odd ? Theme.rowB : Theme.rowA)};
-  border-bottom: 1px solid rgba(3,18,11,.3);
+  border-bottom: 1px solid rgba(3, 18, 11, 0.25);
 
   ${(p) =>
     p.$top &&
     css`
-      background: linear-gradient(90deg, rgba(255,211,90,.12), transparent 45%),
+      background:
+        linear-gradient(90deg, rgba(255, 211, 90, 0.12), transparent 45%),
         ${p.$odd ? Theme.rowB : Theme.rowA};
     `}
 
@@ -128,7 +140,7 @@ const Row = styled(motion.div)<{ $dead: boolean; $odd: boolean; $top: boolean }>
     css`
       background: ${Theme.rowDead};
       color: #5d6660;
-      filter: grayscale(.8) brightness(.6);
+      filter: grayscale(0.8) brightness(0.6);
 
       &::after {
         content: "";
@@ -145,110 +157,133 @@ const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-right: 8px;
+  z-index: 3;
+  clip-path: polygon(0% 0%, 78% 0%, 100% 50%, 78% 100%, 0% 100%);
+
   background: ${(p) =>
     p.$dead
       ? "#0a0f0c"
       : p.$rank === 1
-      ? `linear-gradient(135deg, #ffd35a, #b87917)`
-      : `linear-gradient(135deg, #1f2923, #0d120f)`};
+        ? `linear-gradient(135deg, #ffd35a, #b87917)`
+        : `linear-gradient(135deg, #1f2923, #0d120f)`};
   color: ${(p) => (p.$rank === 1 && !p.$dead ? "#181103" : Theme.white)};
   font-size: 22px;
   font-weight: 900;
   font-style: italic;
-  text-shadow: ${(p) => (p.$rank === 1 && !p.$dead ? "none" : "0 2px 0 rgba(0,0,0,.4)")};
-  clip-path: polygon(0 0, 86% 0, 100% 50%, 86% 100%, 0 100%);
+  text-shadow: ${(p) =>
+    p.$rank === 1 && !p.$dead ? "none" : "0 2px 0 rgba(0,0,0,.4)"};
 `;
 
-const TeamCell = styled.div`
+const CountryDataCell = styled.div`
+  height: 100%;
   display: flex;
   align-items: center;
-  height: 100%;
-  padding-left: 8px;
-  padding-right: 8px;
-  gap: 12px; 
-  min-width: 0;
+  justify-content: flex-end;
+  padding-right: 6px;
+  background: rgba(11, 56, 21, 0.45);
+  border-right: 1px solid rgba(255, 255, 255, 0.02);
 `;
 
-// Rectangle 1: Country container remains distinct with its metallic base
+const VisualDataCell = styled.div`
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 8px; /* Keeps a solid, proportional gap relative to the bigger items */
+  background: rgba(0, 0, 0, 0.15);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
 const CountryBox = styled.div`
-  width: 54px;
-  height: 34px;
+  width: 44px; /* Scaled up from 38px */
+  height: 28px; /* Scaled up from 24px */
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #505854 0%, #333a36 100%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 8px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
 `;
 
 const Country = styled.img`
-  width: 28px;
-  height: 18px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 `;
 
-// Rectangle 2: Now transparent and free of any separating lines (|) or borders
-const TeamBadgeBox = styled.div`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  flex-grow: 1;
-  min-width: 0;
-  background: transparent;
-  padding: 0;
-`;
-
 const LogoBox = styled.div`
-  width: 28px;
-  height: 24px;
+  width: 42px; /* Scaled up from 36px */
+  height: 30px; /* Scaled up from 36px */
   display: flex;
+  margin-left: 5px;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 12px; /* Smooth inline spacing before team tag */
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 8px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
 `;
 
 const Logo = styled.img`
-  width: 100%;
-  height: 100%;
+  width: 150%;
+  height: 150%;
   object-fit: contain;
 `;
 
-// Middle text system perfectly placed under the "TEAM" header
-const TeamName = styled.div<{ $dead: boolean }>`
+const TeamIdentityCell = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center; 
+  justify-content: center;
   text-align: center;
   height: 100%;
-  flex-grow: 1;
-  color: ${(p) => (p.$dead ? "#5d6660" : Theme.text)};
-  font-size: 16px;
+  padding: 0 6px; /* Slightly tightened safety padding */
+  min-width: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const TeamTagText = styled.div<{ $dead: boolean }>`
+  color: ${(p) => (p.$dead ? "#5d6660" : "#ffd35a")};
+  font-size: 18px; /* Tiny step down to fit comfortably in a narrower space */
   font-weight: 900;
-  letter-spacing: .8px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
   line-height: 1;
-  padding-top: 1px;
+`;
+
+const AliveBarsCell = styled.div`
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
 `;
 
 const AliveBars = styled.div`
   display: flex;
   justify-content: center;
-  gap: 5px;
-  padding-right: 6px;
+  gap: 4px;
 `;
 
 const Bar = styled.div`
   position: relative;
-  width: 10px;
-  height: 28px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(0,0,0,.4);
+  width: 9px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.4);
   overflow: hidden;
 `;
 
@@ -269,37 +304,53 @@ const BarFill = styled.div<BarFillProps>`
     if (p.$status === "dead") return Theme.aliveBlue;
     return "transparent";
   }};
-  box-shadow: ${(p) => (p.$status === "alive" || p.$status === "knocked" ? "0 0 6px rgba(255,255,255,0.15)" : "none")};
-  transition: height 0.3s ease, background-color 0.2s ease;
+  box-shadow: ${(p) =>
+    p.$status === "alive" || p.$status === "knocked"
+      ? "0 0 6px rgba(255,255,255,0.15)"
+      : "none"};
+  transition:
+    height 0.3s ease,
+    background-color 0.2s ease;
 `;
 
-const NumberCell = styled.div<{ $main?: boolean; $last?: boolean }>`
+const NumberCell = styled.div<{ $last?: boolean }>`
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${(p) => (p.$main ? "rgba(0,255,136,.04)" : "rgba(0,0,0,.15)")};
-  border-left: 1px solid rgba(255,255,255,.05);
-  color: ${(p) => (p.$main ? "#ffd35a" : "#a2b0a7")};
-  font-size: ${(p) => (p.$main ? "20px" : "18px")};
+  background: rgba(0, 0, 0, 0.15);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ffd35a;
+  font-size: 18px;
   font-weight: 900;
-  ${(p) => p.$last && css`padding-right: 14px;`} 
+
+  ${(p) =>
+    p.$last &&
+    css`
+      padding-right: 14px;
+      color: #a2b0a7;
+      font-size: 18px;
+    `}
 `;
 
 const EliminatedBanner = styled(motion.div)`
   position: absolute;
-  inset: 0 0 0 55px;
+  inset: 0 0 0 58px;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(90deg, rgba(255,49,88,.98), rgba(96,7,24,.98));
+  background: linear-gradient(
+    90deg,
+    rgba(255, 49, 88, 0.98),
+    rgba(96, 7, 24, 0.98)
+  );
   color: ${Theme.white};
   font-size: 16px;
   font-weight: 900;
   letter-spacing: 5px;
   text-transform: uppercase;
-  text-shadow: 0 2px 0 rgba(0,0,0,.3);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
 `;
 
 const Footer = styled.div`
@@ -309,7 +360,8 @@ const Footer = styled.div`
   justify-content: center;
   padding: 0 14px;
   background: linear-gradient(90deg, #03120b, ${Theme.panel2}, #03120b);
-  border-top: 1px solid rgba(0,255,136,.22);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 `;
 
 const Legend = styled.div`
@@ -339,7 +391,8 @@ const ColorSquare = styled.div<{ $color: string; $empty?: boolean }>`
   width: 12px;
   height: 12px;
   background: ${(p) => p.$color};
-  border: 1px solid ${(p) => (p.$empty ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)")};
+  border: 1px solid
+    ${(p) => (p.$empty ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)")};
 `;
 
 const EmptyState = styled.div`
@@ -347,7 +400,7 @@ const EmptyState = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,.68);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 15px;
   font-weight: 900;
   letter-spacing: 2px;
@@ -359,13 +412,15 @@ function toNumber(value: unknown): number {
   return Number.isFinite(number) ? number : 0;
 }
 
-function getTeamName(team: Team): string {
-  return team.teamTag || team.shortName || team.tag || team.name || "TEAM";
+function getTeamTag(team: Team): string {
+  return team.teamTag || team.shortName || team.tag || "TEAM";
 }
 
 function getPoints(team: Team): number {
   if (typeof team.totalPoints === "number") return team.totalPoints;
-  return toNumber(team.rankingScore ?? team.placementPoints) + toNumber(team.kills);
+  return (
+    toNumber(team.rankingScore ?? team.placementPoints) + toNumber(team.kills)
+  );
 }
 
 function getPlayers(team: Team): Array<Player | null> {
@@ -397,7 +452,10 @@ function TimedEliminationNotice({ showWhenDead }: { showWhenDead: boolean }) {
     }
 
     setShow(true);
-    const timer = window.setTimeout(() => setShow(false), ELIMINATION_BANNER_MS);
+    const timer = window.setTimeout(
+      () => setShow(false),
+      ELIMINATION_BANNER_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [showWhenDead]);
 
@@ -419,8 +477,7 @@ function TimedEliminationNotice({ showWhenDead }: { showWhenDead: boolean }) {
 
 export default function StandingsTable({
   teams = [],
-  maxRows = 18,
-  position = "right",
+  maxRows = 12,
 }: StandingsTableProps) {
   const sortedTeams = useMemo(() => {
     return [...teams]
@@ -437,11 +494,13 @@ export default function StandingsTable({
   }, [teams, maxRows]);
 
   return (
-    <Board $position={position}>
+    <Board>
       <Frame>
         <HeaderRow>
           <HeaderCell $center>#</HeaderCell>
-          <HeaderCell style={{ paddingLeft: "8px", textAlign: "center" }}>Team</HeaderCell>
+          <HeaderCell />
+          <HeaderCell />
+          <HeaderCell $center>Team</HeaderCell>
           <HeaderCell $center>Alive</HeaderCell>
           <HeaderCell $center>Pts</HeaderCell>
           <HeaderCell $last>Elims</HeaderCell>
@@ -455,6 +514,7 @@ export default function StandingsTable({
               sortedTeams.map((team, index) => {
                 const dead = isTeamDead(team);
                 const players = getPlayers(team);
+                const tagValue = getTeamTag(team);
 
                 return (
                   <Row
@@ -474,36 +534,45 @@ export default function StandingsTable({
                       {formatRank(team.rank)}
                     </RankCell>
 
-                    <TeamCell>
+                    <CountryDataCell>
                       <CountryBox>
-                        {team.countryUrl ? <Country src={team.countryUrl} alt="" /> : null}
+                        {team.countryUrl ? (
+                          <Country src={team.countryUrl} alt="" />
+                        ) : null}
                       </CountryBox>
+                    </CountryDataCell>
 
-                      <TeamBadgeBox>
-                        <LogoBox>
-                          {team.logoUrl ? <Logo src={team.logoUrl} alt="" /> : null}
-                        </LogoBox>
-                        <TeamName $dead={dead}>{getTeamName(team)}</TeamName>
-                      </TeamBadgeBox>
-                    </TeamCell>
+                    <VisualDataCell>
+                      <LogoBox>
+                        {team.logoUrl ? (
+                          <Logo src={team.logoUrl} alt="" />
+                        ) : null}
+                      </LogoBox>
+                    </VisualDataCell>
 
-                    <AliveBars>
-                      {players.map((player, playerIndex) => {
-                        const status = getPlayerStatus(player);
-                        const hpValue = status === "dead" ? 100 : toNumber(player?.hpPercent ?? 100);
-                        
-                        return (
-                          <Bar key={playerIndex}>
-                            <BarFill 
-                              $hp={hpValue} 
-                              $status={status} 
-                            />
-                          </Bar>
-                        );
-                      })}
-                    </AliveBars>
+                    <TeamIdentityCell>
+                      <TeamTagText $dead={dead}>{tagValue}</TeamTagText>
+                    </TeamIdentityCell>
 
-                    <NumberCell $main>{getPoints(team)}</NumberCell>
+                    <AliveBarsCell>
+                      <AliveBars>
+                        {players.map((player, playerIndex) => {
+                          const status = getPlayerStatus(player);
+                          const hpValue =
+                            status === "dead"
+                              ? 100
+                              : toNumber(player?.hpPercent ?? 100);
+
+                          return (
+                            <Bar key={playerIndex}>
+                              <BarFill $hp={hpValue} $status={status} />
+                            </Bar>
+                          );
+                        })}
+                      </AliveBars>
+                    </AliveBarsCell>
+
+                    <NumberCell>{getPoints(team)}</NumberCell>
                     <NumberCell $last>{toNumber(team.kills)}</NumberCell>
                   </Row>
                 );
@@ -521,9 +590,11 @@ export default function StandingsTable({
               </SquareContainer>
               Alive
             </LegendItem>
+
             <LegendItem>
               <ColorSquare $color={Theme.knocked} /> Knocked
             </LegendItem>
+
             <LegendItem>
               <ColorSquare $color={Theme.deadBg} $empty /> Dead
             </LegendItem>

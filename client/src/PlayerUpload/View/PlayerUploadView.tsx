@@ -4,7 +4,6 @@ import usePlayerUploadController from "../Controller/usePlayerUploadController";
 const PlayerUploadView = () => {
   const { createPlayerUploads, error, loading, playerUploads } =
     usePlayerUploadController();
-
   return (
     <PlayerUploadTable
       createPlayerUploads={createPlayerUploads}
