@@ -65,6 +65,48 @@ const routeGroups: RouteGroup[] = [
     ],
   },
   {
+    title: "Game Assets",
+    description: "Weapon, character, skill, role, and equipment image upload tools.",
+    routes: [
+      {
+        title: "Game Asset Upload",
+        path: "/game-asset-upload",
+        note: "Create and update gameplay asset images.",
+        type: "Admin",
+      },
+      {
+        title: "View Weapons",
+        path: "/view-weapons",
+        note: "Review uploaded weapon IDs, names, and images.",
+        type: "Admin",
+      },
+      {
+        title: "View Characters",
+        path: "/view-characters",
+        note: "Review uploaded character IDs, names, and images.",
+        type: "Admin",
+      },
+      {
+        title: "View Skills",
+        path: "/view-skills",
+        note: "Review uploaded skill IDs, names, and images.",
+        type: "Admin",
+      },
+      {
+        title: "View Roles",
+        path: "/view-roles",
+        note: "Review uploaded role IDs, names, and images.",
+        type: "Admin",
+      },
+      {
+        title: "View Equipment",
+        path: "/view-equipment",
+        note: "Review uploaded equipment IDs, names, and images.",
+        type: "Admin",
+      },
+    ],
+  },
+  {
     title: "Live Broadcast",
     description: "Overlay pages intended for live production windows.",
     routes: [

@@ -1,29 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import LiveStandingsView from "../../LiveStandingsTable/View";
-import TeamEliminatedView from "../../TeamEliminated/View";
 import { RealtimeProvider } from "../../GlobalWebsocket/realtimeProvider";
-import LastTeamNotification from "../../LastFourTeams/View/LastTeamNotification";
-import MatchNumber from "../../MatchNumber/View";
-import CircleAnalysis from "../../CircleAnalysis/View";
-import TeamRecordTable from "../../TeamRecordTable/View";
-import ViewTeamLogo from "../../TeamLogo/View";
-import PlayerUploadView from "../../PlayerUpload/View";
-import PlayerUploadProfile from "../../PlayerUpload/View/PlayerUploadProfile";
-import RouteNavigator from "../RouteNavigator";
 import { ProjectThemeProvider } from "../../Theme";
-import BroadcastThemeView from "../../BroadcastTheme/View";
-import LoginView, { RegisterView } from "../../Auth/View";
 import { clearAuthSession, isAuthenticated, saveAuthUser } from "../../Auth/Repository/authStorage";
 import { getCurrentUser } from "../../Auth/Repository/remote";
-
-const broadcastRoutePaths = [
-  "/live-standings",
-  "/team-eliminated",
-  "/last-four-teams",
-  "/match-number",
-  "/circle-analysis",
-];
+import { appRouteDefinitions, broadcastRoutePaths } from "./routeDefinitions";
 
 const ThemeRouteScope: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
@@ -100,19 +81,19 @@ const App: React.FC = () => {
           <RealtimeProvider>
             <Routes>
               <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<LoginView />} />
-              <Route path="/register" element={<RegisterView />} />
-              <Route path="/routes" element={<ProtectedRoute><RouteNavigator /></ProtectedRoute>} />
-              <Route path="/broadcast-theme" element={<ProtectedRoute><BroadcastThemeView /></ProtectedRoute>} />
-              <Route path="/live-standings" element={<LiveStandingsView />} />
-              <Route path="/team-eliminated" element={<TeamEliminatedView />} />
-              <Route path="/last-four-teams" element={<LastTeamNotification />} />
-              <Route path="/match-number" element={<MatchNumber />} />
-              <Route path="/circle-analysis" element={<CircleAnalysis />} />
-              <Route path="/team-record" element={<ProtectedRoute><TeamRecordTable /></ProtectedRoute>} />
-              <Route path="/team-logo" element={<ProtectedRoute><ViewTeamLogo /></ProtectedRoute>} />
-              <Route path="/player-upload" element={<ProtectedRoute><PlayerUploadView /></ProtectedRoute>} />
-              <Route path="/player-profile" element={<ProtectedRoute><PlayerUploadProfile /></ProtectedRoute>} />
+              {appRouteDefinitions.map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={
+                    route.isProtected ? (
+                      <ProtectedRoute>{route.element}</ProtectedRoute>
+                    ) : (
+                      route.element
+                    )
+                  }
+                />
+              ))}
             </Routes>
           </RealtimeProvider>
         </ThemeRouteScope>
