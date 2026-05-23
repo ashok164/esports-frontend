@@ -5,6 +5,7 @@ const TeamRecordTable = () => {
   const {
     createTeamTable,
     updateTeamTable,
+    reorderTeamTable,
     deleteTeamTable,
     openTeamLogos,
     teams,
@@ -17,6 +18,7 @@ const TeamRecordTable = () => {
       <TeamHookFormTable
         createTeamTable={createTeamTable}
         updateTeamTable={updateTeamTable}
+        reorderTeamTable={reorderTeamTable}
         deleteTeamTable={deleteTeamTable}
         openTeamLogos={openTeamLogos}
         teams={teams}

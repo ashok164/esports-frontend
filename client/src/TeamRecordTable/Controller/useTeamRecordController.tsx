@@ -141,6 +141,39 @@ const useTeamRecordController = () => {
     }
   };
 
+  const handleReorderTeams = async (rows: any[]) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const rowsWithIds = rows.filter((row) => row.recordId);
+
+      await Promise.all(
+        rowsWithIds.map((row, index) =>
+          updateTeamTableApi(
+            row.recordId,
+            buildTeamFormData({
+              ...row,
+              teamId: String(-100000 - index),
+            }),
+          ),
+        ),
+      );
+
+      await Promise.all(
+        rowsWithIds.map((row) =>
+          updateTeamTableApi(row.recordId, buildTeamFormData(row)),
+        ),
+      );
+
+      await loadTeams();
+    } catch (err: any) {
+      setError(err?.message || "Failed to reorder team records");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDeleteTeam = async (recordId: string | number) => {
     setIsSaving(true);
     setError(null);
@@ -163,6 +196,7 @@ const useTeamRecordController = () => {
   return {
     createTeamTable: handleCreateTeam,
     updateTeamTable: handleUpdateTeam,
+    reorderTeamTable: handleReorderTeams,
     deleteTeamTable: handleDeleteTeam,
     openTeamLogos: handleOpenTeamLogos,
     refreshTeams: loadTeams,

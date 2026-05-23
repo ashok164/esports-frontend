@@ -23,6 +23,7 @@ type TeamFormValues = {
 type TeamFormTableProps = {
   createTeamTable: (data: TeamFormValues) => Promise<void>;
   updateTeamTable: (id: string | number, data: TeamRow) => Promise<void>;
+  reorderTeamTable: (rows: TeamRow[]) => Promise<void>;
   deleteTeamTable: (id: string | number) => Promise<void>;
   openTeamLogos: (team?: TeamRecord) => void;
   teams?: TeamRecord[];
@@ -76,6 +77,28 @@ const DeleteIcon = () => (
     <path d="M9 7V4h6v3" />
   </svg>
 );
+
+const DragIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 5h.01" />
+    <path d="M15 5h.01" />
+    <path d="M9 12h.01" />
+    <path d="M15 12h.01" />
+    <path d="M9 19h.01" />
+    <path d="M15 19h.01" />
+  </svg>
+);
+
+const reorderRows = (rows: TeamRow[], fromIndex: number, toIndex: number) => {
+  const nextRows = [...rows];
+  const [movedRow] = nextRows.splice(fromIndex, 1);
+  nextRows.splice(toIndex, 0, movedRow);
+
+  return nextRows.map((row, index) => ({
+    ...row,
+    teamId: String(index + 1),
+  }));
+};
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -204,14 +227,28 @@ const TableHead = styled.thead`
   }
 `;
 
-const TableRow = styled.tr<{ $isEditing?: boolean }>`
+const TableRow = styled.tr<{ $isEditing?: boolean; $isDragging?: boolean; $isDragOver?: boolean }>`
   border-bottom: 1px solid #1e293b;
-  background: ${({ $isEditing }) => ($isEditing ? "rgba(239, 68, 68, 0.07)" : "transparent")};
+  background: ${({ $isEditing, $isDragging, $isDragOver }) =>
+    $isDragging
+      ? "rgba(148, 163, 184, 0.12)"
+      : $isDragOver
+        ? "rgba(20, 184, 166, 0.12)"
+        : $isEditing
+          ? "rgba(239, 68, 68, 0.07)"
+          : "transparent"};
+  outline: ${({ $isDragOver }) => ($isDragOver ? "1px dashed #14b8a6" : "none")};
+  outline-offset: -1px;
   transition: background 0.15s ease;
+  opacity: ${({ $isDragging }) => ($isDragging ? 0.72 : 1)};
 
   &:hover {
-    background: ${({ $isEditing }) =>
-      $isEditing ? "rgba(239, 68, 68, 0.1)" : "rgba(148, 163, 184, 0.06)"};
+    background: ${({ $isEditing, $isDragOver }) =>
+      $isDragOver
+        ? "rgba(20, 184, 166, 0.12)"
+        : $isEditing
+          ? "rgba(239, 68, 68, 0.1)"
+          : "rgba(148, 163, 184, 0.06)"};
   }
 `;
 
@@ -325,6 +362,50 @@ const ActionWrapper = styled.div`
   gap: 0.4rem;
 `;
 
+const OrderCell = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+`;
+
+const DragButton = styled.button`
+  width: 1.85rem;
+  height: 1.85rem;
+  border: 1px solid #334155;
+  border-radius: 0.35rem;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.82);
+  color: #94a3b8;
+  cursor: grab;
+  padding: 0;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+`;
+
 const IconButton = styled.button<{ $variant?: "danger" | "ghost" }>`
   width: 2.15rem;
   height: 2.15rem;
@@ -426,6 +507,7 @@ const ResponsiveTableStyles = styled.div`
 export default function TeamFormTable({
   createTeamTable,
   updateTeamTable,
+  reorderTeamTable,
   deleteTeamTable,
   openTeamLogos,
   teams = [],
@@ -435,6 +517,8 @@ export default function TeamFormTable({
 }: TeamFormTableProps) {
   const [editingRows, setEditingRows] = useState<Record<number, boolean>>({});
   const [rowSnapshots, setRowSnapshots] = useState<Record<number, TeamRow>>({});
+  const [draggedRowIndex, setDraggedRowIndex] = useState<number | null>(null);
+  const [dragOverRowIndex, setDragOverRowIndex] = useState<number | null>(null);
 
   const apiRows = useMemo(() => teams.map(mapApiTeamToRow), [teams]);
 
@@ -452,7 +536,7 @@ export default function TeamFormTable({
     defaultValues: { teams: [] },
   });
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, append, remove, replace, move } = useFieldArray({
     control,
     name: "teams",
   });
@@ -532,6 +616,66 @@ export default function TeamFormTable({
     await deleteTeamTable(row.recordId);
   };
 
+  const handleDragStart = (
+    event: React.DragEvent<HTMLElement>,
+    index: number,
+  ) => {
+    setDraggedRowIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragOverRowIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedRowIndex(null);
+    setDragOverRowIndex(null);
+  };
+
+  const handleDrop = async (
+    event: React.DragEvent<HTMLTableRowElement>,
+    dropIndex: number,
+  ) => {
+    event.preventDefault();
+
+    const sourceIndex =
+      draggedRowIndex ?? Number(event.dataTransfer.getData("text/plain"));
+
+    handleDragEnd();
+
+    if (!Number.isInteger(sourceIndex) || sourceIndex === dropIndex) {
+      return;
+    }
+
+    const rowsBeforeMove = getValues("teams");
+    const nextRows = reorderRows(rowsBeforeMove, sourceIndex, dropIndex);
+    const changedSavedRows = nextRows.filter((row, index) => {
+      const previousRow = rowsBeforeMove.find(
+        (candidate) => candidate.recordId && candidate.recordId === row.recordId,
+      );
+
+      return row.recordId && previousRow && previousRow.teamId !== String(index + 1);
+    });
+
+    move(sourceIndex, dropIndex);
+    nextRows.forEach((row, index) => {
+      setValue(`teams.${index}.teamId`, row.teamId, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    });
+    setEditingRows({});
+    setRowSnapshots({});
+
+    if (changedSavedRows.length > 0) {
+      await reorderTeamTable(changedSavedRows);
+    }
+  };
+
   const onSubmit = async (data: TeamFormValues) => {
     const newRows = data.teams.filter((team) => !team.recordId);
     if (newRows.length === 0) return;
@@ -573,7 +717,7 @@ export default function TeamFormTable({
                 <Table>
                   <TableHead>
                     <tr>
-                      <th style={{ width: "5%", textAlign: "center" }}>No.</th>
+                      <th style={{ width: "7%", textAlign: "center" }}>Drag</th>
                       <th style={{ width: "11%" }}>Team ID</th>
                       <th style={{ width: "20%" }}>Team Name</th>
                       <th style={{ width: "8%" }}>Tag</th>
@@ -592,9 +736,33 @@ export default function TeamFormTable({
                     const countryLogoFile = getFileName(row.countryLogo);
 
                     return (
-                      <TableRow key={field.id} $isEditing={isEditing}>
-                        <TableCell data-label="No." style={{ textAlign: "center", color: "#94a3b8" }}>
-                          {String(index + 1).padStart(2, "0")}
+                      <TableRow
+                        key={field.id}
+                        $isEditing={isEditing}
+                        $isDragging={draggedRowIndex === index}
+                        $isDragOver={dragOverRowIndex === index && draggedRowIndex !== index}
+                        draggable={!isSaving && fields.length >= 2}
+                        onDragStart={(event) => handleDragStart(event, index)}
+                        onDragOver={(event) => handleDragOver(event, index)}
+                        onDragLeave={() => setDragOverRowIndex(null)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(event) => handleDrop(event, index)}
+                      >
+                        <TableCell data-label="Drag" style={{ textAlign: "center", color: "#94a3b8" }}>
+                          <OrderCell>
+                            <DragButton
+                              type="button"
+                              draggable={!isSaving}
+                              disabled={isSaving || fields.length < 2}
+                              onDragStart={(event) => handleDragStart(event, index)}
+                              onDragEnd={handleDragEnd}
+                              aria-label={`Move ${row.teamName || "team"} row`}
+                              title="Drag to reorder"
+                            >
+                              <DragIcon />
+                            </DragButton>
+                            <span>{String(index + 1).padStart(2, "0")}</span>
+                          </OrderCell>
                         </TableCell>
 
                         <TableCell data-label="Team ID">
