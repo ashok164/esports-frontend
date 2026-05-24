@@ -11,6 +11,7 @@ export interface Player {
   status: "alive" | "knocked" | "dead";
   hasRecalled: boolean; // <-- Added persistent death tracker
   deadTime: number;
+  playerPic?: string;
 }
 
 export interface Team {
@@ -35,13 +36,18 @@ export const mapTeamData = (
   data: any[],
   previousTeamsState?: Team[],
 ): Team[] => {
-  console.log(data,'data')
+  console.log(data, "data");
 
   const mapped = (data || []).map((team, teamIndex) => {
-
     const rawPlayers = team?.players || team?.player_stats || [];
 
-    const sortedRawPlayers = [...rawPlayers].sort((a, b) =>
+    const normalizedRawPlayers = rawPlayers.map((p: any) => ({
+      ...p,
+      playerPic: p.playerPic,
+    }));
+
+
+    const sortedRawPlayers = [...normalizedRawPlayers].sort((a, b) =>
       String(a.account_id || "").localeCompare(String(b.account_id || "")),
     );
 
@@ -113,6 +119,14 @@ export const mapTeamData = (
         status,
         hasRecalled, // <-- Retained in state payload
         deadTime: p?.be_killed_time,
+        playerPic:
+          p.playerPic ||
+          p.player_pic ||
+          p.avatar ||
+          p.photoUrl ||
+          p.avatarUrl ||
+          p.player_image ||
+          undefined,
       };
     });
 
