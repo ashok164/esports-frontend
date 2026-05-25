@@ -3,7 +3,8 @@ import styled, { css, keyframes } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef } from "react";
 
-const ELIMINATION_BANNER_MS = 1800;
+const ELIMINATION_BANNER_MS = 2000;
+const ELIMINATION_SWAP_DELAY_MS = 1000;
 
 type PlayerStatus = "alive" | "knocked" | "dead";
 
@@ -91,10 +92,9 @@ const MIN_COMPACT_ROW_HEIGHT = 42;
 
 const GRID_LAYOUT = css`
   display: grid;
-  grid-template-columns: 62px 58px 58px minmax(
-      120px,
-      1fr
-    ) 96px 18px 66px 18px 66px;
+  grid-template-columns:
+    62px 58px 58px minmax(120px, 1fr)
+    96px 18px 66px 18px 66px;
   align-items: center;
 `;
 
@@ -564,7 +564,9 @@ const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
 
 const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
-  const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
+  const activeCount = teams.filter((team) =>
+    flashingIds.has(getTeamId(team)),
+  ).length;
   const totalHeight = teams.length * BASE_ROW_HEIGHT;
 
   if (teams.length === 0 || activeCount === 0) {
@@ -614,20 +616,30 @@ function TeamRow({
   const [phase, setPhase] = useState<"alive" | "flash_wipe" | "settled_normal">(
     "alive",
   );
+  const [showEliminationSwap, setShowEliminationSwap] = useState(false);
 
   useEffect(() => {
     if (isDead) {
       if (phase === "alive") {
         setPhase("flash_wipe");
+        setShowEliminationSwap(false);
+
+        const swapTimer = setTimeout(() => {
+          setShowEliminationSwap(true);
+        }, ELIMINATION_SWAP_DELAY_MS);
 
         const timer = setTimeout(() => {
           setPhase("settled_normal");
         }, ELIMINATION_BANNER_MS);
 
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(swapTimer);
+          clearTimeout(timer);
+        };
       }
     } else {
       setPhase("alive");
+      setShowEliminationSwap(false);
     }
   }, [isDead]);
 
@@ -649,7 +661,9 @@ function TeamRow({
         transition={{ duration: 0.24, ease: "easeOut" }}
       >
         {/* Cinematic red flash swipe overlay running above everything */}
-        {phase === "flash_wipe" && <CinematicWipeOverlay />}
+        {phase === "flash_wipe" && showEliminationSwap && (
+          <CinematicWipeOverlay />
+        )}
 
         {/* Column 1: Stays safely readable */}
         <RankCell $rank={team.rank ?? index + 1} $dead={isDead}>
@@ -665,12 +679,14 @@ function TeamRow({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <EliminatedTextOverlay
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-              />
+              {showEliminationSwap && (
+                <EliminatedTextOverlay
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                />
+              )}
 
               {players.map((player, pIdx) => (
                 <GrandPlayerFrame
@@ -794,7 +810,10 @@ export default function StandingsTable({
     });
 
     currentDeadIds.forEach((id) => {
-      if (previousDeadIdsRef.current.has(id) || flashingTimersRef.current.has(id)) {
+      if (
+        previousDeadIdsRef.current.has(id) ||
+        flashingTimersRef.current.has(id)
+      ) {
         return;
       }
 
