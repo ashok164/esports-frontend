@@ -117,6 +117,12 @@ const routeGroups: RouteGroup[] = [
     description: "Overlay pages intended for live production windows.",
     routes: [
       {
+        title: "Circle Analysis Control",
+        path: "/circle-analysis-control",
+        note: "Edit circle placements and kill counts for the circle analysis overlay.",
+        type: "Admin",
+      },
+      {
         title: "Live Standings",
         path: "/live-standings",
         note: "Live standings table overlay.",

@@ -70,3 +70,5 @@ export const UPDATE_GAME_DETAIL = (id: string | number) =>
   `/api/game-details/update/${id}`;
 export const DELETE_GAME_DETAIL = (id: string | number) =>
   `/api/game-details/delete/${id}`;
+export const GET_CIRCLE_ANALYSIS = "/api/circle-analysis";
+export const UPDATE_CIRCLE_ANALYSIS = "/api/circle-analysis";

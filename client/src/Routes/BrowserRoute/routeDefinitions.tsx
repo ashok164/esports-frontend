@@ -1,6 +1,7 @@
 import React from "react";
 import BroadcastThemeView from "../../BroadcastTheme/View";
 import CircleAnalysis from "../../CircleAnalysis/View";
+import CircleAnalysisAdmin from "../../CircleAnalysis/View/CircleAnalysisAdmin";
 import GameAssetUploadView from "../../GameAssetUpload/View";
 import GameDetailsView from "../../GameDetails/View";
 import ViewCharacters from "../../GameAssetUpload/View/ViewCharacters";
@@ -36,6 +37,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/last-four-teams", element: <LastTeamNotification />, isBroadcast: true },
   { path: "/match-number", element: <MatchNumber />, isBroadcast: true },
   { path: "/circle-analysis", element: <CircleAnalysis />, isBroadcast: true },
+  { path: "/circle-analysis-control", element: <CircleAnalysisAdmin />, isProtected: true },
   { path: "/team-record", element: <TeamRecordTable />, isProtected: true },
   { path: "/team-logo", element: <ViewTeamLogo />, isProtected: true },
   { path: "/player-upload", element: <PlayerUploadView />, isProtected: true },

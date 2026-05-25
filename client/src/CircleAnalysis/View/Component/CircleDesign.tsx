@@ -1,5 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { CircleAnalysisTeam } from '../../types';
 
 // ==========================================
 // 1. LOCKED CONSTANT VELOCITY KEYFRAMES
@@ -11,8 +12,8 @@ const constantVelocityGrow = keyframes`
 `;
 
 const popNode = keyframes`
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: translateY(-50%) scale(0); opacity: 0; }
+  100% { transform: translateY(-50%) scale(1); opacity: 1; }
 `;
 
 // Clean popup for the Booyah badge once its calculated travel timer expires
@@ -132,7 +133,11 @@ const MidTrackKillGroup = styled.div<{ delayIndex: number }>`
   display: flex;
   align-items: center;
   gap: 6px;
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -7px;
+  transform-origin: left center;
   background-color: var(--project-surface, #310062); 
   padding: 2px 8px;
   border-radius: 12px;
@@ -143,23 +148,36 @@ const MidTrackKillGroup = styled.div<{ delayIndex: number }>`
   animation-delay: ${props => `${(props.delayIndex - 0.5) * 2.5}s`};
 `;
 
+const TerminalKillGroup = styled(MidTrackKillGroup)`
+  margin-top: 42px;
+`;
+
 const CircularTargetIcon = styled.div`
   width: 14px;
   height: 14px;
-  border: 2px solid var(--project-accent, #bfff00); 
-  background-color: var(--project-surface, #310062);
+  flex: 0 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background:
+    linear-gradient(var(--project-danger, #d72b5f), var(--project-danger, #d72b5f)) center / 2px 10px no-repeat,
+    linear-gradient(90deg, var(--project-danger, #d72b5f), var(--project-danger, #d72b5f)) center / 10px 2px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.98) 0 2px, transparent 2.5px),
+    var(--project-danger, #d72b5f);
   border-radius: 50%;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(var(--project-danger-rgb, 215, 43, 95), 0.55), 0 2px 5px rgba(0,0,0,0.4);
 
-  &::before {
+  &::before,
+  &::after {
     content: '';
-    width: 4px;
-    height: 4px;
-    background-color: var(--project-text-primary, #fff);
+    position: absolute;
+    inset: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
     border-radius: 50%;
+  }
+
+  &::after {
+    inset: -3px;
+    border-color: rgba(var(--project-danger-rgb, 215, 43, 95), 0.38);
   }
 `;
 
@@ -191,6 +209,18 @@ const TeamLogoBox = styled.div<{ bgImage?: string; isDead?: boolean }>`
   justify-content: center;
 `;
 
+const CountryFlag = styled.img`
+  position: absolute;
+  right: -9px;
+  bottom: -7px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--project-text-primary, #fff);
+  background: var(--project-background, #000);
+`;
+
 const LogoFallbackText = styled.span`
   font-size: 12px;
   font-weight: 900;
@@ -200,19 +230,26 @@ const LogoFallbackText = styled.span`
 
 const LogoDeadOverlayCross = styled.div`
   position: absolute;
-  top: -4px;
-  left: -4px;
-  background: var(--project-danger, #ff3333);
-  color: var(--project-text-primary, white);
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: -7px;
+  left: -7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background:
+    linear-gradient(var(--project-danger, #d72b5f), var(--project-danger, #d72b5f)) center / 2px 14px no-repeat,
+    linear-gradient(90deg, var(--project-danger, #d72b5f), var(--project-danger, #d72b5f)) center / 14px 2px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.98) 0 2px, transparent 2.5px),
+    var(--project-danger, #d72b5f);
   box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+
+  &::before {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    inset: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.68);
+  }
 `;
 
 // --- FIX: BOOYAH APPEARS DYNAMICALLY ON THE EXACT FINISH FRAME ---
@@ -242,34 +279,15 @@ const BooyahTag = styled.div<BooyahTagProps>`
 // 3. TEAM DATA INTERFACE
 // ==========================================
 
-interface TeamMatchData {
-  teamId: string;
-  teamName: string;
-  shortLabel: string;
-  logoUrl: string;
-  isDead: boolean;
-  hasBooyah: boolean;
-  lastCircle: number;
-  killsPerCircle: { [circleKey: number]: number };
+interface StreamPerformanceTimelineProps {
+  circles?: number[];
+  teams?: CircleAnalysisTeam[];
 }
 
-const MOCK_12_TEAMS_DATA: TeamMatchData[] = [
-  { teamId: "t1", teamName: "Team 1", shortLabel: "T1", logoUrl: "", isDead: false, hasBooyah: true, lastCircle: 6, killsPerCircle: { 1: 5, 2: 2, 3: 2, 4: 3, 5: 6, 6: 4 } },
-  { teamId: "t2", teamName: "Team 2", shortLabel: "T2", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 6, killsPerCircle: { 1: 3, 2: 1, 3: 2, 4: 4, 5: 4 } },
-  { teamId: "t3", teamName: "Team 3", shortLabel: "T3", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 5, killsPerCircle: { 1: 9, 3: 2, 5: 1 } },
-  { teamId: "t4", teamName: "Team 4", shortLabel: "T4", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 5, killsPerCircle: { 1: 4, 2: 3, 5: 1 } },
-  { teamId: "t5", teamName: "Team 5", shortLabel: "T5", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 5, killsPerCircle: { 1: 6, 2: 1, 4: 2 } },
-  { teamId: "t6", teamName: "Team 6", shortLabel: "T6", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 5, killsPerCircle: { 1: 5, 4: 1 } },
-  { teamId: "t7", teamName: "Team 7", shortLabel: "T7", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 4, killsPerCircle: { 1: 8, 2: 3 } },
-  { teamId: "t8", teamName: "Team 8", shortLabel: "T8", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 4, killsPerCircle: { 1: 6 } },
-  { teamId: "t9", teamName: "Team 9", shortLabel: "T9", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 4, killsPerCircle: { 1: 8, 2: 1 } },
-  { teamId: "t10", teamName: "Team 10", shortLabel: "T10", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 2, killsPerCircle: { 1: 4 } },
-  { teamId: "t11", teamName: "Team 11", shortLabel: "T11", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 1, killsPerCircle: { 1: 3 } },
-  { teamId: "t12", teamName: "Team 12", shortLabel: "T12", logoUrl: "", isDead: true, hasBooyah: false, lastCircle: 1, killsPerCircle: { 1: 1 } }
-];
-
-export const StreamPerformanceTimeline: React.FC = () => {
-  const circles = [1, 2, 3, 4, 5, 6, 7, 8];
+export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps> = ({
+  circles = [1, 2, 3, 4, 5, 6, 7, 8],
+  teams = [],
+}) => {
   
   // Base constants establishing that 1 full column step interval takes 2.5 seconds
   const SECONDS_PER_COLUMN = 2.5; 
@@ -284,10 +302,11 @@ export const StreamPerformanceTimeline: React.FC = () => {
       </TimelineHeaderGrid>
 
       <TrackList>
-        {MOCK_12_TEAMS_DATA.map((team) => {
+        {teams.map((team) => {
+          const finishCircle = team.hasBooyah ? circles[circles.length - 1] : team.lastCircle;
           // Calculate the uniform time this specific row takes to reach its terminal cap point
           // Formula scales to the center line point of their target column layout position
-          const structuralDestinationDuration = (team.lastCircle - 0.5) * SECONDS_PER_COLUMN;
+          const structuralDestinationDuration = (finishCircle - 0.5) * SECONDS_PER_COLUMN;
           
           // Full map length reference duration remains locked for constant speed sync 
           const baseVelocityReferenceTime = TOTAL_TRACKS_COUNT * SECONDS_PER_COLUMN; // 20s
@@ -297,7 +316,7 @@ export const StreamPerformanceTimeline: React.FC = () => {
               
               {/* 1. DYNAMICALLY SPEED-CONTROLLED PERFORMANCE SNAKE UNIT */}
               <MovingSnakeTrack 
-                endCircle={team.lastCircle} 
+                endCircle={finishCircle} 
                 travelDuration={baseVelocityReferenceTime}
               >
                 <TailLine />
@@ -310,7 +329,8 @@ export const StreamPerformanceTimeline: React.FC = () => {
                   
                   <TeamLogoBox isDead={team.isDead} bgImage={team.logoUrl}>
                     {!team.logoUrl && <LogoFallbackText>{team.shortLabel}</LogoFallbackText>}
-                    {team.isDead && <LogoDeadOverlayCross>×</LogoDeadOverlayCross>}
+                    {team.countryLogoUrl && <CountryFlag src={team.countryLogoUrl} alt="" />}
+                    {team.isDead && <LogoDeadOverlayCross aria-label="Eliminated" />}
                   </TeamLogoBox>
                 </HeadStatusWrapper>
               </MovingSnakeTrack>
@@ -319,15 +339,17 @@ export const StreamPerformanceTimeline: React.FC = () => {
               {circles.map((circleNum) => {
                 const kills = team.killsPerCircle[circleNum];
                 const hasKills = kills !== undefined && kills > 0;
-                const isIntermediateCircle = circleNum < team.lastCircle;
+                const isReachedCircle = circleNum <= finishCircle;
+                const isTerminalCircle = circleNum === team.lastCircle && !team.hasBooyah;
+                const KillBadge = isTerminalCircle ? TerminalKillGroup : MidTrackKillGroup;
 
                 return (
                   <GridCell key={circleNum}>
-                    {isIntermediateCircle && hasKills && (
-                      <MidTrackKillGroup delayIndex={circleNum}>
+                    {isReachedCircle && hasKills && (
+                      <KillBadge delayIndex={circleNum}>
                         <CircularTargetIcon />
                         <KillCountText><span>x</span>{kills}</KillCountText>
-                      </MidTrackKillGroup>
+                      </KillBadge>
                     )}
                   </GridCell>
                 );
