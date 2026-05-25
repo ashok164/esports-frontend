@@ -75,6 +75,12 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
+        title: "Game Details",
+        path: "/game-details",
+        note: "Create match rows and enable websocket match ids.",
+        type: "Admin",
+      },
+      {
         title: "View Weapons",
         path: "/view-weapons",
         note: "Review uploaded weapon IDs, names, and images.",

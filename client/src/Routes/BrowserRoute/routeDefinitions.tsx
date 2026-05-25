@@ -2,6 +2,7 @@ import React from "react";
 import BroadcastThemeView from "../../BroadcastTheme/View";
 import CircleAnalysis from "../../CircleAnalysis/View";
 import GameAssetUploadView from "../../GameAssetUpload/View";
+import GameDetailsView from "../../GameDetails/View";
 import ViewCharacters from "../../GameAssetUpload/View/ViewCharacters";
 import ViewEquipment from "../../GameAssetUpload/View/ViewEquipment";
 import ViewRoles from "../../GameAssetUpload/View/ViewRoles";
@@ -40,6 +41,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/player-upload", element: <PlayerUploadView />, isProtected: true },
   { path: "/player-profile", element: <PlayerUploadProfile />, isProtected: true },
   { path: "/game-asset-upload", element: <GameAssetUploadView />, isProtected: true },
+  { path: "/game-details", element: <GameDetailsView />, isProtected: true },
   { path: "/view-weapons", element: <ViewWeapons />, isProtected: true },
   { path: "/view-characters", element: <ViewCharacters />, isProtected: true },
   { path: "/view-skills", element: <ViewSkills />, isProtected: true },

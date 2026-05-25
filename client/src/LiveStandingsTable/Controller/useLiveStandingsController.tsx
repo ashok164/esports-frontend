@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mapTeamData, Team } from "../Datamapper/liveStandingsMapper";
 import { createStandingsSocket } from "../../GlobalWebsocket/remote";
+import {
+  GAME_DETAILS_UPDATED_EVENT,
+  getActiveGameDetails,
+} from "../../GameDetails/gameDetailsState";
 
 const RECONNECT_DELAY_MS = 1500;
 const WS_STALE_LIMIT_MS = 12000;
@@ -17,10 +21,11 @@ const useLiveStandingsController = () => {
   const connectionIdRef = useRef(0);
   const previousStandingsRef = useRef<Team[]>([]);
 
-  const matchId = "1865398120330647552";
-  const matchNumber = "1";
-  const dayName = "Grand Finals";
-  const modeName='Champion Rush'
+  const [activeDetails, setActiveDetails] = useState(getActiveGameDetails);
+  const matchId = activeDetails.matchIds;
+  const matchNumber = activeDetails.gameNumber;
+  const dayName = activeDetails.roundName;
+  const modeName = activeDetails.phase;
 
   /* ================= UPDATE ================= */
   const updateStandings = useCallback((result: any) => {
@@ -91,7 +96,21 @@ const useLiveStandingsController = () => {
 
       reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
     };
-  }, [updateStandings]);
+  }, [matchId, updateStandings]);
+
+  useEffect(() => {
+    const handleGameDetailsChange = () => {
+      setActiveDetails(getActiveGameDetails());
+    };
+
+    window.addEventListener(GAME_DETAILS_UPDATED_EVENT, handleGameDetailsChange);
+    window.addEventListener("storage", handleGameDetailsChange);
+
+    return () => {
+      window.removeEventListener(GAME_DETAILS_UPDATED_EVENT, handleGameDetailsChange);
+      window.removeEventListener("storage", handleGameDetailsChange);
+    };
+  }, []);
 
   /* ================= INIT ================= */
   useEffect(() => {

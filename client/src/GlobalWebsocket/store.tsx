@@ -5,13 +5,22 @@ let socket: WebSocket | null = null;
 let listeners: Array<(data: any) => void> = [];
 
 let latestData: any = null;
+let activeMatchId: string | number | null = null;
 
 export const connectRealtime = (matchId: string | number) => {
-  // Prevent multiple sockets
-  if (socket && socket.readyState === WebSocket.OPEN) {
+  if (
+    socket &&
+    socket.readyState === WebSocket.OPEN &&
+    String(activeMatchId) === String(matchId)
+  ) {
     return socket;
   }
 
+  if (socket && String(activeMatchId) !== String(matchId)) {
+    socket.close();
+  }
+
+  activeMatchId = matchId;
   socket = createStandingsSocket(matchId);
 
   socket.onopen = () => {
