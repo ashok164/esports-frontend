@@ -11,10 +11,14 @@ const ThemeRouteScope: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   React.useEffect(() => {
     const isBroadcastRoute = broadcastRoutePaths.includes(location.pathname);
+    const isLiveStandingsRoute = location.pathname === "/live-standings";
+
     document.body.dataset.broadcastRoute = String(isBroadcastRoute);
+    document.body.dataset.liveStandingsRoute = String(isLiveStandingsRoute);
 
     return () => {
       delete document.body.dataset.broadcastRoute;
+      delete document.body.dataset.liveStandingsRoute;
     };
   }, [location.pathname]);
 

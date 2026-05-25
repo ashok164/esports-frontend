@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef } from "react";
@@ -41,22 +41,22 @@ interface StandingsTableProps {
 
 /* ================= THEME & DESIGN SYSTEM ================= */
 const Theme = {
-  green: "#62df63",
-  greenDeep: "#2fbf4a",
+  green: "var(--project-primary, #62df63)",
+  greenRgb: "var(--project-primary-rgb, 98, 223, 99)",
   aliveYellow: "#ffd35a",
   aliveBlue: "#2575fc",
-  ink: "#0e120f",
-  panel: "#060f0a",
-  panel2: "#0a1910",
+  ink: "var(--project-text-primary, #0e120f)",
+  panel: "var(--project-background, #060f0a)",
+  panel2: "var(--project-surface, #0a1910)",
   rowA: "rgba(255,255,255,0.02)",
   rowB: "rgba(0,0,0,0.18)",
-  border: "rgba(98,223,99,0.14)",
-  pipeLine: "rgba(98,223,99,0.35)",
-  muted: "#3d4741",
+  border: "rgba(var(--project-accent-rgb, 98, 223, 99), 0.14)",
+  pipeLine: "rgba(var(--project-accent-rgb, 98, 223, 99), 0.35)",
+  muted: "var(--project-text-secondary, #3d4741)",
   danger: "#e52e45",
   dangerDeep: "#1a0305",
   dangerGlow: "rgba(229, 46, 69, 0.6)",
-  headerText: "#b3ffd7",
+  headerText: "var(--project-primary, #b3ffd7)",
   white: "#ffffff",
 };
 
@@ -130,9 +130,9 @@ const HeaderRow = styled.div`
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(204, 255, 209, 0.96),
-    rgba(112, 255, 143, 0.94),
-    rgba(190, 255, 202, 0.96)
+    rgba(${Theme.greenRgb}, 0.96),
+    rgba(${Theme.greenRgb}, 0.82),
+    rgba(${Theme.greenRgb}, 0.96)
   );
   border-bottom: 2px solid rgba(0, 0, 0, 0.28);
   color: ${Theme.ink};
@@ -184,7 +184,7 @@ const LiveRow = styled(motion.div)<LiveRowProps>`
   position: relative;
   height: ${(p) => p.$height}px;
   overflow: hidden;
-  border-bottom: 1px solid rgba(98, 223, 99, 0.06);
+  border-bottom: 1px solid rgba(${Theme.greenRgb}, 0.06);
   background: ${(p) => (p.$odd ? Theme.rowA : Theme.rowB)};
 
   /* Gradual post-elimination aesthetic fade */
@@ -204,7 +204,7 @@ const LiveRow = styled(motion.div)<LiveRowProps>`
     !p.$dead &&
     css`
       background:
-        linear-gradient(90deg, rgba(98, 223, 99, 0.07), transparent 45%),
+        linear-gradient(90deg, rgba(${Theme.greenRgb}, 0.07), transparent 45%),
         ${p.$odd ? Theme.rowA : Theme.rowB};
     `}
 `;
@@ -334,7 +334,7 @@ const PipeDivider = styled.div`
   font-family: system-ui, sans-serif;
   font-weight: 500;
   font-size: 28px;
-  color: rgba(98, 223, 99, 0.65);
+  color: rgba(${Theme.greenRgb}, 0.65);
   text-align: center;
   line-height: 1;
   transform: scaleY(1.35);
@@ -354,7 +354,7 @@ const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
       ? "linear-gradient(135deg, #a6323f, #4d0b13)"
       : p.$rank === 1
         ? "linear-gradient(135deg, #ffd35a, #b87917)"
-        : "linear-gradient(135deg, #ccffd1, #70ff8f, #beffca)"};
+        : `linear-gradient(135deg, rgba(${Theme.greenRgb}, 0.96), rgba(${Theme.greenRgb}, 0.82), rgba(${Theme.greenRgb}, 0.96))`};
 
   color: ${(p) => (p.$dead ? Theme.white : Theme.ink)};
   clip-path: polygon(
@@ -385,7 +385,7 @@ const CountryBox = styled.div`
   width: 38px;
   height: 25px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(98, 223, 99, 0.12);
+  border: 1px solid rgba(${Theme.greenRgb}, 0.12);
   border-radius: 2px;
   overflow: hidden;
 `;
@@ -394,7 +394,7 @@ const LogoBox = styled.div`
   width: 39px;
   height: 31px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(98, 223, 99, 0.12);
+  border: 1px solid rgba(${Theme.greenRgb}, 0.12);
   border-radius: 3px;
   overflow: hidden;
   display: flex;
@@ -426,7 +426,7 @@ const TeamName = styled.div<{ $dead?: boolean }>`
   font-size: 20px;
   font-weight: 800;
   text-transform: uppercase;
-  color: ${(p) => (p.$dead ? Theme.muted : "#c6ffcf")};
+  color: ${(p) => (p.$dead ? Theme.muted : Theme.headerText)};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -439,7 +439,7 @@ const Num = styled.div`
   text-align: center;
   font-size: 25px;
   font-weight: 800;
-  color: #a6ffbe;
+  color: ${Theme.green};
   height: 100%;
   display: flex;
   align-items: center;
@@ -460,7 +460,7 @@ const Bar = styled.div`
   width: 8px;
   height: 32px;
   background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(98, 223, 99, 0.1);
+  border: 1px solid rgba(${Theme.greenRgb}, 0.1);
   overflow: hidden;
   position: relative;
 `;
@@ -487,9 +487,9 @@ const Footer = styled.div`
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(204, 255, 209, 0.96),
-    rgba(112, 255, 143, 0.94),
-    rgba(190, 255, 202, 0.96)
+    rgba(${Theme.greenRgb}, 0.96),
+    rgba(${Theme.greenRgb}, 0.82),
+    rgba(${Theme.greenRgb}, 0.96)
   );
   border-top: 2px solid rgba(0, 0, 0, 0.28);
   display: flex;

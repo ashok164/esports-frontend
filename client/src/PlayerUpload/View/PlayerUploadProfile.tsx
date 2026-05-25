@@ -485,7 +485,7 @@ const TeamHeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid #1f293d;
+  border-bottom: 1px solid var(--project-surface-alt, #1f293d);
 
   @media (max-width: 768px) {
     align-items: flex-start;
@@ -512,7 +512,7 @@ const HeaderActions = styled.div`
 const TeamName = styled.h3`
   font-size: 1.1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -524,7 +524,7 @@ const CountryLogoImg = styled.img`
   height: 28px;
   object-fit: cover;
   border-radius: 4px;
-  background-color: #1f293d;
+  background-color: var(--project-surface-alt, #1f293d);
   flex-shrink: 0;
 `;
 
@@ -533,16 +533,16 @@ const TeamLogoImg = styled.img`
   height: 32px;
   object-fit: cover;
   border-radius: 6px;
-  background-color: #1f293d;
+  background-color: var(--project-surface-alt, #1f293d);
   flex-shrink: 0;
 `;
 
 const TeamBadge = styled.span`
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.25rem;
-  background-color: #0f172a;
+  background-color: var(--project-background, #0f172a);
   padding: 0.25rem 0.5rem;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.75rem;
   font-family: monospace;
   white-space: nowrap;
@@ -550,7 +550,7 @@ const TeamBadge = styled.span`
 
 const PlayerCount = styled.span`
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   background: rgba(255, 255, 255, 0.05);
   padding: 0.25rem 0.6rem;
   border-radius: 1rem;
@@ -558,7 +558,7 @@ const PlayerCount = styled.span`
 `;
 
 const TeamContent = styled.div`
-  background-color: #111827;
+  background-color: var(--project-surface, #111827);
 `;
 
 const PlayerListContainer = styled.div`
@@ -570,13 +570,13 @@ const TableHeaderRow = styled.div`
   display: grid;
   grid-template-columns: minmax(14rem, 2fr) minmax(10rem, 1.2fr) minmax(14rem, 1.6fr) 10rem;
   padding: 0.75rem 1.5rem;
-  background-color: #151e2e;
-  border-bottom: 1px solid #1f293d;
+  background-color: var(--project-surface, #151e2e);
+  border-bottom: 1px solid var(--project-surface-alt, #1f293d);
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--project-text-secondary, #64748b);
 
   @media (max-width: 768px) {
     display: none;
@@ -589,7 +589,7 @@ const PlayerRow = styled.div`
   align-items: center;
   gap: 1rem;
   padding: 0.85rem 1.5rem;
-  border-bottom: 1px solid #1f293d;
+  border-bottom: 1px solid var(--project-surface-alt, #1f293d);
   transition: background-color 0.15s ease;
 
   &:last-child {
@@ -597,7 +597,7 @@ const PlayerRow = styled.div`
   }
 
   &:hover {
-    background-color: #161f30;
+    background-color: var(--project-surface-alt, #161f30);
   }
 
   @media (max-width: 768px) {
@@ -619,8 +619,8 @@ const AvatarCircle = styled.div`
   height: 2.5rem;
   border-radius: 50%;
   overflow: hidden;
-  background-color: #1f293d;
-  border: 1px solid #374151;
+  background-color: var(--project-surface-alt, #1f293d);
+  border: 1px solid var(--project-border, #374151);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -635,7 +635,7 @@ const AvatarCircle = styled.div`
   span {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--project-text-secondary, #9ca3af);
   }
 `;
 
@@ -650,7 +650,7 @@ const PlayerTextInfo = styled.div`
 const PlayerNameText = styled.span`
   font-size: 0.9rem;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -658,7 +658,7 @@ const PlayerNameText = styled.span`
 
 const PlayerIndexLabel = styled.span`
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--project-text-secondary, #64748b);
 `;
 
 const PlayerUidCell = styled.div`
@@ -667,8 +667,8 @@ const PlayerUidCell = styled.div`
   code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.8rem;
-    color: #cbd5e1;
-    background-color: #1f293d;
+    color: var(--project-text-secondary, #cbd5e1);
+    background-color: var(--project-surface-alt, #1f293d);
     padding: 0.2rem 0.4rem;
     border-radius: 0.25rem;
     overflow-wrap: anywhere;
@@ -686,29 +686,29 @@ const PlayerLinksCell = styled.div`
 const AssetLink = styled.a`
   font-size: 0.78rem;
   font-weight: 500;
-  color: #38bdf8;
+  color: var(--project-secondary, #38bdf8);
   text-decoration: none;
   border-bottom: 1px transparent solid;
   transition: color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    color: #7dd3fc;
-    border-color: #7dd3fc;
+    color: var(--project-secondary, #7dd3fc);
+    border-color: var(--project-secondary, #7dd3fc);
   }
 
   &.camera-link {
-    color: #a78bfa;
+    color: var(--project-secondary, #a78bfa);
 
     &:hover {
-      color: #c084fc;
-      border-color: #c084fc;
+      color: var(--project-secondary, #c084fc);
+      border-color: var(--project-secondary, #c084fc);
     }
   }
 `;
 
 const NoAssetsText = styled.span`
   font-size: 0.75rem;
-  color: #4b5563;
+  color: var(--project-text-secondary, #4b5563);
   font-style: italic;
 `;
 
@@ -726,10 +726,10 @@ const ActionCell = styled.div`
 const IconButton = styled.button`
   min-width: 2.15rem;
   height: 2.15rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
-  background: #0f172a;
-  color: #cbd5e1;
+  background: var(--project-background, #0f172a);
+  color: var(--project-text-secondary, #cbd5e1);
   cursor: pointer;
   display: inline-grid;
   place-items: center;
@@ -746,8 +746,8 @@ const IconButton = styled.button`
   }
 
   &:hover:not(:disabled) {
-    border-color: #7dd3fc;
-    color: #7dd3fc;
+    border-color: var(--project-secondary, #7dd3fc);
+    color: var(--project-secondary, #7dd3fc);
   }
 
   &:disabled {
@@ -765,11 +765,11 @@ const TextIconButton = styled(IconButton)`
 `;
 
 const SaveIconButton = styled(TextIconButton)`
-  border-color: #15803d;
+  border-color: var(--project-success, #15803d);
   color: #bbf7d0;
 
   &:hover:not(:disabled) {
-    border-color: #22c55e;
+    border-color: var(--project-success, #22c55e);
     color: #dcfce7;
   }
 `;
@@ -777,8 +777,8 @@ const SaveIconButton = styled(TextIconButton)`
 const DeleteButton = styled(IconButton)`
   &:hover:not(:disabled) {
     background-color: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
-    color: #ef4444;
+    border-color: var(--project-danger, #ef4444);
+    color: var(--project-danger, #ef4444);
   }
 `;
 
@@ -795,28 +795,28 @@ const InlineInput = styled.input`
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--project-background, #0f172a);
+  color: var(--project-text-primary, #f8fafc);
   padding: 0.5rem 0.6rem;
   font-size: 0.78rem;
 
   &:focus {
     outline: none;
-    border-color: #7dd3fc;
+    border-color: var(--project-secondary, #7dd3fc);
   }
 `;
 
 const InlineFile = styled.input`
   width: 100%;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.72rem;
   margin-top: 0.25rem;
 `;
 
 const NoPlayersMessage = styled.div`
-  color: #64748b;
+  color: var(--project-text-secondary, #64748b);
   font-size: 0.85rem;
   text-align: center;
   padding: 2.5rem 1.5rem;
@@ -824,10 +824,10 @@ const NoPlayersMessage = styled.div`
 `;
 
 const EmptyState = styled.div`
-  color: #9ca3af;
+  color: var(--project-text-secondary, #9ca3af);
   padding: 5rem 2rem;
   text-align: center;
-  border: 2px dashed #1f293d;
+  border: 2px dashed var(--project-surface-alt, #1f293d);
   border-radius: 0.625rem;
   font-size: 0.9rem;
   display: flex;
@@ -835,14 +835,14 @@ const EmptyState = styled.div`
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background-color: #111827;
+  background-color: var(--project-surface, #111827);
 `;
 
 const Spinner = styled.div`
   width: 1.25rem;
   height: 1.25rem;
-  border: 2px solid #374151;
-  border-top-color: #38bdf8;
+  border: 2px solid var(--project-border, #374151);
+  border-top-color: var(--project-secondary, #38bdf8);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 

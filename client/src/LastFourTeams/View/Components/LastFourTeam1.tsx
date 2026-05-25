@@ -37,8 +37,8 @@ interface EndgameTopHUDProps {
    ========================================================================== */
 
 const lowHpFlicker = keyframes`
-  0%, 100% { box-shadow: 0 0 4px rgba(255, 42, 109, 0.4); filter: brightness(0.9); }
-  50% { box-shadow: 0 0 14px rgba(255, 42, 109, 0.95); filter: brightness(1.2); }
+  0%, 100% { box-shadow: 0 0 4px rgba(var(--project-danger-rgb, 255, 42, 109), 0.4); filter: brightness(0.9); }
+  50% { box-shadow: 0 0 14px rgba(var(--project-danger-rgb, 255, 42, 109), 0.95); filter: brightness(1.2); }
 `;
 
 /* ==========================================================================
@@ -46,15 +46,15 @@ const lowHpFlicker = keyframes`
    ========================================================================== */
 
 const Theme = {
-  purplePlateBg: "linear-gradient(135deg, #4d0cb5 0%, #2f047a 100%)",
-  blackLogoBg: "#0d0d11",
-  limeBadge: "#bfff00",
-  orangeBadge: "#ff6a00",
-  knocked: "#FF0055",
-  lowAlert: "#FF2A6D",
-  recalled: "#00FF88",
-  textDark: "#000000",
-  textLight: "#ffffff",
+  purplePlateBg: "linear-gradient(135deg, var(--project-primary, #4d0cb5) 0%, var(--project-surface, #2f047a) 100%)",
+  blackLogoBg: "var(--project-background, #0d0d11)",
+  limeBadge: "var(--project-accent, #bfff00)",
+  orangeBadge: "var(--project-warning, #ff6a00)",
+  knocked: "var(--project-danger, #FF0055)",
+  lowAlert: "var(--project-danger, #FF2A6D)",
+  recalled: "var(--project-success, #00FF88)",
+  textDark: "var(--project-background, #000000)",
+  textLight: "var(--project-text-primary, #ffffff)",
 };
 
 /* ==========================================================================
@@ -242,9 +242,9 @@ const HealthFill = styled.div<{
   width: 100%;
   height: ${(props) => props.$percent}%;
   background: ${(props) => {
-    if (props.$hasRecalled) return `linear-gradient(to top, #008f51 0%, #00ffaa 60%, #ffffff 100%)`;
-    if (props.$isKnocked) return `linear-gradient(to top, #6a001d 0%, #ff0044 80%, #ff66aa 100%)`;
-    return `linear-gradient(to top, #76b800 0%, #bfff00 75%, #ffffff 100%)`;
+    if (props.$hasRecalled) return `linear-gradient(to top, var(--project-success, #008f51) 0%, var(--project-success, #00ffaa) 60%, var(--project-text-primary, #ffffff) 100%)`;
+    if (props.$isKnocked) return `linear-gradient(to top, var(--project-danger, #6a001d) 0%, var(--project-danger, #ff0044) 80%, var(--project-text-primary, #ff66aa) 100%)`;
+    return `linear-gradient(to top, var(--project-accent, #76b800) 0%, var(--project-accent, #bfff00) 75%, var(--project-text-primary, #ffffff) 100%)`;
   }};
   transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 `;

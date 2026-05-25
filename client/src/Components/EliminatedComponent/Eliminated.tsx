@@ -7,6 +7,10 @@ import styled, { keyframes } from "styled-components";
 
 export interface Player {
   avatarUrl?: string;
+  playerPic?: string;
+  photoUrl?: string;
+  player_image?: string;
+  player_pic?: string;
   name?: string;
 }
 
@@ -14,6 +18,7 @@ export interface TeamNotificationData {
   name: string;
   logoUrl?: string;
   countryFlag?: string;
+  countryUrl?: string;
   rank: number;
   players?: Player[];
 }
@@ -249,7 +254,16 @@ const EliminatedText = styled.h1`
 const TeamNotificationCard: React.FC<TeamNotificationCardProps> = ({ team }) => {
   const standardFallbackPhoto = "https://i.ibb.co/6wX88Ym/p1.png";
   const visualSlots = Array.from({ length: 4 }, (_, i) => {
-    return team?.players?.[i]?.avatarUrl || standardFallbackPhoto;
+    const player = team?.players?.[i];
+
+    return (
+      player?.playerPic ||
+      player?.avatarUrl ||
+      player?.photoUrl ||
+      player?.player_image ||
+      player?.player_pic ||
+      standardFallbackPhoto
+    );
   });
 
   const formatRank = (rankNum?: number) => {
@@ -278,7 +292,7 @@ const TeamNotificationCard: React.FC<TeamNotificationCardProps> = ({ team }) => 
         <BannerRow>
           <LogoBlock>
             <CountryFlag
-              src={team?.countryFlag || "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg"}
+              src={team?.countryFlag || team?.countryUrl || "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg"}
               alt="Country Flag"
             />
             <TeamLogo

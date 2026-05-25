@@ -166,11 +166,11 @@ const AssetImage = styled.img`
 const ImageFallback = styled.div`
   width: 72%;
   height: 72%;
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.5rem;
   display: grid;
   place-items: center;
-  color: #cbd5e1;
+  color: var(--project-text-secondary, #cbd5e1);
   font-size: 1.8rem;
   font-weight: 900;
   background: rgba(15, 23, 42, 0.78);
@@ -184,7 +184,7 @@ const IdBadge = styled.div`
   border-radius: 0.35rem;
   padding: 0.28rem 0.5rem;
   background: rgba(2, 6, 23, 0.78);
-  color: #cbd5e1;
+  color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.72rem;
   font-weight: 800;
 `;
@@ -208,7 +208,7 @@ const NameText = styled.h3`
 `;
 
 const Description = styled.div`
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.8rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -227,7 +227,7 @@ const AssetLink = styled.a`
 `;
 
 const Muted = styled.span`
-  color: #64748b;
+  color: var(--project-text-secondary, #64748b);
   font-size: 0.78rem;
 `;
 
@@ -251,6 +251,6 @@ const EmptyState = styled.div`
   border: 1px solid #243244;
   border-radius: 0.5rem;
   background: rgba(15, 23, 42, 0.82);
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-weight: 800;
 `;

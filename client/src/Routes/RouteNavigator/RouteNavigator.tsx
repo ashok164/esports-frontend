@@ -322,7 +322,7 @@ const ControlDot = styled.span<{ $tone: "red" | "amber" | "green" }>`
 `;
 
 const WindowTitle = styled.div`
-  color: #cbd5e1;
+  color: var(--project-text-secondary, #cbd5e1);
   color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.86rem;
   font-weight: 800;

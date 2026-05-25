@@ -200,11 +200,11 @@ const TeamLogo = styled.img`
 const LogoFallback = styled.div`
   width: 72%;
   height: 72%;
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.5rem;
   display: grid;
   place-items: center;
-  color: #cbd5e1;
+  color: var(--project-text-secondary, #cbd5e1);
   font-size: 1.8rem;
   font-weight: 900;
   background: rgba(15, 23, 42, 0.78);
@@ -217,7 +217,7 @@ const IdBadge = styled.div`
   border-radius: 0.35rem;
   padding: 0.28rem 0.5rem;
   background: rgba(2, 6, 23, 0.78);
-  color: #cbd5e1;
+  color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.72rem;
   font-weight: 800;
 `;
@@ -231,7 +231,7 @@ const CountryLogo = styled.img`
   border-radius: 999px;
   object-fit: cover;
   border: 2px solid rgba(248, 250, 252, 0.88);
-  background: #020617;
+  background: var(--project-background, #020617);
 `;
 
 const InfoPanel = styled.div`
@@ -254,7 +254,7 @@ const TeamName = styled.h3`
 
 const TeamTag = styled.div`
   margin-top: 0.25rem;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -274,7 +274,7 @@ const Links = styled.div`
   }
 
   span {
-    color: #64748b;
+    color: var(--project-text-secondary, #64748b);
   }
 `;
 
@@ -287,6 +287,6 @@ const EmptyState = styled.div`
   border: 1px solid #243244;
   border-radius: 0.5rem;
   background: rgba(15, 23, 42, 0.82);
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-weight: 800;
 `;

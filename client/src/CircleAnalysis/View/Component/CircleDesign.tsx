@@ -133,7 +133,7 @@ const MidTrackKillGroup = styled.div<{ delayIndex: number }>`
   align-items: center;
   gap: 6px;
   position: relative;
-  background-color: #310062; 
+  background-color: var(--project-surface, #310062); 
   padding: 2px 8px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -146,8 +146,8 @@ const MidTrackKillGroup = styled.div<{ delayIndex: number }>`
 const CircularTargetIcon = styled.div`
   width: 14px;
   height: 14px;
-  border: 2px solid #bfff00; 
-  background-color: #310062;
+  border: 2px solid var(--project-accent, #bfff00); 
+  background-color: var(--project-surface, #310062);
   border-radius: 50%;
   position: relative;
   display: flex;
@@ -158,7 +158,7 @@ const CircularTargetIcon = styled.div`
     content: '';
     width: 4px;
     height: 4px;
-    background-color: #fff;
+    background-color: var(--project-text-primary, #fff);
     border-radius: 50%;
   }
 `;
@@ -166,10 +166,10 @@ const CircularTargetIcon = styled.div`
 const KillCountText = styled.span`
   font-size: 11px;
   font-weight: 800;
-  color: #fff;
+  color: var(--project-text-primary, #fff);
   
   span {
-    color: #bfff00; 
+    color: var(--project-accent, #bfff00); 
     margin-right: 1px;
   }
 `;
@@ -177,13 +177,13 @@ const KillCountText = styled.span`
 const TeamLogoBox = styled.div<{ bgImage?: string; isDead?: boolean }>`
   width: 36px;
   height: 36px;
-  background-color: ${props => props.isDead ? '#3a1a4a' : '#1a0033'};
+  background-color: ${props => props.isDead ? 'var(--project-surface-alt, #3a1a4a)' : 'var(--project-background, #1a0033)'};
   background-image: ${props => props.bgImage ? `url(${props.bgImage})` : 'none'};
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   border-radius: 6px;
-  border: 2px solid ${props => props.isDead ? 'rgba(255, 51, 51, 0.6)' : '#bfff00'};
+  border: 2px solid ${props => props.isDead ? 'rgba(var(--project-danger-rgb, 255, 51, 51), 0.6)' : 'var(--project-accent, #bfff00)'};
   box-shadow: 0 4px 8px rgba(0,0,0,0.5);
   position: relative;
   display: flex;
@@ -194,7 +194,7 @@ const TeamLogoBox = styled.div<{ bgImage?: string; isDead?: boolean }>`
 const LogoFallbackText = styled.span`
   font-size: 12px;
   font-weight: 900;
-  color: #bfff00;
+  color: var(--project-accent, #bfff00);
   letter-spacing: -0.5px;
 `;
 
@@ -202,8 +202,8 @@ const LogoDeadOverlayCross = styled.div`
   position: absolute;
   top: -4px;
   left: -4px;
-  background: #ff3333;
-  color: white;
+  background: var(--project-danger, #ff3333);
+  color: var(--project-text-primary, white);
   width: 14px;
   height: 14px;
   border-radius: 3px;
@@ -222,14 +222,14 @@ interface BooyahTagProps {
 const BooyahTag = styled.div<BooyahTagProps>`
   position: absolute;
   top: -18px;
-  background: linear-gradient(180deg, #ffb703 0%, #fb8500 100%);
-  color: white;
+  background: linear-gradient(180deg, var(--project-warning, #ffb703) 0%, var(--project-primary, #fb8500) 100%);
+  color: var(--project-text-primary, white);
   font-size: 8px;
   font-weight: 900;
   padding: 1px 5px;
   border-radius: 3px;
   text-transform: uppercase;
-  border: 1px solid #fff;
+  border: 1px solid var(--project-text-primary, #fff);
   white-space: nowrap;
   
   /* Initial state is scale(0) so it's hidden during travel, popping up instantly on stop */

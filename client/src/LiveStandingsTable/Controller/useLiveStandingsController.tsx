@@ -15,6 +15,7 @@ const useLiveStandingsController = () => {
 
   const lastMessageTimeRef = useRef(Date.now());
   const connectionIdRef = useRef(0);
+  const previousStandingsRef = useRef<Team[]>([]);
 
   const matchId = "1865398120330647552";
   const matchNumber = "1";
@@ -34,8 +35,8 @@ const useLiveStandingsController = () => {
 
     if (!source) return;
 
-    // Fixed: mapTeamData now takes only the raw source array directly.
-    const mappedData = mapTeamData(source);
+    const mappedData = mapTeamData(source, previousStandingsRef.current);
+    previousStandingsRef.current = mappedData;
     setStandings(mappedData);
     setLoading(false);
   }, []);

@@ -679,7 +679,7 @@ const SaveButton = styled.button`
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   background-color: var(--project-primary, #ef4444);
   border: none;
   border-radius: 0.25rem;
@@ -752,7 +752,7 @@ const TeamBadge = styled.div`
   flex: 0 0 auto;
   border: 1px solid #2a313d;
   border-radius: 0.25rem;
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   background-color: #14171c;
   padding: 0.4rem 0.6rem;
   font-size: 0.75rem;

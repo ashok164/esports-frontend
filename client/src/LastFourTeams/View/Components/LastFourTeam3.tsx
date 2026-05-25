@@ -9,16 +9,16 @@ import { motion, AnimatePresence } from "framer-motion";
 const lowHpFlicker = keyframes`
   0%, 100% {
     box-shadow:
-      0 0 4px rgba(255, 42, 109, 0.4),
-      inset 0 0 2px rgba(255, 42, 109, 0.15);
+      0 0 4px rgba(var(--project-danger-rgb, 255, 42, 109), 0.4),
+      inset 0 0 2px rgba(var(--project-danger-rgb, 255, 42, 109), 0.15);
 
     filter: brightness(0.92);
   }
 
   50% {
     box-shadow:
-      0 0 14px rgba(255, 42, 109, 0.95),
-      inset 0 0 6px rgba(255, 42, 109, 0.45);
+      0 0 14px rgba(var(--project-danger-rgb, 255, 42, 109), 0.95),
+      inset 0 0 6px rgba(var(--project-danger-rgb, 255, 42, 109), 0.45);
 
     filter: brightness(1.2);
   }
@@ -42,29 +42,29 @@ const Theme = {
   purplePlateBg: `
     linear-gradient(
       135deg,
-      #5b17d4 0%,
-      #3d0a97 45%,
-      #1b0148 100%
+      var(--project-primary, #5b17d4) 0%,
+      var(--project-surface, #3d0a97) 45%,
+      var(--project-background, #1b0148) 100%
     )
   `,
 
   blackLogoBg: `
     linear-gradient(
       180deg,
-      #050507 0%,
-      #111117 100%
+      var(--project-background, #050507) 0%,
+      var(--project-surface, #111117) 100%
     )
   `,
 
-  limeBadge: "#cfff00",
-  orangeBadge: "#ff6a00",
+  limeBadge: "var(--project-accent, #cfff00)",
+  orangeBadge: "var(--project-warning, #ff6a00)",
 
-  knocked: "#ff0048",
-  lowAlert: "#ff2a6d",
-  recalled: "#00ff88",
+  knocked: "var(--project-danger, #ff0048)",
+  lowAlert: "var(--project-danger, #ff2a6d)",
+  recalled: "var(--project-success, #00ff88)",
 
-  textDark: "#000000",
-  textLight: "#ffffff",
+  textDark: "var(--project-background, #000000)",
+  textLight: "var(--project-text-primary, #ffffff)",
 };
 
 /* ==========================================================================
@@ -204,8 +204,8 @@ const LimeNameTag = styled.div`
 
   background: linear-gradient(
     135deg,
-    #d6ff38 0%,
-    #b6ff00 100%
+    var(--project-accent, #d6ff38) 0%,
+    var(--project-accent, #b6ff00) 100%
   );
 
   clip-path: polygon(
@@ -285,7 +285,7 @@ const WrLabel = styled.span`
   font-weight: 900;
   font-style: italic;
 
-  color: rgba(255,255,255,0.75);
+  color: var(--project-text-secondary, rgba(255,255,255,0.75));
 
   letter-spacing: 1px;
 `;
@@ -296,8 +296,8 @@ const OrangeWrBadge = styled.div`
 
   background: linear-gradient(
     135deg,
-    #ff9200 0%,
-    #ff5a00 100%
+    var(--project-warning, #ff9200) 0%,
+    var(--project-primary, #ff5a00) 100%
   );
 
   clip-path: polygon(
@@ -397,7 +397,7 @@ const HPBlock = styled.div<{
         background:
           radial-gradient(
             circle,
-            rgba(255,42,109,0.45),
+            rgba(var(--project-danger-rgb, 255, 42, 109), 0.45),
             transparent 70%
           );
 
@@ -429,9 +429,9 @@ const HealthFill = styled.div<{
       return `
         linear-gradient(
           to top,
-          #007a4a 0%,
-          #00ffaa 65%,
-          #ffffff 100%
+          var(--project-success, #007a4a) 0%,
+          var(--project-success, #00ffaa) 65%,
+          var(--project-text-primary, #ffffff) 100%
         )
       `;
     }
@@ -440,9 +440,9 @@ const HealthFill = styled.div<{
       return `
         linear-gradient(
           to top,
-          #650019 0%,
-          #ff0048 75%,
-          #ff8ab1 100%
+          var(--project-danger, #650019) 0%,
+          var(--project-danger, #ff0048) 75%,
+          var(--project-text-primary, #ff8ab1) 100%
         )
       `;
     }
@@ -450,9 +450,9 @@ const HealthFill = styled.div<{
     return `
       linear-gradient(
         to top,
-        #8fb800 0%,
-        #d0ff00 75%,
-        #ffffff 100%
+        var(--project-accent, #8fb800) 0%,
+        var(--project-accent, #d0ff00) 75%,
+        var(--project-text-primary, #ffffff) 100%
       )
     `;
   }};

@@ -582,7 +582,7 @@ const SectionMeta = styled.div`
 
 const Status = styled.div<{ $tone?: "error" }>`
   margin: 1rem 1rem 0;
-  border: 1px solid ${({ $tone }) => ($tone === "error" ? "#ef4444" : "#15803d")};
+  border: 1px solid ${({ $tone }) => ($tone === "error" ? "var(--project-danger, #ef4444)" : "var(--project-success, #15803d)")};
   border-radius: 0.35rem;
   background: ${({ $tone }) =>
     $tone === "error" ? "rgba(239, 68, 68, 0.12)" : "rgba(22, 163, 74, 0.12)"};
@@ -640,7 +640,7 @@ const BulkFileInput = styled.input`
     border: 1px solid var(--project-primary, #ef4444);
     border-radius: 0.35rem;
     background: var(--project-primary, #ef4444);
-    color: #ffffff;
+    color: var(--project-text-primary, #ffffff);
     padding: 0.62rem 0.75rem;
     cursor: pointer;
     font-weight: 900;
@@ -675,7 +675,7 @@ const ProgressTrack = styled.div`
   height: 0.55rem;
   overflow: hidden;
   border-radius: 999px;
-  background: #020617;
+  background: var(--project-background, #020617);
 `;
 
 const ProgressFill = styled.div`
@@ -759,7 +759,7 @@ const IndexCell = styled.div`
 
   &::before {
     content: "Row";
-    color: #64748b;
+    color: var(--project-text-secondary, #64748b);
     font-size: 0.68rem;
     text-transform: uppercase;
   }
@@ -783,7 +783,7 @@ const Input = styled.input`
   box-sizing: border-box;
   border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
-  background: #0f172a;
+  background: var(--project-background, #0f172a);
   color: var(--project-text-primary, #f8fafc);
   padding: 0.62rem 0.7rem;
   font-size: 0.82rem;
@@ -794,7 +794,7 @@ const Input = styled.input`
   }
 
   &:disabled {
-    color: #64748b;
+    color: var(--project-text-secondary, #64748b);
     cursor: not-allowed;
     opacity: 0.75;
   }
@@ -805,7 +805,7 @@ const Select = styled.select`
   box-sizing: border-box;
   border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
-  background: #0f172a;
+  background: var(--project-background, #0f172a);
   color: var(--project-text-primary, #f8fafc);
   padding: 0.62rem 0.7rem;
   font-size: 0.82rem;
@@ -816,7 +816,7 @@ const Select = styled.select`
   }
 
   &:disabled {
-    color: #64748b;
+    color: var(--project-text-secondary, #64748b);
     cursor: not-allowed;
     opacity: 0.75;
   }
@@ -831,7 +831,7 @@ const FileInput = styled.input`
     margin-right: 0.5rem;
     border: 1px solid var(--project-border, #334155);
     border-radius: 0.35rem;
-    background: #111827;
+    background: var(--project-surface, #111827);
     color: var(--project-text-primary, #f8fafc);
     padding: 0.45rem 0.55rem;
     cursor: pointer;
@@ -858,7 +858,7 @@ const PreviewImage = styled.img`
   border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
   object-fit: cover;
-  background: #020617;
+  background: var(--project-background, #020617);
 `;
 
 const PreviewFallback = styled.div`
@@ -868,8 +868,8 @@ const PreviewFallback = styled.div`
   place-items: center;
   border: 1px dashed var(--project-border, #334155);
   border-radius: 0.35rem;
-  color: #64748b;
-  background: #020617;
+  color: var(--project-text-secondary, #64748b);
+  background: var(--project-background, #020617);
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -882,7 +882,7 @@ const StatusCell = styled.div`
   border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
   color: var(--project-text-secondary, #94a3b8);
-  background: #0f172a;
+  background: var(--project-background, #0f172a);
   font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -900,9 +900,9 @@ const IconButton = styled.button<{ $variant?: "danger" | "success" }>`
   height: 2.25rem;
   border: 1px solid ${({ $variant }) =>
     $variant === "danger"
-      ? "#ef4444"
+      ? "var(--project-danger, #ef4444)"
       : $variant === "success"
-        ? "#16a34a"
+        ? "var(--project-success, #16a34a)"
         : "var(--project-border, #334155)"};
   border-radius: 0.35rem;
   display: inline-grid;
@@ -912,8 +912,8 @@ const IconButton = styled.button<{ $variant?: "danger" | "success" }>`
       ? "rgba(220, 38, 38, 0.88)"
       : $variant === "success"
         ? "rgba(22, 163, 74, 0.88)"
-        : "#0f172a"};
-  color: #ffffff;
+        : "var(--project-background, #0f172a)"};
+  color: var(--project-text-primary, #ffffff);
   cursor: pointer;
   padding: 0;
 
@@ -928,7 +928,7 @@ const IconButton = styled.button<{ $variant?: "danger" | "success" }>`
   }
 
   &:hover:not(:disabled) {
-    border-color: #ffffff;
+    border-color: var(--project-text-primary, #ffffff);
   }
 
   &:disabled {
@@ -946,7 +946,7 @@ const Actions = styled.div`
 const GhostButton = styled.button`
   border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
-  background: #0f172a;
+  background: var(--project-background, #0f172a);
   color: var(--project-text-primary, #f8fafc);
   cursor: pointer;
   padding: 0.65rem 0.9rem;
@@ -966,8 +966,8 @@ const SaveButton = styled(GhostButton)`
 `;
 
 const DangerButton = styled(GhostButton)`
-  border-color: #ef4444;
-  background: #dc2626;
+  border-color: var(--project-danger, #ef4444);
+  background: var(--project-danger, #dc2626);
 `;
 
 const DialogOverlay = styled.div`
@@ -1011,7 +1011,7 @@ const DialogPreview = styled.div`
   padding: 0.75rem;
   border: 1px solid var(--project-border, #263244);
   border-radius: 0.45rem;
-  background: #0f172a;
+  background: var(--project-background, #0f172a);
 `;
 
 const DialogThumb = styled.img`
@@ -1019,7 +1019,7 @@ const DialogThumb = styled.img`
   height: 4rem;
   border-radius: 0.35rem;
   object-fit: cover;
-  background: #020617;
+  background: var(--project-background, #020617);
 `;
 
 const DialogThumbFallback = styled.div`
@@ -1029,7 +1029,7 @@ const DialogThumbFallback = styled.div`
   border-radius: 0.35rem;
   display: grid;
   place-items: center;
-  color: #64748b;
+  color: var(--project-text-secondary, #64748b);
   font-size: 0.7rem;
   font-weight: 900;
 `;

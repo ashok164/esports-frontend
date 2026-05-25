@@ -38,21 +38,21 @@ interface EndgameTopHUDProps {
 
 const BROADCAST_THEME = {
   gradients: {
-    mainCarbon: "linear-gradient(180deg, #0d0e12 0%, #060608 100%)",
-    brandAegis: "linear-gradient(135deg, #1b0e30 0%, #07030d 100%)",
+    mainCarbon: "linear-gradient(180deg, var(--project-surface, #0d0e12) 0%, var(--project-background, #060608) 100%)",
+    brandAegis: "linear-gradient(135deg, var(--project-primary, #1b0e30) 0%, var(--project-background, #07030d) 100%)",
     shineOverlay: "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent)",
     barBacktrack: "linear-gradient(180deg, rgba(20, 20, 25, 0.8) 0%, rgba(10, 10, 12, 0.9) 100%)",
-    hpActiveNormal: "linear-gradient(to top, #447300 0%, #bfff00 100%)",
-    hpActiveKnocked: "linear-gradient(to top, #8f001b 0%, #ff003c 100%)",
-    hpActiveRecalled: "linear-gradient(to top, #007343 0%, #00ff8c 100%)",
+    hpActiveNormal: "linear-gradient(to top, var(--project-accent, #447300) 0%, var(--project-accent, #bfff00) 100%)",
+    hpActiveKnocked: "linear-gradient(to top, var(--project-danger, #8f001b) 0%, var(--project-danger, #ff003c) 100%)",
+    hpActiveRecalled: "linear-gradient(to top, var(--project-success, #007343) 0%, var(--project-success, #00ff8c) 100%)",
   },
   colors: {
-    neonLime: "#bfff00",
-    esportsOrange: "#ff6a00",
-    criticalRed: "#ff003c",
-    cleanWhite: "#ffffff",
-    dimGray: "rgba(255, 255, 255, 0.45)",
-    chassisFrame: "rgba(255, 255, 255, 0.05)",
+    neonLime: "var(--project-accent, #bfff00)",
+    esportsOrange: "var(--project-warning, #ff6a00)",
+    criticalRed: "var(--project-danger, #ff003c)",
+    cleanWhite: "var(--project-text-primary, #ffffff)",
+    dimGray: "var(--project-text-secondary, rgba(255, 255, 255, 0.45))",
+    chassisFrame: "var(--project-border, rgba(255, 255, 255, 0.05))",
     glowShadow: "rgba(0, 0, 0, 0.85)",
   },
 } as const;

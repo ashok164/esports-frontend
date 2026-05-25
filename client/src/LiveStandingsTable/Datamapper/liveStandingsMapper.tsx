@@ -36,8 +36,6 @@ export const mapTeamData = (
   data: any[],
   previousTeamsState?: Team[],
 ): Team[] => {
-  console.log(data, "data");
-
   const mapped = (data || []).map((team, teamIndex) => {
     const rawPlayers = team?.players || team?.player_stats || [];
 

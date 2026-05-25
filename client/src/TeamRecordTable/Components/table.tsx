@@ -218,7 +218,7 @@ const TableHead = styled.thead`
 
   th {
     padding: 0.9rem 0.8rem;
-    color: #94a3b8;
+    color: var(--project-text-secondary, #94a3b8);
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0;
@@ -228,7 +228,7 @@ const TableHead = styled.thead`
 `;
 
 const TableRow = styled.tr<{ $isEditing?: boolean; $isDragging?: boolean; $isDragOver?: boolean }>`
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--project-surface-alt, #1e293b);
   background: ${({ $isEditing, $isDragging, $isDragOver }) =>
     $isDragging
       ? "rgba(148, 163, 184, 0.12)"
@@ -261,32 +261,32 @@ const TableCell = styled.td`
 const TextInput = styled.input<{ $hasError?: boolean }>`
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid ${({ $hasError }) => ($hasError ? "#ef4444" : "#334155")};
+  border: 1px solid ${({ $hasError }) => ($hasError ? "var(--project-danger, #ef4444)" : "var(--project-border, #334155)")};
   border-radius: 0.38rem;
   padding: 0.62rem 0.7rem;
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--project-background, #0f172a);
+  color: var(--project-text-primary, #f8fafc);
   font-size: 0.86rem;
 
   &:focus {
     outline: none;
-    border-color: #f8fafc;
+    border-color: var(--project-text-primary, #f8fafc);
   }
 `;
 
 const FileInput = styled.input<{ $hasError?: boolean }>`
   width: 100%;
   max-width: 100%;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.7rem;
 
   &::file-selector-button {
     margin-right: 0.6rem;
-    border: 1px solid ${({ $hasError }) => ($hasError ? "#ef4444" : "#334155")};
+    border: 1px solid ${({ $hasError }) => ($hasError ? "var(--project-danger, #ef4444)" : "var(--project-border, #334155)")};
     border-radius: 0.38rem;
     padding: 0.42rem 0.5rem;
-    background: ${({ $hasError }) => ($hasError ? "rgba(239, 68, 68, 0.14)" : "#111827")};
-    color: #f8fafc;
+    background: ${({ $hasError }) => ($hasError ? "rgba(239, 68, 68, 0.14)" : "var(--project-surface, #111827)")};
+    color: var(--project-text-primary, #f8fafc);
     cursor: pointer;
     font-weight: 700;
   }
@@ -304,8 +304,8 @@ const LogoImage = styled.img<{ $small?: boolean }>`
   height: ${({ $small }) => ($small ? "1.8rem" : "2.35rem")};
   border-radius: ${({ $small }) => ($small ? "999px" : "0.45rem")};
   object-fit: cover;
-  background: #020617;
-  border: 1px solid #334155;
+  background: var(--project-background, #020617);
+  border: 1px solid var(--project-border, #334155);
 `;
 
 const PlaceholderLogo = styled.div<{ $small?: boolean }>`
@@ -314,15 +314,15 @@ const PlaceholderLogo = styled.div<{ $small?: boolean }>`
   border-radius: ${({ $small }) => ($small ? "999px" : "0.45rem")};
   display: grid;
   place-items: center;
-  background: #111827;
-  border: 1px solid #334155;
-  color: #94a3b8;
+  background: var(--project-surface, #111827);
+  border: 1px solid var(--project-border, #334155);
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.7rem;
   font-weight: 800;
 `;
 
 const Muted = styled.span`
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-size: 0.8rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -335,7 +335,7 @@ const TeamName = styled.button`
   border: 0;
   padding: 0;
   background: transparent;
-  color: #f8fafc;
+  color: var(--project-text-primary, #f8fafc);
   cursor: pointer;
   text-align: left;
   font-weight: 800;
@@ -372,12 +372,12 @@ const OrderCell = styled.div`
 const DragButton = styled.button`
   width: 1.85rem;
   height: 1.85rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.35rem;
   display: inline-grid;
   place-items: center;
   background: rgba(15, 23, 42, 0.82);
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   cursor: grab;
   padding: 0;
 
@@ -396,8 +396,8 @@ const DragButton = styled.button`
   }
 
   &:hover:not(:disabled) {
-    border-color: #ffffff;
-    color: #ffffff;
+    border-color: var(--project-text-primary, #ffffff);
+    color: var(--project-text-primary, #ffffff);
   }
 
   &:disabled {
@@ -409,13 +409,13 @@ const DragButton = styled.button`
 const IconButton = styled.button<{ $variant?: "danger" | "ghost" }>`
   width: 2.15rem;
   height: 2.15rem;
-  border: 1px solid ${({ $variant }) => ($variant === "danger" ? "#ef4444" : "#334155")};
+  border: 1px solid ${({ $variant }) => ($variant === "danger" ? "var(--project-danger, #ef4444)" : "var(--project-border, #334155)")};
   border-radius: 0.4rem;
   display: inline-grid;
   place-items: center;
   background: ${({ $variant }) =>
     $variant === "danger" ? "rgba(220, 38, 38, 0.92)" : "rgba(15, 23, 42, 0.82)"};
-  color: #ffffff;
+  color: var(--project-text-primary, #ffffff);
   cursor: pointer;
   transition:
     transform 0.15s ease,
@@ -434,7 +434,7 @@ const IconButton = styled.button<{ $variant?: "danger" | "ghost" }>`
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    border-color: #ffffff;
+    border-color: var(--project-text-primary, #ffffff);
   }
 
   &:disabled {
@@ -447,7 +447,7 @@ const EmptyState = styled.div`
   display: grid;
   place-items: center;
   min-height: 260px;
-  color: #94a3b8;
+  color: var(--project-text-secondary, #94a3b8);
   font-weight: 700;
 `;
 
@@ -487,12 +487,12 @@ const ResponsiveTableStyles = styled.div`
       gap: 0.75rem;
       align-items: center;
       padding: 0.75rem;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid var(--project-surface-alt, #1e293b);
     }
 
     ${TableCell}::before {
       content: attr(data-label);
-      color: #94a3b8;
+      color: var(--project-text-secondary, #94a3b8);
       font-size: 0.72rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -748,7 +748,7 @@ export default function TeamFormTable({
                         onDragEnd={handleDragEnd}
                         onDrop={(event) => handleDrop(event, index)}
                       >
-                        <TableCell data-label="Drag" style={{ textAlign: "center", color: "#94a3b8" }}>
+                        <TableCell data-label="Drag" style={{ textAlign: "center", color: "var(--project-text-secondary, #94a3b8)" }}>
                           <OrderCell>
                             <DragButton
                               type="button"

@@ -95,8 +95,8 @@ const RankBadge = styled.div`
   position: absolute;
   top: 20px;
   left: 60px;
-  background-color: #bfff00;
-  color: #000;
+  background-color: var(--project-accent, #bfff00);
+  color: var(--project-background, #000);
   padding: 6px 24px;
   font-size: 24px;
   font-weight: 900;
@@ -116,8 +116,8 @@ const PurpleGeometry = styled.div`
   transform: translateX(-50%) skewX(-8deg);
   width: 500px;
   height: 240px;
-  background: linear-gradient(135deg, #4a159d 0%, #2a085c 100%);
-  border: 4px solid #7c3aed;
+  background: linear-gradient(135deg, var(--project-primary, #4a159d) 0%, var(--project-surface, #2a085c) 100%);
+  border: 4px solid var(--project-secondary, #7c3aed);
   z-index: 1;
 
   animation: ${slamDown} 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
@@ -129,7 +129,7 @@ const PurpleGeometry = styled.div`
     left: -20px;
     width: 250px;
     height: 80px;
-    background: #ff5500;
+    background: var(--project-warning, #ff5500);
     transform: skewX(15deg) rotate(-5deg);
     opacity: 0.8;
   }
@@ -181,14 +181,14 @@ const BannerRow = styled.div`
 `;
 
 const LogoBlock = styled.div`
-  background-color: #111116;
+  background-color: var(--project-surface, #111116);
   padding: 15px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  border-bottom: 4px solid #00ff66;
+  border-bottom: 4px solid var(--project-success, #00ff66);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
   transform: skewX(-5deg);
   margin-right: -10px;
@@ -209,7 +209,7 @@ const TeamLogo = styled.img`
 `;
 
 const EliminatedBanner = styled.div`
-  background-color: #cbff14;
+  background-color: var(--project-accent, #cbff14);
   padding: 12px 60px 12px 40px;
   transform: skewX(-8deg);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.4);
@@ -219,7 +219,7 @@ const EliminatedText = styled.h1`
   margin: 0;
   font-size: 38px;
   font-weight: 900;
-  color: #3b0082;
+  color: var(--project-background, #3b0082);
   text-transform: uppercase;
   font-style: italic;
   letter-spacing: 1px;

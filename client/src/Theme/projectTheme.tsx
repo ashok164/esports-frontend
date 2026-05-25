@@ -98,28 +98,28 @@ const sanitizeTheme = (payload: Partial<ProjectColorTheme> | null | undefined): 
 };
 
 const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $custom: boolean }>`
+  :root {
+    --project-primary: ${({ $theme }) => $theme.primary};
+    --project-secondary: ${({ $theme }) => $theme.secondary};
+    --project-accent: ${({ $theme }) => $theme.accent};
+    --project-background: ${({ $theme }) => $theme.background};
+    --project-surface: ${({ $theme }) => $theme.surface};
+    --project-surface-alt: ${({ $theme }) => $theme.surfaceAlt};
+    --project-text-primary: ${({ $theme }) => $theme.textPrimary};
+    --project-text-secondary: ${({ $theme }) => $theme.textSecondary};
+    --project-border: ${({ $theme }) => $theme.border};
+    --project-success: ${({ $theme }) => $theme.success};
+    --project-warning: ${({ $theme }) => $theme.warning};
+    --project-danger: ${({ $theme }) => $theme.danger};
+    --project-primary-rgb: ${({ $theme }) => hexToRgb($theme.primary)};
+    --project-secondary-rgb: ${({ $theme }) => hexToRgb($theme.secondary)};
+    --project-accent-rgb: ${({ $theme }) => hexToRgb($theme.accent)};
+    --project-danger-rgb: ${({ $theme }) => hexToRgb($theme.danger)};
+  }
+
   ${({ $theme, $custom }) =>
     $custom
       ? `
-    :root {
-      --project-primary: ${$theme.primary};
-      --project-secondary: ${$theme.secondary};
-      --project-accent: ${$theme.accent};
-      --project-background: ${$theme.background};
-      --project-surface: ${$theme.surface};
-      --project-surface-alt: ${$theme.surfaceAlt};
-      --project-text-primary: ${$theme.textPrimary};
-      --project-text-secondary: ${$theme.textSecondary};
-      --project-border: ${$theme.border};
-      --project-success: ${$theme.success};
-      --project-warning: ${$theme.warning};
-      --project-danger: ${$theme.danger};
-      --project-primary-rgb: ${hexToRgb($theme.primary)};
-      --project-secondary-rgb: ${hexToRgb($theme.secondary)};
-      --project-accent-rgb: ${hexToRgb($theme.accent)};
-      --project-danger-rgb: ${hexToRgb($theme.danger)};
-    }
-
     html,
     #root,
     body[data-broadcast-route="true"] {
@@ -132,32 +132,32 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) {
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] :is(main, section, article, table, thead, tbody, tr, td, th, div) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(main, section, article, table, thead, tbody, tr, td, th, div) {
       border-color: var(--project-border);
     }
 
-    body[data-project-theme="custom"] :is(h1, h2, h3, h4, h5, h6, p, span, label, strong, small, td, th, button, a) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(h1, h2, h3, h4, h5, h6, p, span, label, strong, small, td, th, button, a) {
       color: inherit;
     }
 
-    body[data-project-theme="custom"] :is(button, input, select, textarea) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(button, input, select, textarea) {
       border-color: var(--project-border) !important;
     }
 
-    body[data-project-theme="custom"] :is(button:not(:disabled), a, input[type="checkbox"], input[type="radio"]) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(button:not(:disabled), a, input[type="checkbox"], input[type="radio"]) {
       accent-color: var(--project-primary);
     }
 
-    body[data-project-theme="custom"] :is(input, select, textarea) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(input, select, textarea) {
       background-color: var(--project-surface) !important;
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] :is(input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible) {
       outline-color: var(--project-accent) !important;
       border-color: var(--project-accent) !important;
     }
@@ -168,52 +168,52 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] [data-theme-surface="panel"],
-    body[data-project-theme="custom"] [data-theme-surface="card"] {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) [data-theme-surface="panel"],
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) [data-theme-surface="card"] {
       background: var(--project-surface) !important;
       border-color: var(--project-border) !important;
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] [data-theme-accent="primary"] {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) [data-theme-accent="primary"] {
       color: var(--project-primary) !important;
       border-color: var(--project-primary) !important;
     }
 
-    body[data-project-theme="custom"] [data-theme-accent="secondary"] {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) [data-theme-accent="secondary"] {
       color: var(--project-secondary) !important;
       border-color: var(--project-secondary) !important;
     }
 
-    body[data-project-theme="custom"] [data-theme-accent="danger"] {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) [data-theme-accent="danger"] {
       color: var(--project-danger) !important;
       border-color: var(--project-danger) !important;
     }
 
-    body[data-project-theme="custom"] :is(button:not(:disabled), [role="button"]) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(button:not(:disabled), [role="button"]) {
       border-color: var(--project-primary) !important;
     }
 
-    body[data-project-theme="custom"] button:not(:disabled):not([data-theme-variant="ghost"]) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) button:not(:disabled):not([data-theme-variant="ghost"]) {
       background-color: var(--project-primary) !important;
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] a {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) a {
       color: var(--project-secondary) !important;
     }
 
-    body[data-project-theme="custom"] :is(.theme-primary, [data-theme-fill="primary"]) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(.theme-primary, [data-theme-fill="primary"]) {
       background: var(--project-primary) !important;
       color: var(--project-text-primary) !important;
     }
 
-    body[data-project-theme="custom"] :is(.theme-secondary, [data-theme-fill="secondary"]) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(.theme-secondary, [data-theme-fill="secondary"]) {
       background: var(--project-secondary) !important;
       color: var(--project-background) !important;
     }
 
-    body[data-project-theme="custom"] :is(.theme-accent, [data-theme-fill="accent"]) {
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(.theme-accent, [data-theme-fill="accent"]) {
       background: var(--project-accent) !important;
       color: var(--project-background) !important;
     }

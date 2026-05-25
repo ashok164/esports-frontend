@@ -1,19 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import TeamNotificationCard from "../../Components/EliminatedComponent/Eliminated";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
+import { useProjectTheme } from "../../Theme";
 
 const TeamEliminatedView = () => {
   const { standings, loading } = useLiveStandingsController();
+  const { isLoading: isThemeLoading } = useProjectTheme();
   const [activeEliminatedTeam, setActiveEliminatedTeam] = useState(null);
 
   const shownEliminations = useRef(new Set());
+  const previousEliminatedIds = useRef(new Set());
+  const hasBaseline = useRef(false);
+  const activeEliminationTime = useRef(0);
   const timeoutRef = useRef(null);
 
-  const getTotalDeadTime = (team) => {
+  const getTeamId = (team) => String(team?.id ?? team?.name ?? "");
+
+  const getEliminationTime = (team) => {
     if (!team?.players || !Array.isArray(team.players)) return 0;
-    return team.players.reduce(
-      (sum, player) => sum + (Number(player?.deadTime) || 0),
+
+    return Math.max(
       0,
+      ...team.players.map((player) => Number(player?.deadTime) || 0),
     );
   };
 
@@ -36,47 +44,36 @@ const TeamEliminatedView = () => {
     return scoreToPlacementMap[score] || null;
   };
 
-  useEffect(() => {
-    if (loading || !Array.isArray(standings) || standings.length === 0) return;
+  const getLatestEliminatedTeam = (teams) =>
+    [...teams].sort((a, b) => getEliminationTime(b) - getEliminationTime(a))[0];
 
-    const newEliminations = standings.filter(
-      (team) => team?.isEliminated && !shownEliminations.current.has(team.id),
-    );
+  const showEliminatedTeam = (targetTeam, allStandings) => {
+    if (!targetTeam) return;
 
-    if (newEliminations.length === 0) return;
+    const targetTeamId = getTeamId(targetTeam);
+    const targetEliminationTime = getEliminationTime(targetTeam);
 
-    const sortedEliminations = [...newEliminations].sort((a, b) => {
-      const scoreA = Number(a.rankingScore) || 0;
-      const scoreB = Number(b.rankingScore) || 0;
-
-      if (scoreA !== scoreB) {
-      }
-
-      return getTotalDeadTime(a) - getTotalDeadTime(b);
-    });
-
-    const targetTeam = sortedEliminations[0];
-
-    let isTwelfth = false;
-    if (targetTeam.rankingScore === 0) {
-      const allZeroScoreTeams = standings.filter(
-        (t) => t?.rankingScore === 0 && t?.isEliminated,
-      );
-
-      if (allZeroScoreTeams.length > 1) {
-        const otherTeam = allZeroScoreTeams.find((t) => t.id !== targetTeam.id);
-        if (
-          otherTeam &&
-          getTotalDeadTime(targetTeam) <= getTotalDeadTime(otherTeam)
-        ) {
-          isTwelfth = true;
-        }
-      } else {
-        isTwelfth = true;
-      }
+    if (
+      activeEliminationTime.current &&
+      targetEliminationTime < activeEliminationTime.current
+    ) {
+      shownEliminations.current.add(targetTeamId);
+      return;
     }
 
-    const accuratePlacement = getPlacement(targetTeam.rankingScore, isTwelfth);
+    let isTwelfth = false;
+    if (Number(targetTeam.rankingScore) === 0) {
+      const zeroScoreEliminations = allStandings
+        .filter((t) => Number(t?.rankingScore) === 0 && t?.isEliminated)
+        .sort((a, b) => getEliminationTime(a) - getEliminationTime(b));
+
+      isTwelfth = getTeamId(zeroScoreEliminations[0]) === targetTeamId;
+    }
+
+    const accuratePlacement = getPlacement(
+      Number(targetTeam.rankingScore) || 0,
+      isTwelfth,
+    );
     const enrichedTeam = {
       ...targetTeam,
       calculatedPlacement: accuratePlacement,
@@ -85,15 +82,59 @@ const TeamEliminatedView = () => {
         : "Eliminated",
     };
 
-    shownEliminations.current.add(targetTeam.id);
+    shownEliminations.current.add(targetTeamId);
+    activeEliminationTime.current = targetEliminationTime;
     setActiveEliminatedTeam(enrichedTeam);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
       setActiveEliminatedTeam(null);
+      activeEliminationTime.current = 0;
     }, 5000);
-  }, [standings, loading]);
+  };
+
+  useEffect(() => {
+    if (
+      loading ||
+      isThemeLoading ||
+      !Array.isArray(standings) ||
+      standings.length === 0
+    ) {
+      return;
+    }
+
+    const currentEliminatedIds = new Set(
+      standings.filter((team) => team?.isEliminated).map(getTeamId),
+    );
+
+    if (!hasBaseline.current) {
+      previousEliminatedIds.current = currentEliminatedIds;
+      hasBaseline.current = true;
+      showEliminatedTeam(
+        getLatestEliminatedTeam(standings.filter((team) => team?.isEliminated)),
+        standings,
+      );
+      return;
+    }
+
+    const newEliminations = standings.filter((team) => {
+      const teamId = getTeamId(team);
+
+      return (
+        team?.isEliminated &&
+        teamId &&
+        !previousEliminatedIds.current.has(teamId) &&
+        !shownEliminations.current.has(teamId)
+      );
+    });
+
+    previousEliminatedIds.current = currentEliminatedIds;
+
+    if (newEliminations.length === 0) return;
+
+    showEliminatedTeam(getLatestEliminatedTeam(newEliminations), standings);
+  }, [standings, loading, isThemeLoading]);
 
   useEffect(() => {
     return () => {
@@ -101,7 +142,7 @@ const TeamEliminatedView = () => {
     };
   }, []);
 
-  if (!activeEliminatedTeam) return null;
+  if (isThemeLoading || !activeEliminatedTeam) return null;
 
   return (
     <>

@@ -41,7 +41,7 @@ const PlaceholderLogo = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
+  color: var(--project-background, #000);
   font-size: 11px;
   font-weight: bold;
   text-align: center;
@@ -49,7 +49,7 @@ const PlaceholderLogo = styled.div`
 
 // Right info panel (Purple texture)
 const InfoPanel = styled.div`
-  background: linear-gradient(90deg, #4b0082 0%, #3a0066 100%);
+  background: linear-gradient(90deg, var(--project-primary, #4b0082) 0%, var(--project-surface, #3a0066) 100%);
   padding: 15px 50px 15px 60px; /* Left padding accommodates the overlap */
   display: flex;
   flex-direction: column;
@@ -61,8 +61,8 @@ const InfoPanel = styled.div`
 
 // Dynamic top tag (e.g., GRAND FINALS)
 const HeaderTag = styled.div`
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--project-text-primary, #ffffff);
+  color: var(--project-background, #000000);
   padding: 4px 16px;
   font-size: 14px;
   letter-spacing: 1px;
@@ -80,15 +80,15 @@ const GameText = styled.h1`
   font-size: 48px;
   margin: 0;
   line-height: 1;
-  color: #bfff00; /* Bright Neon Lime/Green */
+  color: var(--project-accent, #bfff00);
   text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
   letter-spacing: 2px;
 `;
 
 // Bottom tag (Fixed or dynamic secondary info)
 const SubTag = styled.div`
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--project-text-primary, #ffffff);
+  color: var(--project-background, #000000);
   padding: 4px 12px;
   font-size: 12px;
   letter-spacing: 0.5px;
