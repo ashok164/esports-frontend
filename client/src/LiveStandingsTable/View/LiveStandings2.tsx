@@ -6,9 +6,10 @@ import { useRef } from "react";
 const ELIMINATION_BANNER_MS = 2000;
 const ELIMINATION_SWAP_DELAY_MS = 1000;
 
-type PlayerStatus = "alive" | "knocked" | "dead";
+type PlayerStatus = "alive" | "knocked" | "recalled" | "dead";
 
 interface Player {
+  hp?: number;
   hpPercent?: number;
   isKnocked?: boolean;
   status?: PlayerStatus;
@@ -476,7 +477,7 @@ const Fill = styled.div<{ $hp: number; $status: PlayerStatus | "empty" }>`
   background: ${(p) => {
     if (p.$status === "alive") return Theme.aliveYellow;
     if (p.$status === "knocked") return Theme.danger;
-    if (p.$status === "dead") return Theme.aliveBlue;
+    if (p.$status === "recalled") return Theme.aliveBlue;
     return "transparent";
   }};
 `;
@@ -552,9 +553,15 @@ const getPoints = (t: Team) =>
 const getTag = (t: Team) => t.teamTag || t.shortName || t.tag || t.name;
 const getPlayers = (team: Team): Array<Player | null> =>
   Array.from({ length: 4 }, (_, i) => team.players?.[i] ?? null);
+const getPlayerHpPercent = (p: Player | null) => {
+  if (!p) return 0;
+  return Math.max(0, Math.min(100, toNumber(p.hpPercent ?? p.hp ?? 100)));
+};
 const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
   if (!p) return "empty";
-  if (p.status === "dead" || p.hasRecalled) return "dead";
+  if (getPlayerHpPercent(p) <= 0) return "dead";
+  if (p.hasRecalled) return "recalled";
+  if (p.status === "dead") return "dead";
   if (p.status === "knocked" || p.isKnocked) return "knocked";
   return "alive";
 };
@@ -736,9 +743,7 @@ function TeamRow({
                 return (
                   <Bar key={pIdx}>
                     <Fill
-                      $hp={
-                        st === "dead" ? 100 : toNumber(player?.hpPercent ?? 100)
-                      }
+                      $hp={st === "dead" ? 0 : getPlayerHpPercent(player)}
                       $status={st}
                     />
                   </Bar>
@@ -763,6 +768,7 @@ export default function StandingsTable({
   teams = [],
   maxRows = 12,
 }: StandingsTableProps) {
+  console.log(teams)
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousDeadIdsRef = useRef<Set<string>>(new Set());
   const hasDeadBaselineRef = useRef(false);
