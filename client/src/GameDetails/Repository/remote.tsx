@@ -13,6 +13,9 @@ const toPayload = (game: GameDetail) => ({
   phase: game.phase,
   matchId: game.matchId,
   enabled: Boolean(game.enabled),
+  resultEnabled: Boolean(game.resultEnabled),
+  todaysResultEnabled: Boolean(game.todaysResultEnabled),
+  leagueStageResultEnabled: Boolean(game.leagueStageResultEnabled),
 });
 
 const unwrapGameDetails = (response: any) => {

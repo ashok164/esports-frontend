@@ -123,6 +123,12 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
+        title: "Result Control",
+        path: "/result-control",
+        note: "Fetch proxy match data for the last Game Details row, edit result rows, and sync the sheet.",
+        type: "Admin",
+      },
+      {
         title: "Live Standings",
         path: "/live-standings",
         note: "Live standings table overlay.",
@@ -150,6 +156,12 @@ const routeGroups: RouteGroup[] = [
         title: "Circle Analysis",
         path: "/circle-analysis",
         note: "Circle analysis broadcast panel.",
+        type: "Broadcast",
+      },
+      {
+        title: "Result",
+        path: "/result",
+        note: "Tabbed result overlay for last match, today's enabled matches, and league stage matches.",
         type: "Broadcast",
       },
     ],

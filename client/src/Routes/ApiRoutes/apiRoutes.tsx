@@ -1,6 +1,6 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-export const API_BASE_URL = "https://api.freefireesportsnepal.com";
-// export const API_BASE_URL = "http://localhost:3000";
+// export const API_BASE_URL = "https://api.freefireesportsnepal.com";
+export const API_BASE_URL = "http://localhost:3000";
 export const REAL_TIME_API = "/tablestandings";
 export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";
@@ -72,3 +72,13 @@ export const DELETE_GAME_DETAIL = (id: string | number) =>
   `/api/game-details/delete/${id}`;
 export const GET_CIRCLE_ANALYSIS = "/api/circle-analysis";
 export const UPDATE_CIRCLE_ANALYSIS = "/api/circle-analysis";
+export const FETCH_MATCH_RESULT_DATA = "/api/match_stats/match_data";
+export const CREATE_RESULT = "/api/results/create";
+export const GET_RESULT_BY_MATCH_ID = (matchId: string | number) =>
+  `/api/results/${matchId}`;
+export const GET_RESULTS_BY_MATCH_IDS = "/api/results/by-match-ids";
+export const UPDATE_RESULT = (id: string | number) =>
+  `/api/results/update/${id}`;
+export const DELETE_RESULT = (id: string | number) =>
+  `/api/results/delete/${id}`;
+export const SYNC_RESULTS_SHEET = "/api/results/sync-sheet";

@@ -6,6 +6,9 @@ export type GameDetail = {
   phase: string;
   matchId: string;
   enabled?: boolean;
+  resultEnabled?: boolean;
+  todaysResultEnabled?: boolean;
+  leagueStageResultEnabled?: boolean;
 };
 
 export type ActiveGameDetails = {
@@ -38,6 +41,9 @@ export const normalizeGameDetail = (game: any): GameDetail => ({
   phase: String(game?.phase ?? ""),
   matchId: String(game?.matchId ?? game?.match_id ?? ""),
   enabled: Boolean(game?.enabled ?? game?.is_enabled ?? false),
+  resultEnabled: Boolean(game?.resultEnabled ?? game?.result_enabled ?? false),
+  todaysResultEnabled: Boolean(game?.todaysResultEnabled ?? game?.todays_result_enabled ?? false),
+  leagueStageResultEnabled: Boolean(game?.leagueStageResultEnabled ?? game?.league_stage_result_enabled ?? false),
 });
 
 export const readStoredGameDetails = (): GameDetail[] => {
@@ -75,6 +81,43 @@ export const getActiveGameDetails = (): ActiveGameDetails => {
   } catch {
     return DEFAULT_ACTIVE_GAME_DETAILS;
   }
+};
+
+export const getResultGameDetails = (): ActiveGameDetails => {
+  const games = readStoredGameDetails().filter((game) => game.matchId.trim());
+  const resultGame = games.find((game) => game.resultEnabled);
+
+  if (!resultGame) {
+    return {
+      ...getActiveGameDetails(),
+      matchIds: "",
+    };
+  }
+
+  return {
+    matchIds: resultGame.matchId.trim(),
+    gameNumber: resultGame.gameNumber || DEFAULT_ACTIVE_GAME_DETAILS.gameNumber,
+    roundName: resultGame.roundName || DEFAULT_ACTIVE_GAME_DETAILS.roundName,
+    phase: resultGame.phase || DEFAULT_ACTIVE_GAME_DETAILS.phase,
+  };
+};
+
+export const getTodaysResultGameDetails = (): ActiveGameDetails => {
+  const games = readStoredGameDetails().filter((game) => game.todaysResultEnabled && game.matchId.trim());
+
+  return {
+    ...getActiveGameDetails(),
+    matchIds: games.map((game) => game.matchId.trim()).join(","),
+  };
+};
+
+export const getLeagueStageResultGameDetails = (): ActiveGameDetails => {
+  const games = readStoredGameDetails().filter((game) => game.leagueStageResultEnabled && game.matchId.trim());
+
+  return {
+    ...getActiveGameDetails(),
+    matchIds: games.map((game) => game.matchId.trim()).join(","),
+  };
 };
 
 export const publishActiveGameDetails = (games: GameDetail[]) => {

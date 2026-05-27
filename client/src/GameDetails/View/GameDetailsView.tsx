@@ -20,6 +20,9 @@ const emptyRow = (): GameDetail => ({
   phase: "",
   matchId: "",
   enabled: false,
+  resultEnabled: false,
+  todaysResultEnabled: false,
+  leagueStageResultEnabled: false,
 });
 
 const isValidRow = (row: GameDetail) =>
@@ -29,6 +32,13 @@ const isValidRow = (row: GameDetail) =>
   row.matchId.trim();
 
 const makeLocalId = () => `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const mergeResultSwitches = (game: GameDetail, fallback?: GameDetail): GameDetail => ({
+  ...game,
+  resultEnabled: Boolean(game.resultEnabled || fallback?.resultEnabled),
+  todaysResultEnabled: Boolean(game.todaysResultEnabled || fallback?.todaysResultEnabled),
+  leagueStageResultEnabled: Boolean(game.leagueStageResultEnabled || fallback?.leagueStageResultEnabled),
+});
 
 const GameDetailsView: React.FC = () => {
   const [draftRows, setDraftRows] = useState<GameDetail[]>([emptyRow()]);
@@ -43,6 +53,18 @@ const GameDetailsView: React.FC = () => {
     () => games.filter((game) => game.enabled).map((game) => game.matchId).join(","),
     [games],
   );
+  const resultMatchIds = useMemo(
+    () => games.filter((game) => game.resultEnabled).map((game) => game.matchId).join(","),
+    [games],
+  );
+  const todaysResultMatchIds = useMemo(
+    () => games.filter((game) => game.todaysResultEnabled).map((game) => game.matchId).join(","),
+    [games],
+  );
+  const leagueStageResultMatchIds = useMemo(
+    () => games.filter((game) => game.leagueStageResultEnabled).map((game) => game.matchId).join(","),
+    [games],
+  );
 
   const syncGames = useCallback((nextGames: GameDetail[]) => {
     setGames(nextGames);
@@ -55,7 +77,18 @@ const GameDetailsView: React.FC = () => {
 
     try {
       const result = await getGameDetailsApi();
-      const rows = Array.isArray(result) ? result.map(normalizeGameDetail) : [];
+      const storedRows = readStoredGameDetails();
+      const rows = Array.isArray(result)
+        ? result.map((item) => {
+            const normalized = normalizeGameDetail(item);
+            const storedMatch = storedRows.find((row) =>
+              String(getGameRecordId(row)) === String(getGameRecordId(normalized)) ||
+              (row.matchId && row.matchId === normalized.matchId),
+            );
+
+            return mergeResultSwitches(normalized, storedMatch);
+          })
+        : [];
 
       if (rows.length > 0) {
         syncGames(rows);
@@ -104,7 +137,7 @@ const GameDetailsView: React.FC = () => {
 
       for (const row of rowsToSave) {
         const result = await createGameDetailApi(row);
-        savedRows.push(normalizeGameDetail(result?.data || result || row));
+        savedRows.push(mergeResultSwitches(normalizeGameDetail(result?.data || result || row), row));
       }
 
       syncGames([...games, ...savedRows.map((row) => ({ ...row, id: getGameRecordId(row) || makeLocalId() }))]);
@@ -180,10 +213,19 @@ const GameDetailsView: React.FC = () => {
   };
 
   const toggleEnabled = async (game: GameDetail) => {
+    await toggleGameFlag(game, "enabled");
+  };
+
+  const toggleGameFlag = async (game: GameDetail, field: keyof Pick<GameDetail, "enabled" | "resultEnabled" | "todaysResultEnabled" | "leagueStageResultEnabled">) => {
     const recordId = getGameRecordId(game);
-    const nextGame = { ...game, enabled: !game.enabled };
+    const nextGame = { ...game, [field]: !game[field] };
+    const selectedSingleResult = field === "resultEnabled" && nextGame.resultEnabled;
     const nextGames = games.map((row) =>
-      String(getGameRecordId(row)) === String(recordId) ? nextGame : row,
+      String(getGameRecordId(row)) === String(recordId)
+        ? nextGame
+        : selectedSingleResult
+          ? { ...row, resultEnabled: false }
+          : row,
     );
 
     syncGames(nextGames);
@@ -192,6 +234,14 @@ const GameDetailsView: React.FC = () => {
 
     try {
       await updateGameDetailApi(recordId, nextGame);
+      if (selectedSingleResult) {
+        await Promise.all(
+          nextGames
+            .filter((row) => String(getGameRecordId(row)) !== String(recordId))
+            .filter((row) => getGameRecordId(row) && !String(getGameRecordId(row)).startsWith("local-"))
+            .map((row) => updateGameDetailApi(getGameRecordId(row) as string | number, row)),
+        );
+      }
     } catch (err: any) {
       setError(err?.message || "Switch changed locally, but API update failed.");
     }
@@ -209,6 +259,20 @@ const GameDetailsView: React.FC = () => {
           <ActivePanel>
             <ActiveLabel>Enabled websocket match ids</ActiveLabel>
             <ActiveValue>{activeMatchIds || "No match enabled"}</ActiveValue>
+            <ActiveGrid>
+              <div>
+                <ActiveLabel>Result</ActiveLabel>
+                <ActiveValue>{resultMatchIds || "No match selected"}</ActiveValue>
+              </div>
+              <div>
+                <ActiveLabel>Today</ActiveLabel>
+                <ActiveValue>{todaysResultMatchIds || "No match selected"}</ActiveValue>
+              </div>
+              <div>
+                <ActiveLabel>League</ActiveLabel>
+                <ActiveValue>{leagueStageResultMatchIds || "No match selected"}</ActiveValue>
+              </div>
+            </ActiveGrid>
           </ActivePanel>
         </Header>
 
@@ -275,7 +339,10 @@ const GameDetailsView: React.FC = () => {
           <Table>
             <thead>
               <tr>
-                <th>Enable</th>
+                <th>Websocket</th>
+                <th>Result</th>
+                <th>Today</th>
+                <th>League</th>
                 <th>Game Number</th>
                 <th>Round Name</th>
                 <th>Phase</th>
@@ -286,7 +353,7 @@ const GameDetailsView: React.FC = () => {
             <tbody>
               {games.length === 0 ? (
                 <tr>
-                  <EmptyCell colSpan={6}>No game details inserted yet.</EmptyCell>
+                  <EmptyCell colSpan={9}>No game details inserted yet.</EmptyCell>
                 </tr>
               ) : (
                 games.map((game) => {
@@ -298,6 +365,24 @@ const GameDetailsView: React.FC = () => {
                       <td>
                         <Switch>
                           <input type="checkbox" checked={Boolean(game.enabled)} onChange={() => toggleEnabled(game)} />
+                          <span />
+                        </Switch>
+                      </td>
+                      <td>
+                        <Switch title="Use this row for Result">
+                          <input type="checkbox" checked={Boolean(game.resultEnabled)} onChange={() => toggleGameFlag(game, "resultEnabled")} />
+                          <span />
+                        </Switch>
+                      </td>
+                      <td>
+                        <Switch title="Use this row for Today's Result">
+                          <input type="checkbox" checked={Boolean(game.todaysResultEnabled)} onChange={() => toggleGameFlag(game, "todaysResultEnabled")} />
+                          <span />
+                        </Switch>
+                      </td>
+                      <td>
+                        <Switch title="Use this row for League Stage Result">
+                          <input type="checkbox" checked={Boolean(game.leagueStageResultEnabled)} onChange={() => toggleGameFlag(game, "leagueStageResultEnabled")} />
                           <span />
                         </Switch>
                       </td>
@@ -404,7 +489,7 @@ const Page = styled.main`
 `;
 
 const Shell = styled.div`
-  width: min(1180px, calc(100% - 32px));
+  width: min(1360px, calc(100% - 32px));
   margin: 0 auto;
   padding: 24px 0 32px;
 `;
@@ -459,6 +544,17 @@ const ActiveValue = styled.div`
   overflow-wrap: anywhere;
 `;
 
+const ActiveGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const Panel = styled.section`
   margin-top: 16px;
   padding: 18px;
@@ -482,6 +578,7 @@ const PanelTitle = styled.h2`
 
 const Table = styled.table`
   width: 100%;
+  min-width: 1120px;
   border-collapse: collapse;
   table-layout: fixed;
 
