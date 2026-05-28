@@ -63,7 +63,7 @@ const normalizeResultRow = (row: any, fallbackMatchIds = ""): ResultRow => ({
   id: row?.id,
   _id: row?._id,
   matchIds: String(row?.matchIds ?? row?.match_ids ?? row?.match_id ?? fallbackMatchIds),
-  teamId: String(pick(row, ["teamId", "team_id", "teamID", "teamid"])),
+  teamId: String(pick(row, ["permanentTeamId", "permanent_team_id", "teamId", "team_id", "teamID", "teamid"])),
   teamLogo: String(pick(row, ["teamLogo", "team_logo", "logo"])),
   countryLogo: String(pick(row, ["countryLogo", "country_logo", "flag"])),
   teamName: String(pick(row, ["teamName", "team_name", "name"])),
@@ -71,7 +71,7 @@ const normalizeResultRow = (row: any, fallbackMatchIds = ""): ResultRow => ({
   kills: pick(row, ["kills", "kill_score", "kill", "totalKills", "total_kills"]) || 0,
   placement: pick(row, ["placement", "rank", "match_rank", "survival_score"]) || 0,
   booyahCount: pick(row, ["booyahCount", "booyah_count", "booyah", "winCount"]) || 0,
-  totalKills: pick(row, ["totalScore", "total_score", "totalKills", "overallScore", "overall_score"]) || 0,
+  totalKills: pick(row, ["totalPoints", "total_points", "totalScore", "total_score", "totalKills", "total_kills", "overallScore", "overall_score"]) || 0,
 });
 
 const collectRows = (payload: any): any[] => {
@@ -81,6 +81,7 @@ const collectRows = (payload: any): any[] => {
     data?.result ||
     data?.totalResults ||
     data?.total_results ||
+    data?.overallLeaderboard ||
     data?.standings ||
     data;
 
@@ -162,7 +163,7 @@ const downloadResultCsv = (rows: ResultRow[], filename: string) => {
 
 const ResultBroadcastView: React.FC<ResultBroadcastViewProps> = ({ initialTab = "result" }) => {
   const [activeTab, setActiveTab] = useState<ResultTab>(initialTab);
-  const [resultMatchId, setResultMatchId] = useState(getResultGameDetails().matchIds.split(",")[0]?.trim() || "");
+  const [resultMatchIds, setResultMatchIds] = useState(splitMatchIds(getResultGameDetails().matchIds));
   const [todayMatchIds, setTodayMatchIds] = useState(getTodaysMatchIds());
   const [leagueMatchIds, setLeagueMatchIds] = useState(getLeagueStageMatchIds());
   const [rows, setRows] = useState<ResultRow[]>([]);
@@ -173,16 +174,15 @@ const ResultBroadcastView: React.FC<ResultBroadcastViewProps> = ({ initialTab = 
 
   const activeConfig = tabs.find((tab) => tab.key === activeTab) || tabs[0];
   const activeMatchIds = useMemo(() => {
-    if (activeTab === "result") return resultMatchId ? [resultMatchId] : [];
+    if (activeTab === "result") return resultMatchIds;
     if (activeTab === "today") return todayMatchIds;
     return leagueMatchIds;
-  }, [activeTab, leagueMatchIds, resultMatchId, todayMatchIds]);
+  }, [activeTab, leagueMatchIds, resultMatchIds, todayMatchIds]);
   const activeMatchKey = activeMatchIds.join(",");
 
   useEffect(() => {
     const updateMatchIds = () => {
-      setResultMatchId(getResultGameDetails().matchIds.split(",")[0]?.trim() || "");
-
+      setResultMatchIds(splitMatchIds(getResultGameDetails().matchIds));
       setTodayMatchIds(getTodaysMatchIds());
       setLeagueMatchIds(getLeagueStageMatchIds());
     };
@@ -208,17 +208,21 @@ const ResultBroadcastView: React.FC<ResultBroadcastViewProps> = ({ initialTab = 
         return;
       }
 
-      if (activeTab === "result") {
-        const matchId = activeMatchIds[0];
-        const payload = await getResultByMatchIdApi(matchId);
-        setRows(sortRows(collectRows(payload).map((row) => normalizeResultRow(row, matchId))));
-        setStatus(`Loaded result from match ID ${matchId}.`);
-        return;
-      }
+      const payload =
+        activeMatchIds.length === 1 && activeTab === "result"
+          ? await getResultByMatchIdApi(activeMatchIds[0])
+          : await getResultsByMatchIdsApi(activeMatchIds);
+      const sourceRows =
+        activeMatchIds.length > 1 || activeTab !== "result"
+          ? payload?.overall
+          : collectRows(payload);
 
-      const payload = await getResultsByMatchIdsApi(activeMatchIds);
-      setRows(sortRows(collectRows(payload).map((row) => normalizeResultRow(row, activeMatchKey))));
-      setStatus(`Loaded ${activeConfig.title.toLowerCase()} from ${activeMatchIds.length} match IDs.`);
+      setRows(sortRows((Array.isArray(sourceRows) ? sourceRows : []).map((row) => normalizeResultRow(row, activeMatchKey))));
+      setStatus(
+        activeMatchIds.length > 1 || activeTab !== "result"
+          ? `Calculated ${activeConfig.title.toLowerCase()} from ${activeMatchIds.length} match IDs.`
+          : `Loaded result from match ID ${activeMatchIds[0]}.`,
+      );
     } catch (err: any) {
       setRows([]);
       setError(err?.message || "Failed to load result");

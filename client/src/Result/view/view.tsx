@@ -24,7 +24,6 @@ const ResultView: React.FC = () => {
     isSaving,
     loadResults,
     results,
-    saveAllResults,
     saveEdit,
     status,
     setActiveTab,
@@ -49,10 +48,6 @@ const ResultView: React.FC = () => {
             <IconButton type="button" title="Refresh result data" onClick={loadResults} disabled={isLoading || isSaving}>
               <RefreshIcon />
             </IconButton>
-            <ActionButton type="button" onClick={saveAllResults} disabled={isLoading || isSaving || results.length === 0}>
-              <UpdateIcon />
-              <span>{isSaving ? "Updating" : "Update"}</span>
-            </ActionButton>
             <IconButton type="button" title="Download result sheet" onClick={downloadResults} disabled={results.length === 0}>
               <DownloadIcon />
             </IconButton>
@@ -111,7 +106,6 @@ const strokeProps = {
 };
 
 const RefreshIcon = () => <IconBase><path {...strokeProps} d="M21 12a9 9 0 0 1-15.5 6.3L3 16" /><path {...strokeProps} d="M3 21v-5h5" /><path {...strokeProps} d="M3 12a9 9 0 0 1 15.5-6.3L21 8" /><path {...strokeProps} d="M21 3v5h-5" /></IconBase>;
-const UpdateIcon = () => <IconBase><path {...strokeProps} d="M12 3v12" /><path {...strokeProps} d="m17 10-5 5-5-5" /><path {...strokeProps} d="M20 21H4" /></IconBase>;
 const DownloadIcon = () => <IconBase><path {...strokeProps} d="M12 3v12" /><path {...strokeProps} d="m7 10 5 5 5-5" /><path {...strokeProps} d="M5 21h14" /></IconBase>;
 
 const GlobalResultStyles = createGlobalStyle`

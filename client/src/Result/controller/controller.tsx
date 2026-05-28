@@ -9,8 +9,9 @@ import {
 import {
   createResultApi,
   deleteResultApi,
-  fetchMatchResultDataApi,
+  getResultsByMatchIdsApi,
   ResultRow,
+  saveRealtimeResultDataApi,
   updateResultApi,
 } from "../repository/remote";
 
@@ -46,7 +47,7 @@ const normalizeResultRow = (row: any): ResultRow => ({
   id: row?.id,
   _id: row?._id,
   matchIds: String(row?.matchIds ?? row?.match_ids ?? row?.match_id ?? ""),
-  teamId: String(pick(row, ["team_id", "teamId", "teamID", "teamid"])),
+  teamId: String(pick(row, ["permanentTeamId", "permanent_team_id", "team_id", "teamId", "teamID", "teamid"])),
   teamLogo: String(pick(row, ["teamLogo", "team_logo", "logo"])),
   countryLogo: String(pick(row, ["countryLogo", "country_logo", "flag"])),
   teamName: String(pick(row, ["team_name", "teamName", "name"])),
@@ -54,7 +55,7 @@ const normalizeResultRow = (row: any): ResultRow => ({
   kills: pick(row, ["kill_score", "kills", "kill"]) || 0,
   placement: pick(row, ["survival_score", "placement", "place", "rank", "match_rank"]) || 0,
   booyahCount: pick(row, ["booyahCount", "booyah_count", "booyah", "winCount"]) || "",
-  totalKills: pick(row, ["total_score", "totalScore", "totalKills"]) || 0,
+  totalKills: pick(row, ["total_score", "totalScore", "totalKills", "total_kills"]) || 0,
 });
 
 const normalizeTeamRecord = (team: any) => ({
@@ -64,15 +65,6 @@ const normalizeTeamRecord = (team: any) => ({
   teamName: String(pick(team, ["teamName", "team_name"])),
   teamTag: String(pick(team, ["teamTag", "team_tag", "shortTag", "short_tag", "tag"])),
 });
-
-const collectPossibleResultRows = (payload: any): any[] => {
-  const data = payload?.data || payload;
-  const totalStats = data?.total_stats || data?.totalStats;
-
-  if (!Array.isArray(totalStats)) return [];
-
-  return totalStats.filter((row) => row && typeof row === "object");
-};
 
 const mergeWithTeamRecords = (rows: ResultRow[], teams: any[], matchIds: string) => {
   const normalizedTeams = teams.map(normalizeTeamRecord);
@@ -213,30 +205,59 @@ const useResultController = () => {
         return;
       }
 
-      const matchPayload = await fetchMatchResultDataApi(matchIdList);
+      let realtimeSavePayload: any = null;
+
+      try {
+        realtimeSavePayload = await saveRealtimeResultDataApi(matchIdList);
+      } catch (err) {
+        console.warn("Realtime result save failed; loading existing DB rows.", err);
+      }
+
+      const matchPayload = await getResultsByMatchIdsApi(matchIdList);
       const teams = await getTeamTableApi();
+      const sourceRows =
+        matchIdList.length > 1 || activeTab !== "result"
+          ? matchPayload?.overall
+          : matchPayload?.data;
       const fetchedRows = mergeWithTeamRecords(
-        collectPossibleResultRows(matchPayload).map(normalizeResultRow),
+        (Array.isArray(sourceRows) ? sourceRows : []).map((row: any) =>
+          normalizeResultRow({
+            ...row,
+            matchIds: matchIdList.join(","),
+          }),
+        ),
         Array.isArray(teams) ? teams : [],
         matchIdList.join(","),
       ).filter((row) => row.teamId || row.teamName || row.teamTag);
 
       if (fetchedRows.length === 0) {
         setResults([]);
-        setStatus("No result rows were found in the match stats response.");
+        setStatus("No saved result rows found for the enabled match IDs.");
         return;
       }
 
       const localRows = fetchedRows.map((row) => ({ ...row, id: getResultRecordId(row) || makeLocalId() }));
       setResults(sortResults(localRows));
-      setStatus(`Loaded ${localRows.length} result rows from ${matchIdList.join(",")}.`);
+      const skippedCount = Array.isArray(realtimeSavePayload?.skippedRows)
+        ? realtimeSavePayload.skippedRows.length
+        : 0;
+      const savedCount = Array.isArray(realtimeSavePayload?.data)
+        ? realtimeSavePayload.data.length
+        : 0;
+      setStatus(
+        matchIdList.length > 1 || activeTab !== "result"
+          ? `Saved ${savedCount} realtime rows, then calculated ${localRows.length} team totals from ${matchIdList.length} match IDs.` +
+              (skippedCount ? ` ${skippedCount} rows skipped because mapping was missing.` : "")
+          : `Saved ${savedCount} realtime rows, then loaded ${localRows.length} saved result rows from ${matchIdList.join(",")}.` +
+              (skippedCount ? ` ${skippedCount} rows skipped because mapping was missing.` : ""),
+      );
     } catch (err: any) {
       setError(err?.message || "Failed to load result data");
       setResults([]);
     } finally {
       setIsLoading(false);
     }
-  }, [matchIdList]);
+  }, [activeTab, matchIdList]);
 
   useEffect(() => {
     const matchKey = matchIdList.join(",");

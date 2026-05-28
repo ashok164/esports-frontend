@@ -5,6 +5,7 @@ import {
   FETCH_MATCH_RESULT_DATA,
   GET_RESULT_BY_MATCH_ID,
   GET_RESULTS_BY_MATCH_IDS,
+  SAVE_REALTIME_RESULT_BY_MATCH_IDS,
   SYNC_RESULTS_SHEET,
   UPDATE_RESULT,
 } from "../../Routes/ApiRoutes/apiRoutes";
@@ -74,6 +75,14 @@ export const fetchMatchResultDataApi = async (matchIds: string[]) => {
   const response = await http.post(FETCH_MATCH_RESULT_DATA, payload, {
     timeout: MATCH_STATS_TIMEOUT_MS,
   });
+  return response?.data;
+};
+
+export const saveRealtimeResultDataApi = async (matchIds: string[]) => {
+  const response = await http.post(SAVE_REALTIME_RESULT_BY_MATCH_IDS, {
+    matchIds,
+  });
+
   return response?.data;
 };
 

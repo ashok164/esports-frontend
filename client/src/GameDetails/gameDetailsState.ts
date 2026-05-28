@@ -84,21 +84,22 @@ export const getActiveGameDetails = (): ActiveGameDetails => {
 };
 
 export const getResultGameDetails = (): ActiveGameDetails => {
-  const games = readStoredGameDetails().filter((game) => game.matchId.trim());
-  const resultGame = games.find((game) => game.resultEnabled);
+  const games = readStoredGameDetails().filter((game) => game.resultEnabled && game.matchId.trim());
 
-  if (!resultGame) {
+  if (!games.length) {
     return {
       ...getActiveGameDetails(),
       matchIds: "",
     };
   }
 
+  const primaryGame = games[0];
+
   return {
-    matchIds: resultGame.matchId.trim(),
-    gameNumber: resultGame.gameNumber || DEFAULT_ACTIVE_GAME_DETAILS.gameNumber,
-    roundName: resultGame.roundName || DEFAULT_ACTIVE_GAME_DETAILS.roundName,
-    phase: resultGame.phase || DEFAULT_ACTIVE_GAME_DETAILS.phase,
+    matchIds: games.map((game) => game.matchId.trim()).join(","),
+    gameNumber: primaryGame.gameNumber || DEFAULT_ACTIVE_GAME_DETAILS.gameNumber,
+    roundName: primaryGame.roundName || DEFAULT_ACTIVE_GAME_DETAILS.roundName,
+    phase: primaryGame.phase || DEFAULT_ACTIVE_GAME_DETAILS.phase,
   };
 };
 

@@ -81,6 +81,12 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
+        title: "Match Mappings",
+        path: "/match-team-mappings",
+        note: "View and delete saved room-to-team match mappings.",
+        type: "Admin",
+      },
+      {
         title: "View Weapons",
         path: "/view-weapons",
         note: "Review uploaded weapon IDs, names, and images.",
@@ -120,12 +126,6 @@ const routeGroups: RouteGroup[] = [
         title: "Circle Analysis Control",
         path: "/circle-analysis-control",
         note: "Edit circle placements and kill counts for the circle analysis overlay.",
-        type: "Admin",
-      },
-      {
-        title: "Result Control",
-        path: "/result-control",
-        note: "Fetch proxy match data for the last Game Details row, edit result rows, and sync the sheet.",
         type: "Admin",
       },
       {

@@ -4,8 +4,11 @@ import {
   createGameDetailApi,
   deleteGameDetailApi,
   getGameDetailsApi,
+  getMatchTeamMappingsApi,
+  replaceMatchTeamMappingsApi,
   updateGameDetailApi,
 } from "../Repository/remote";
+import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 import {
   GameDetail,
   getGameRecordId,
@@ -33,6 +36,23 @@ const isValidRow = (row: GameDetail) =>
 
 const makeLocalId = () => `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+type TeamOption = {
+  teamId: string;
+  teamName: string;
+  teamTag: string;
+};
+
+type MappingRow = {
+  roomTeamId: string;
+  permanentTeamId: string;
+};
+
+const emptyMappingRows = (): MappingRow[] =>
+  Array.from({ length: 12 }, (_, index) => ({
+    roomTeamId: String(index + 1),
+    permanentTeamId: "",
+  }));
+
 const mergeResultSwitches = (game: GameDetail, fallback?: GameDetail): GameDetail => ({
   ...game,
   resultEnabled: Boolean(game.resultEnabled || fallback?.resultEnabled),
@@ -48,6 +68,10 @@ const GameDetailsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mappingMatchId, setMappingMatchId] = useState("");
+  const [mappingRows, setMappingRows] = useState<MappingRow[]>(emptyMappingRows);
+  const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
+  const [isMappingSaving, setIsMappingSaving] = useState(false);
 
   const activeMatchIds = useMemo(
     () => games.filter((game) => game.enabled).map((game) => game.matchId).join(","),
@@ -106,6 +130,31 @@ const GameDetailsView: React.FC = () => {
   useEffect(() => {
     loadGames();
   }, [loadGames]);
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const teams = await getTeamTableApi();
+        setTeamOptions(
+          (Array.isArray(teams) ? teams : []).map((team: any) => ({
+            teamId: String(team.team_id || team.teamId || ""),
+            teamName: String(team.team_name || team.teamName || ""),
+            teamTag: String(team.short_tag || team.teamTag || team.shortTag || ""),
+          })).filter((team: TeamOption) => team.teamId),
+        );
+      } catch (err: any) {
+        setError(err?.message || "Could not load tournament teams for mapping.");
+      }
+    };
+
+    loadTeams();
+  }, []);
+
+  useEffect(() => {
+    if (!mappingMatchId && activeMatchIds) {
+      setMappingMatchId(activeMatchIds.split(",")[0] || "");
+    }
+  }, [activeMatchIds, mappingMatchId]);
 
   const updateDraftRow = (index: number, field: keyof GameDetail, value: string) => {
     setDraftRows((rows) =>
@@ -219,13 +268,10 @@ const GameDetailsView: React.FC = () => {
   const toggleGameFlag = async (game: GameDetail, field: keyof Pick<GameDetail, "enabled" | "resultEnabled" | "todaysResultEnabled" | "leagueStageResultEnabled">) => {
     const recordId = getGameRecordId(game);
     const nextGame = { ...game, [field]: !game[field] };
-    const selectedSingleResult = field === "resultEnabled" && nextGame.resultEnabled;
     const nextGames = games.map((row) =>
       String(getGameRecordId(row)) === String(recordId)
         ? nextGame
-        : selectedSingleResult
-          ? { ...row, resultEnabled: false }
-          : row,
+        : row,
     );
 
     syncGames(nextGames);
@@ -234,16 +280,78 @@ const GameDetailsView: React.FC = () => {
 
     try {
       await updateGameDetailApi(recordId, nextGame);
-      if (selectedSingleResult) {
-        await Promise.all(
-          nextGames
-            .filter((row) => String(getGameRecordId(row)) !== String(recordId))
-            .filter((row) => getGameRecordId(row) && !String(getGameRecordId(row)).startsWith("local-"))
-            .map((row) => updateGameDetailApi(getGameRecordId(row) as string | number, row)),
-        );
-      }
     } catch (err: any) {
       setError(err?.message || "Switch changed locally, but API update failed.");
+    }
+  };
+
+  const updateMappingRow = (index: number, field: keyof MappingRow, value: string) => {
+    setMappingRows((rows) =>
+      rows.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, [field]: value } : row,
+      ),
+    );
+  };
+
+  const loadMappings = async () => {
+    if (!mappingMatchId.trim()) {
+      setError("Enter a match ID before loading mappings.");
+      return;
+    }
+
+    setIsMappingSaving(true);
+    setError(null);
+
+    try {
+      const savedMappings = await getMatchTeamMappingsApi(mappingMatchId.trim());
+      const byRoomId = new Map(
+        (Array.isArray(savedMappings) ? savedMappings : []).map((mapping: any) => [
+          String(mapping.roomTeamId || mapping.room_team_id || ""),
+          String(mapping.permanentTeamId || mapping.permanent_team_id || ""),
+        ]),
+      );
+
+      setMappingRows(
+        emptyMappingRows().map((row) => ({
+          ...row,
+          permanentTeamId: byRoomId.get(row.roomTeamId) || "",
+        })),
+      );
+    } catch (err: any) {
+      setError(err?.message || "Could not load match team mappings.");
+    } finally {
+      setIsMappingSaving(false);
+    }
+  };
+
+  const saveMappings = async () => {
+    if (!mappingMatchId.trim()) {
+      setError("Enter a match ID before saving mappings.");
+      return;
+    }
+
+    const mappings = mappingRows
+      .filter((row) => row.roomTeamId.trim() && row.permanentTeamId.trim())
+      .map((row, index) => ({
+        roomTeamId: row.roomTeamId.trim(),
+        permanentTeamId: row.permanentTeamId.trim(),
+        slotNumber: index + 1,
+      }));
+
+    if (mappings.length === 0) {
+      setError("Map at least one room team before saving.");
+      return;
+    }
+
+    setIsMappingSaving(true);
+    setError(null);
+
+    try {
+      await replaceMatchTeamMappingsApi(mappingMatchId.trim(), mappings);
+    } catch (err: any) {
+      setError(err?.message || "Could not save match team mappings.");
+    } finally {
+      setIsMappingSaving(false);
     }
   };
 
@@ -444,6 +552,61 @@ const GameDetailsView: React.FC = () => {
             </tbody>
           </Table>
         </Panel>
+
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Room team mapping</PanelTitle>
+            <GhostText>{teamOptions.length} tournament teams</GhostText>
+          </PanelHeader>
+
+          <MappingToolbar>
+            <Input
+              value={mappingMatchId}
+              onChange={(event) => setMappingMatchId(event.target.value)}
+              placeholder="Match ID"
+            />
+            <Button type="button" onClick={loadMappings} disabled={isMappingSaving}>
+              Load Mapping
+            </Button>
+            <Button type="button" onClick={saveMappings} disabled={isMappingSaving}>
+              {isMappingSaving ? "Saving..." : "Save Mapping"}
+            </Button>
+          </MappingToolbar>
+
+          <Table>
+            <thead>
+              <tr>
+                <th>Room Team ID</th>
+                <th>Permanent Team</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mappingRows.map((row, index) => (
+                <tr key={`${row.roomTeamId}-${index}`}>
+                  <td>
+                    <Input
+                      value={row.roomTeamId}
+                      onChange={(event) => updateMappingRow(index, "roomTeamId", event.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <Select
+                      value={row.permanentTeamId}
+                      onChange={(event) => updateMappingRow(index, "permanentTeamId", event.target.value)}
+                    >
+                      <option value="">Select team</option>
+                      {teamOptions.map((team) => (
+                        <option key={team.teamId} value={team.teamId}>
+                          {team.teamId} - {team.teamName || team.teamTag || "Unnamed"}
+                        </option>
+                      ))}
+                    </Select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </Panel>
       </Shell>
     </Page>
   );
@@ -613,6 +776,29 @@ const Input = styled.input`
   color: var(--project-text-primary, #ffffff);
   padding: 0 10px;
   font: inherit;
+`;
+
+const Select = styled.select`
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 6px;
+  background: var(--project-background, #0f172a);
+  color: var(--project-text-primary, #ffffff);
+  padding: 0 10px;
+  font: inherit;
+`;
+
+const MappingToolbar = styled.div`
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: 10px;
+  margin-bottom: 14px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Toolbar = styled.div`

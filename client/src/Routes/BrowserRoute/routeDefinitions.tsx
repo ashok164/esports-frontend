@@ -12,12 +12,12 @@ import ViewWeapons from "../../GameAssetUpload/View/ViewWeapons";
 import LastTeamNotification from "../../LastFourTeams/View/LastTeamNotification";
 import LiveStandingsView from "../../LiveStandingsTable/View";
 import LoginView, { RegisterView } from "../../Auth/View";
+import MatchTeamMappingsView from "../../MatchTeamMappings/View";
 import MatchNumber from "../../MatchNumber/View";
 import PlayerUploadProfile from "../../PlayerUpload/View/PlayerUploadProfile";
 import PlayerUploadView from "../../PlayerUpload/View";
 import OverallResultView from "../../Result/view/OverallResultView";
 import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
-import ResultControlView from "../../Result/view";
 import RouteNavigator from "../RouteNavigator";
 import TeamEliminatedView from "../../TeamEliminated/View";
 import TeamRecordTable from "../../TeamRecordTable/View";
@@ -47,7 +47,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/player-profile", element: <PlayerUploadProfile />, isProtected: true },
   { path: "/game-asset-upload", element: <GameAssetUploadView />, isProtected: true },
   { path: "/game-details", element: <GameDetailsView />, isProtected: true },
-  { path: "/result-control", element: <ResultControlView />, isProtected: true },
+  { path: "/match-team-mappings", element: <MatchTeamMappingsView />, isProtected: true },
   { path: "/result", element: <ResultBroadcastView />, isBroadcast: true },
   { path: "/overall-result", element: <OverallResultView />, isBroadcast: true },
   { path: "/view-weapons", element: <ViewWeapons />, isProtected: true },

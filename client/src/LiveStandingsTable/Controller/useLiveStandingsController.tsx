@@ -32,6 +32,8 @@ const useLiveStandingsController = () => {
     if (!result) return;
 
     const source =
+      result?.data?.overallLeaderboard ??
+      result?.overallLeaderboard ??
       result?.data?.standings ??
       result?.data?.team_stats ??
       result?.standings ??
