@@ -33,6 +33,7 @@ interface Team {
   rankingScore?: number;
   totalPoints?: number;
   isEliminated?: boolean;
+  isPlaying?: boolean;
   players?: Player[];
 }
 
@@ -566,7 +567,7 @@ const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
   return "alive";
 };
 const isTeamDead = (t: Team) =>
-  Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0;
+  t.isPlaying !== false && (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
 
@@ -766,9 +767,8 @@ function TeamRow({
 /* ================= CORE ESPORTS ENGINE LAYER ================= */
 export default function StandingsTable({
   teams = [],
-  maxRows = 12,
+  maxRows = 18,
 }: StandingsTableProps) {
-  console.log(teams)
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousDeadIdsRef = useRef<Set<string>>(new Set());
   const hasDeadBaselineRef = useRef(false);

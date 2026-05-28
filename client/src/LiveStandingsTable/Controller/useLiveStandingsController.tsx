@@ -1,13 +1,53 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { mapTeamData, Team } from "../Datamapper/liveStandingsMapper";
+import { mapTeamData, mergeHistoricalWithLiveStandings, Team } from "../Datamapper/liveStandingsMapper";
 import { createStandingsSocket } from "../../GlobalWebsocket/remote";
 import {
   GAME_DETAILS_UPDATED_EVENT,
   getActiveGameDetails,
+  getLeagueStageResultGameDetails,
+  getResultGameDetails,
 } from "../../GameDetails/gameDetailsState";
+import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
+import { getResultsByMatchIdsApi } from "../../Result/repository/remote";
 
 const RECONNECT_DELAY_MS = 1500;
 const WS_STALE_LIMIT_MS = 12000;
+
+const splitMatchIds = (matchIds: string) =>
+  matchIds
+    .split(",")
+    .map((matchId) => matchId.trim())
+    .filter(Boolean);
+
+const uniqueMatchIds = (matchIds: string[]) => Array.from(new Set(matchIds));
+
+const collectHistoricalRows = (payload: any) => {
+  const data = payload?.data || payload;
+  const rows =
+    payload?.overall ||
+    data?.overall ||
+    data?.overallLeaderboard ||
+    data?.totalResults ||
+    data?.total_results ||
+    data?.results ||
+    data?.standings ||
+    data;
+
+  return Array.isArray(rows) ? rows : [];
+};
+
+const collectLiveRows = (result: any) => {
+  const source =
+    result?.data?.liveStandings2 ??
+    result?.liveStandings2 ??
+    result?.data?.standings ??
+    result?.data?.team_stats ??
+    result?.standings ??
+    result?.team_stats ??
+    (Array.isArray(result) ? result : null);
+
+  return Array.isArray(source) ? source : null;
+};
 
 const useLiveStandingsController = () => {
   const [standings, setStandings] = useState<Team[]>([]);
@@ -20,6 +60,7 @@ const useLiveStandingsController = () => {
   const lastMessageTimeRef = useRef(Date.now());
   const connectionIdRef = useRef(0);
   const previousStandingsRef = useRef<Team[]>([]);
+  const historicalRowsRef = useRef<any[]>([]);
 
   const [activeDetails, setActiveDetails] = useState(getActiveGameDetails);
   const matchId = activeDetails.matchIds;
@@ -28,23 +69,63 @@ const useLiveStandingsController = () => {
   const modeName = activeDetails.phase;
 
   /* ================= UPDATE ================= */
+  const loadHistoricalRows = useCallback(async () => {
+    const resultIds = uniqueMatchIds([
+      ...splitMatchIds(getLeagueStageResultGameDetails().matchIds),
+      ...splitMatchIds(getResultGameDetails().matchIds),
+    ]);
+
+    const [teams, resultPayload] = await Promise.all([
+      getTeamTableApi(),
+      resultIds.length > 0 ? getResultsByMatchIdsApi(resultIds) : Promise.resolve(null),
+    ]);
+
+    const teamRows = Array.isArray(teams) ? teams : [];
+    const resultRows = collectHistoricalRows(resultPayload);
+    const resultByTeamId = new Map(
+      resultRows
+        .map((row: any) => [
+          String(row?.teamId ?? row?.team_id ?? row?.permanentTeamId ?? row?.permanent_team_id ?? ""),
+          row,
+        ] as const)
+        .filter(([teamId]) => teamId),
+    );
+
+    historicalRowsRef.current = teamRows.map((team: any) => {
+      const teamId = String(team?.teamId ?? team?.team_id ?? "");
+      return {
+        ...team,
+        ...(resultByTeamId.get(teamId) || {}),
+        teamId,
+        teamName: team?.teamName ?? team?.team_name,
+        teamTag: team?.teamTag ?? team?.shortTag ?? team?.short_tag ?? team?.tag,
+        teamLogo: team?.teamLogo ?? team?.team_logo,
+        countryLogo: team?.countryLogo ?? team?.country_logo,
+      };
+    });
+  }, []);
+
   const updateStandings = useCallback((result: any) => {
     if (!result) return;
 
-    const source =
-      result?.data?.overallLeaderboard ??
-      result?.overallLeaderboard ??
-      result?.data?.standings ??
-      result?.data?.team_stats ??
-      result?.standings ??
-      result?.team_stats ??
-      (Array.isArray(result) ? result : null);
+    const source = collectLiveRows(result);
 
     if (!source) return;
 
-    const mappedData = mapTeamData(source, previousStandingsRef.current);
+    const mappedData = historicalRowsRef.current.length > 0
+      ? mergeHistoricalWithLiveStandings(
+          historicalRowsRef.current,
+          source,
+          previousStandingsRef.current,
+        )
+      : mapTeamData(source, previousStandingsRef.current);
+
     previousStandingsRef.current = mappedData;
-    setStandings(mappedData);
+    setStandings(
+      historicalRowsRef.current.length > 0
+        ? mappedData.filter((team) => team.isPlaying)
+        : mappedData,
+    );
     setLoading(false);
   }, []);
 
@@ -103,6 +184,9 @@ const useLiveStandingsController = () => {
   useEffect(() => {
     const handleGameDetailsChange = () => {
       setActiveDetails(getActiveGameDetails());
+      loadHistoricalRows().catch((err) => {
+        console.warn("Failed to refresh historical leaderboard rows.", err);
+      });
     };
 
     window.addEventListener(GAME_DETAILS_UPDATED_EVENT, handleGameDetailsChange);
@@ -112,13 +196,19 @@ const useLiveStandingsController = () => {
       window.removeEventListener(GAME_DETAILS_UPDATED_EVENT, handleGameDetailsChange);
       window.removeEventListener("storage", handleGameDetailsChange);
     };
-  }, []);
+  }, [loadHistoricalRows]);
 
   /* ================= INIT ================= */
   useEffect(() => {
     isMountedRef.current = true;
 
-    connect();
+    loadHistoricalRows()
+      .catch((err) => {
+        console.warn("Failed to load historical leaderboard rows.", err);
+      })
+      .finally(() => {
+        connect();
+      });
 
     const interval = setInterval(() => {
       const socket = socketRef.current;
@@ -143,13 +233,19 @@ const useLiveStandingsController = () => {
 
       socketRef.current?.close();
     };
-  }, [connect]);
+  }, [connect, loadHistoricalRows]);
 
   /* ================= MANUAL REFRESH ================= */
   const refresh = useCallback(() => {
     socketRef.current?.close();
-    connect();
-  }, [connect]);
+    loadHistoricalRows()
+      .catch((err) => {
+        console.warn("Failed to refresh historical leaderboard rows.", err);
+      })
+      .finally(() => {
+        connect();
+      });
+  }, [connect, loadHistoricalRows]);
 
   return {
     standings,

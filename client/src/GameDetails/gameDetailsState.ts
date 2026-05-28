@@ -5,6 +5,7 @@ export type GameDetail = {
   roundName: string;
   phase: string;
   matchId: string;
+  mappingTemplateId?: string;
   enabled?: boolean;
   resultEnabled?: boolean;
   todaysResultEnabled?: boolean;
@@ -40,6 +41,7 @@ export const normalizeGameDetail = (game: any): GameDetail => ({
   roundName: String(game?.roundName ?? game?.round_name ?? ""),
   phase: String(game?.phase ?? ""),
   matchId: String(game?.matchId ?? game?.match_id ?? ""),
+  mappingTemplateId: String(game?.mappingTemplateId ?? game?.mapping_template_id ?? ""),
   enabled: Boolean(game?.enabled ?? game?.is_enabled ?? false),
   resultEnabled: Boolean(game?.resultEnabled ?? game?.result_enabled ?? false),
   todaysResultEnabled: Boolean(game?.todaysResultEnabled ?? game?.todays_result_enabled ?? false),

@@ -426,7 +426,6 @@ const TimedEliminationOverlay = ({ isAlive }: { isAlive: boolean }) => {
    ========================================================================== */
 
 const StandingsTable = ({ teams = [] }: { teams?: Team[] }) => {
-  console.log(teams,'teams')
   return (
     <TableWrapper>
       {/* HEADER */}

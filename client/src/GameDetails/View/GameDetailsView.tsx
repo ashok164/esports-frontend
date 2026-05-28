@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import {
+  applyMappingTemplateToMatchApi,
+  createMappingTemplateApi,
   createGameDetailApi,
   deleteGameDetailApi,
   getGameDetailsApi,
-  getMatchTeamMappingsApi,
-  replaceMatchTeamMappingsApi,
+  getMappingTemplatesApi,
   updateGameDetailApi,
 } from "../Repository/remote";
 import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
@@ -22,6 +23,7 @@ const emptyRow = (): GameDetail => ({
   roundName: "",
   phase: "",
   matchId: "",
+  mappingTemplateId: "",
   enabled: false,
   resultEnabled: false,
   todaysResultEnabled: false,
@@ -47,6 +49,14 @@ type MappingRow = {
   permanentTeamId: string;
 };
 
+type MappingTemplate = {
+  id: string;
+  _id?: string;
+  name: string;
+  mappings: Array<MappingRow & { slotNumber?: number }>;
+  updatedAt: string;
+};
+
 const emptyMappingRows = (): MappingRow[] =>
   Array.from({ length: 12 }, (_, index) => ({
     roomTeamId: String(index + 1),
@@ -55,9 +65,24 @@ const emptyMappingRows = (): MappingRow[] =>
 
 const mergeResultSwitches = (game: GameDetail, fallback?: GameDetail): GameDetail => ({
   ...game,
+  mappingTemplateId: game.mappingTemplateId || fallback?.mappingTemplateId || "",
   resultEnabled: Boolean(game.resultEnabled || fallback?.resultEnabled),
   todaysResultEnabled: Boolean(game.todaysResultEnabled || fallback?.todaysResultEnabled),
   leagueStageResultEnabled: Boolean(game.leagueStageResultEnabled || fallback?.leagueStageResultEnabled),
+});
+
+const normalizeMappingTemplate = (template: any): MappingTemplate => ({
+  id: String(template?.id || template?._id || ""),
+  _id: template?._id,
+  name: String(template?.name || template?.mappingName || template?.mapping_name || "Saved mapping"),
+  updatedAt: String(template?.updatedAt || template?.updated_at || new Date().toISOString()),
+  mappings: (Array.isArray(template?.mappings) ? template.mappings : [])
+    .map((mapping: any, index: number) => ({
+      roomTeamId: String(mapping?.roomTeamId ?? mapping?.room_team_id ?? index + 1),
+      permanentTeamId: String(mapping?.permanentTeamId ?? mapping?.permanent_team_id ?? ""),
+      slotNumber: Number(mapping?.slotNumber ?? mapping?.slot_number ?? index + 1),
+    }))
+    .filter((mapping: MappingRow) => mapping.roomTeamId && mapping.permanentTeamId),
 });
 
 const GameDetailsView: React.FC = () => {
@@ -68,9 +93,11 @@ const GameDetailsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mappingMatchId, setMappingMatchId] = useState("");
+  const [mappingTemplateName, setMappingTemplateName] = useState("");
+  const [mappingTemplates, setMappingTemplates] = useState<MappingTemplate[]>([]);
   const [mappingRows, setMappingRows] = useState<MappingRow[]>(emptyMappingRows);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
+  const [isMappingLoading, setIsMappingLoading] = useState(false);
   const [isMappingSaving, setIsMappingSaving] = useState(false);
 
   const activeMatchIds = useMemo(
@@ -131,6 +158,25 @@ const GameDetailsView: React.FC = () => {
     loadGames();
   }, [loadGames]);
 
+  const loadMappingTemplates = useCallback(async () => {
+    setIsMappingLoading(true);
+    setError(null);
+
+    try {
+      const response = await getMappingTemplatesApi();
+      const templates = (Array.isArray(response) ? response : []).map(normalizeMappingTemplate);
+      setMappingTemplates(templates);
+    } catch (err: any) {
+      setError(err?.message || "Could not load saved mapping templates.");
+    } finally {
+      setIsMappingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMappingTemplates();
+  }, [loadMappingTemplates]);
+
   useEffect(() => {
     const loadTeams = async () => {
       try {
@@ -150,12 +196,6 @@ const GameDetailsView: React.FC = () => {
     loadTeams();
   }, []);
 
-  useEffect(() => {
-    if (!mappingMatchId && activeMatchIds) {
-      setMappingMatchId(activeMatchIds.split(",")[0] || "");
-    }
-  }, [activeMatchIds, mappingMatchId]);
-
   const updateDraftRow = (index: number, field: keyof GameDetail, value: string) => {
     setDraftRows((rows) =>
       rows.map((row, rowIndex) =>
@@ -168,6 +208,13 @@ const GameDetailsView: React.FC = () => {
     setDraftRows((rows) =>
       rows.length === 1 ? [emptyRow()] : rows.filter((_, rowIndex) => rowIndex !== index),
     );
+  };
+
+  const applyTemplateToMatch = async (matchId: string, templateId?: string) => {
+    const template = mappingTemplates.find((item) => item.id === templateId);
+    if (!template || !matchId.trim()) return;
+
+    await applyMappingTemplateToMatchApi(matchId.trim(), template.id);
   };
 
   const handleSubmitRows = async () => {
@@ -186,6 +233,7 @@ const GameDetailsView: React.FC = () => {
 
       for (const row of rowsToSave) {
         const result = await createGameDetailApi(row);
+        await applyTemplateToMatch(row.matchId, row.mappingTemplateId);
         savedRows.push(mergeResultSwitches(normalizeGameDetail(result?.data || result || row), row));
       }
 
@@ -225,6 +273,7 @@ const GameDetailsView: React.FC = () => {
       if (!isLocal) {
         await updateGameDetailApi(editingId, editingRow);
       }
+      await applyTemplateToMatch(editingRow.matchId, editingRow.mappingTemplateId);
 
       syncGames(
         games.map((game) =>
@@ -293,40 +342,27 @@ const GameDetailsView: React.FC = () => {
     );
   };
 
-  const loadMappings = async () => {
-    if (!mappingMatchId.trim()) {
-      setError("Enter a match ID before loading mappings.");
-      return;
-    }
+  const addMappingRow = () => {
+    setMappingRows((rows) => [
+      ...rows,
+      {
+        roomTeamId: String(rows.length + 1),
+        permanentTeamId: "",
+      },
+    ]);
+  };
 
-    setIsMappingSaving(true);
-    setError(null);
-
-    try {
-      const savedMappings = await getMatchTeamMappingsApi(mappingMatchId.trim());
-      const byRoomId = new Map(
-        (Array.isArray(savedMappings) ? savedMappings : []).map((mapping: any) => [
-          String(mapping.roomTeamId || mapping.room_team_id || ""),
-          String(mapping.permanentTeamId || mapping.permanent_team_id || ""),
-        ]),
-      );
-
-      setMappingRows(
-        emptyMappingRows().map((row) => ({
-          ...row,
-          permanentTeamId: byRoomId.get(row.roomTeamId) || "",
-        })),
-      );
-    } catch (err: any) {
-      setError(err?.message || "Could not load match team mappings.");
-    } finally {
-      setIsMappingSaving(false);
-    }
+  const removeMappingRow = (index: number) => {
+    setMappingRows((rows) =>
+      rows.length === 1
+        ? [{ roomTeamId: "1", permanentTeamId: "" }]
+        : rows.filter((_, rowIndex) => rowIndex !== index),
+    );
   };
 
   const saveMappings = async () => {
-    if (!mappingMatchId.trim()) {
-      setError("Enter a match ID before saving mappings.");
+    if (!mappingTemplateName.trim()) {
+      setError("Enter a mapping name before saving.");
       return;
     }
 
@@ -347,9 +383,24 @@ const GameDetailsView: React.FC = () => {
     setError(null);
 
     try {
-      await replaceMatchTeamMappingsApi(mappingMatchId.trim(), mappings);
+      const payload = {
+        name: mappingTemplateName.trim(),
+        mappings,
+      };
+      const savedTemplate = await createMappingTemplateApi(payload);
+      const normalized = normalizeMappingTemplate(savedTemplate);
+      await loadMappingTemplates();
+      setDraftRows((rows) =>
+        rows.map((row) =>
+          row.mappingTemplateId
+            ? row
+            : { ...row, mappingTemplateId: normalized.id || row.mappingTemplateId },
+        ),
+      );
+      setMappingTemplateName("");
+      setMappingRows(emptyMappingRows());
     } catch (err: any) {
-      setError(err?.message || "Could not save match team mappings.");
+      setError(err?.message || "Could not save mapping template.");
     } finally {
       setIsMappingSaving(false);
     }
@@ -401,6 +452,7 @@ const GameDetailsView: React.FC = () => {
                 <th>Round Name</th>
                 <th>Phase</th>
                 <th>Match ID</th>
+                <th>Mapping</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -418,6 +470,19 @@ const GameDetailsView: React.FC = () => {
                   </td>
                   <td>
                     <Input value={row.matchId} onChange={(event) => updateDraftRow(index, "matchId", event.target.value)} />
+                  </td>
+                  <td>
+                    <Select
+                      value={row.mappingTemplateId || ""}
+                      onChange={(event) => updateDraftRow(index, "mappingTemplateId", event.target.value)}
+                    >
+                      <option value="">No mapping</option>
+                      {mappingTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name} ({template.mappings.length})
+                        </option>
+                      ))}
+                    </Select>
                   </td>
                   <td>
                     <ActionRow>
@@ -455,13 +520,14 @@ const GameDetailsView: React.FC = () => {
                 <th>Round Name</th>
                 <th>Phase</th>
                 <th>Match ID</th>
+                <th>Mapping</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {games.length === 0 ? (
                 <tr>
-                  <EmptyCell colSpan={9}>No game details inserted yet.</EmptyCell>
+                  <EmptyCell colSpan={10}>No game details inserted yet.</EmptyCell>
                 </tr>
               ) : (
                 games.map((game) => {
@@ -523,6 +589,23 @@ const GameDetailsView: React.FC = () => {
                         )}
                       </td>
                       <td>
+                        {isEditing ? (
+                          <Select
+                            value={editingRow.mappingTemplateId || ""}
+                            onChange={(event) => setEditingRow((row) => ({ ...row, mappingTemplateId: event.target.value }))}
+                          >
+                            <option value="">No mapping</option>
+                            {mappingTemplates.map((template) => (
+                              <option key={template.id} value={template.id}>
+                                {template.name} ({template.mappings.length})
+                              </option>
+                            ))}
+                          </Select>
+                        ) : (
+                          mappingTemplates.find((template) => template.id === game.mappingTemplateId)?.name || "-"
+                        )}
+                      </td>
+                      <td>
                         <ActionRow>
                           {isEditing ? (
                             <>
@@ -555,18 +638,21 @@ const GameDetailsView: React.FC = () => {
 
         <Panel>
           <PanelHeader>
-            <PanelTitle>Room team mapping</PanelTitle>
-            <GhostText>{teamOptions.length} tournament teams</GhostText>
+            <PanelTitle>Create reusable room mapping</PanelTitle>
+            <GhostText>{isMappingLoading ? "Loading mappings..." : `${mappingTemplates.length} saved mappings / ${teamOptions.length} tournament teams`}</GhostText>
           </PanelHeader>
 
           <MappingToolbar>
             <Input
-              value={mappingMatchId}
-              onChange={(event) => setMappingMatchId(event.target.value)}
-              placeholder="Match ID"
+              value={mappingTemplateName}
+              onChange={(event) => setMappingTemplateName(event.target.value)}
+              placeholder="Mapping name"
             />
-            <Button type="button" onClick={loadMappings} disabled={isMappingSaving}>
-              Load Mapping
+            <Button type="button" onClick={loadMappingTemplates} disabled={isMappingLoading || isMappingSaving}>
+              Refresh
+            </Button>
+            <Button type="button" onClick={addMappingRow} disabled={isMappingSaving}>
+              Add Room
             </Button>
             <Button type="button" onClick={saveMappings} disabled={isMappingSaving}>
               {isMappingSaving ? "Saving..." : "Save Mapping"}
@@ -578,6 +664,7 @@ const GameDetailsView: React.FC = () => {
               <tr>
                 <th>Room Team ID</th>
                 <th>Permanent Team</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -601,6 +688,13 @@ const GameDetailsView: React.FC = () => {
                         </option>
                       ))}
                     </Select>
+                  </td>
+                  <td>
+                    <ActionRow>
+                      <IconButton type="button" title="Delete mapping row" onClick={() => removeMappingRow(index)}>
+                        <TrashIcon />
+                      </IconButton>
+                    </ActionRow>
                   </td>
                 </tr>
               ))}
@@ -792,7 +886,7 @@ const Select = styled.select`
 
 const MappingToolbar = styled.div`
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) auto auto;
+  grid-template-columns: minmax(220px, 1fr) auto auto auto;
   gap: 10px;
   margin-bottom: 14px;
 
