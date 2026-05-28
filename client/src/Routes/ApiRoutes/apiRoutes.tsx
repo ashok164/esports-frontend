@@ -1,6 +1,6 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-// export const API_BASE_URL = "https://api.freefireesportsnepal.com";
-export const API_BASE_URL = "http://localhost:3000";
+export const API_BASE_URL = "https://api.freefireesportsnepal.com";
+// export const API_BASE_URL = "http://localhost:3000";
 export const REAL_TIME_API = "/tablestandings";
 export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";

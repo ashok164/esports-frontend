@@ -193,7 +193,6 @@ export const mergeHistoricalWithLiveStandings = (
   liveTeams: any[],
   previousTeamsState?: Team[],
 ): Team[] => {
-  console.log({ liveTeams, historicalTeams });
   const previousById = new Map(
     (previousTeamsState || []).map((team) => [String(team.id), team]),
   );
