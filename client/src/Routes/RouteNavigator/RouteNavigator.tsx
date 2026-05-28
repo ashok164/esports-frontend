@@ -87,6 +87,12 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
+        title: "Result JSON Control",
+        path: "/result-json-control",
+        note: "Paste websocket JSON, compare mapped slots, and save match results.",
+        type: "Admin",
+      },
+      {
         title: "View Weapons",
         path: "/view-weapons",
         note: "Review uploaded weapon IDs, names, and images.",

@@ -17,6 +17,7 @@ import MatchNumber from "../../MatchNumber/View";
 import PlayerUploadProfile from "../../PlayerUpload/View/PlayerUploadProfile";
 import PlayerUploadView from "../../PlayerUpload/View";
 import OverallResultView from "../../Result/view/OverallResultView";
+import ResultJsonControlView from "../../ResultJsonControl/View";
 import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
 import RouteNavigator from "../RouteNavigator";
 import TeamEliminatedView from "../../TeamEliminated/View";
@@ -48,6 +49,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/game-asset-upload", element: <GameAssetUploadView />, isProtected: true },
   { path: "/game-details", element: <GameDetailsView />, isProtected: true },
   { path: "/match-team-mappings", element: <MatchTeamMappingsView />, isProtected: true },
+  { path: "/result-json-control", element: <ResultJsonControlView />, isProtected: true },
   { path: "/result", element: <ResultBroadcastView />, isBroadcast: true },
   { path: "/overall-result", element: <OverallResultView />, isBroadcast: true },
   { path: "/view-weapons", element: <ViewWeapons />, isProtected: true },
