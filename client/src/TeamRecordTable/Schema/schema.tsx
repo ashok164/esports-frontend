@@ -28,10 +28,12 @@ export const teamValidationSchema = Yup.object().shape({
         .nullable()
         .notRequired()
         .test('optionalFile', 'Invalid file layout', (value) => {
-          // If no file is provided, skip validation. If one is provided, ensure it's a valid FileList
+          if (typeof value === 'string') return true;
           if (!value || (value instanceof FileList && value.length === 0)) return true;
           return value instanceof FileList;
         }),
+      countryLogoId: Yup.string().nullable(),
+      countryLogoPath: Yup.string().nullable(),
     })
   ),
 });

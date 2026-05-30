@@ -50,6 +50,12 @@ const routeGroups: RouteGroup[] = [
         note: "View team and country logo assets.",
         type: "Admin",
       },
+      {
+        title: "Country Logo",
+        path: "/country-logo",
+        note: "Upload reusable country logos for team records.",
+        type: "Admin",
+      },
     ],
   },
   {
@@ -87,12 +93,6 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
-        title: "Result JSON Control",
-        path: "/result-json-control",
-        note: "Paste websocket JSON, compare mapped slots, and save match results.",
-        type: "Admin",
-      },
-      {
         title: "View Weapons",
         path: "/view-weapons",
         note: "Review uploaded weapon IDs, names, and images.",
@@ -120,6 +120,36 @@ const routeGroups: RouteGroup[] = [
         title: "View Equipment",
         path: "/view-equipment",
         note: "Review uploaded equipment IDs, names, and images.",
+        type: "Admin",
+      },
+    ],
+  },
+  {
+    title: "Result",
+    description: "Result controls, MVP, and booyah team player stat tables.",
+    routes: [
+      {
+        title: "Result JSON Control",
+        path: "/result-json-control",
+        note: "Paste websocket JSON, compare mapped slots, and save match results.",
+        type: "Admin",
+      },
+      {
+        title: "MVP",
+        path: "/result-mvp",
+        note: "Single MVP from booyah team players by kills, then damage.",
+        type: "Admin",
+      },
+      {
+        title: "Booyah Team Stats",
+        path: "/result-booyah-team-stats",
+        note: "All players from the booyah team with skills, weapons, and stats.",
+        type: "Admin",
+      },
+      {
+        title: "Top Fraggers",
+        path: "/result-top-fraggers",
+        note: "Top 5 killers across enabled league stage result match IDs.",
         type: "Admin",
       },
     ],

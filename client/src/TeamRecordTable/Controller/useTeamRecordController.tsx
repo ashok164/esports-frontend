@@ -6,6 +6,7 @@ import {
   updateTeamTableApi,
 } from "../Repositary/remote";
 import { useNavigate } from "react-router-dom";
+import { CountryLogo, getCountryLogosApi } from "../../CountryLogo/Repository/remote";
 
 export interface TeamRecord {
   id?: number | string;
@@ -21,11 +22,14 @@ export interface TeamRecord {
   teamLogo?: string;
   country_logo?: string;
   countryLogo?: string;
+  countryLogoId?: string | number;
+  countryLogoPath?: string;
 }
 
 const useTeamRecordController = () => {
   const navigate = useNavigate();
   const [teams, setTeams] = useState<TeamRecord[]>([]);
+  const [countryLogos, setCountryLogos] = useState<CountryLogo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +63,16 @@ const useTeamRecordController = () => {
     }
     if (countryLogoFile) {
       formData.append("countryLogo", countryLogoFile);
+    } else if (typeof teamRecord.countryLogo === "string" && teamRecord.countryLogo) {
+      formData.append("countryLogo", teamRecord.countryLogo);
+    }
+
+    if (teamRecord.countryLogoId) {
+      formData.append("countryLogoId", String(teamRecord.countryLogoId));
+    }
+
+    if (teamRecord.countryLogoPath) {
+      formData.append("countryLogoPath", String(teamRecord.countryLogoPath));
     }
 
     return formData;
@@ -99,6 +113,19 @@ const useTeamRecordController = () => {
   useEffect(() => {
     loadTeams();
   }, [loadTeams]);
+
+  const loadCountryLogos = useCallback(async () => {
+    try {
+      setCountryLogos(await getCountryLogosApi());
+    } catch (err) {
+      console.log("Failed to load country logos:", err);
+      setCountryLogos([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCountryLogos();
+  }, [loadCountryLogos]);
 
   const handleCreateTeam = async (data: any) => {
     setIsSaving(true);
@@ -201,6 +228,7 @@ const useTeamRecordController = () => {
     openTeamLogos: handleOpenTeamLogos,
     refreshTeams: loadTeams,
     teams,
+    countryLogos,
     isLoading,
     isSaving,
     error,

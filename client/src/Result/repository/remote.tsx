@@ -3,7 +3,11 @@ import {
   CREATE_RESULT,
   DELETE_RESULT,
   FETCH_MATCH_RESULT_DATA,
+  GET_RESULT_BOOYAH,
   GET_RESULT_BY_MATCH_ID,
+  GET_RESULT_MVP,
+  GET_RESULT_TEAM_STATS,
+  GET_RESULT_TOP_FRAGGERS,
   GET_RESULTS_BY_MATCH_IDS,
   SAVE_REALTIME_RESULT_BY_MATCH_IDS,
   SYNC_RESULTS_SHEET,
@@ -46,6 +50,26 @@ export const createResultApi = async (result: Partial<ResultRow> | Array<Partial
 
 export const getResultByMatchIdApi = async (matchId: string | number) => {
   const response = await http.get(GET_RESULT_BY_MATCH_ID(matchId));
+  return response?.data;
+};
+
+export const getResultTeamStatsApi = async (matchId: string | number) => {
+  const response = await http.get(GET_RESULT_TEAM_STATS(matchId));
+  return response?.data;
+};
+
+export const getResultMvpApi = async (matchId: string | number) => {
+  const response = await http.get(GET_RESULT_MVP(matchId));
+  return response?.data;
+};
+
+export const getResultTopFraggersApi = async (matchId: string | number) => {
+  const response = await http.get(GET_RESULT_TOP_FRAGGERS(matchId));
+  return response?.data;
+};
+
+export const getResultBooyahApi = async (matchId: string | number) => {
+  const response = await http.get(GET_RESULT_BOOYAH(matchId));
   return response?.data;
 };
 

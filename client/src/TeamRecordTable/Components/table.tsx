@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import styled from "styled-components";
 import { teamValidationSchema } from "../Schema/schema";
 import { TeamRecord } from "../Controller/useTeamRecordController";
+import { CountryLogo } from "../../CountryLogo/Repository/remote";
 
 type TeamRow = {
   recordId?: string | number;
@@ -12,6 +13,8 @@ type TeamRow = {
   tag: string;
   teamLogo?: any;
   countryLogo?: any;
+  countryLogoId?: string;
+  countryLogoPath?: string;
   existingTeamLogo?: string;
   existingCountryLogo?: string;
 };
@@ -27,6 +30,7 @@ type TeamFormTableProps = {
   deleteTeamTable: (id: string | number) => Promise<void>;
   openTeamLogos: (team?: TeamRecord) => void;
   teams?: TeamRecord[];
+  countryLogos?: CountryLogo[];
   isLoading?: boolean;
   isSaving?: boolean;
   error?: string | null;
@@ -39,6 +43,8 @@ const mapApiTeamToRow = (team: TeamRecord): TeamRow => ({
   tag: team.short_tag || team.shortTag || team.tag || "",
   teamLogo: null,
   countryLogo: null,
+  countryLogoId: "",
+  countryLogoPath: "",
   existingTeamLogo: team.team_logo || team.teamLogo || "",
   existingCountryLogo: team.country_logo || team.countryLogo || "",
 });
@@ -60,6 +66,19 @@ const toTeamRecord = (row: TeamRow): TeamRecord => ({
   team_logo: row.existingTeamLogo,
   country_logo: row.existingCountryLogo,
 });
+
+const getLogoUrl = (logo?: CountryLogo) => logo?.countryLogo || "";
+
+const findCountryLogoByValue = (countryLogos: CountryLogo[], value?: string) => {
+  if (!value) return undefined;
+  return countryLogos.find(
+    (logo) =>
+      String(logo.id) === String(value) ||
+      logo.countryLogo === value ||
+      logo.path === value ||
+      logo.filename === value,
+  );
+};
 
 const EditIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -262,6 +281,22 @@ const TextInput = styled.input<{ $hasError?: boolean }>`
   width: 100%;
   box-sizing: border-box;
   border: 1px solid ${({ $hasError }) => ($hasError ? "var(--project-danger, #ef4444)" : "var(--project-border, #334155)")};
+  border-radius: 0.38rem;
+  padding: 0.62rem 0.7rem;
+  background: var(--project-background, #0f172a);
+  color: var(--project-text-primary, #f8fafc);
+  font-size: 0.86rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--project-text-primary, #f8fafc);
+  }
+`;
+
+const SelectInput = styled.select`
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--project-border, #334155);
   border-radius: 0.38rem;
   padding: 0.62rem 0.7rem;
   background: var(--project-background, #0f172a);
@@ -511,6 +546,7 @@ export default function TeamFormTable({
   deleteTeamTable,
   openTeamLogos,
   teams = [],
+  countryLogos = [],
   isLoading = false,
   isSaving = false,
   error,
@@ -535,6 +571,7 @@ export default function TeamFormTable({
     resolver: yupResolver(teamValidationSchema) as any,
     defaultValues: { teams: [] },
   });
+  const watchedTeams = useWatch({ control, name: "teams" });
 
   const { fields, append, remove, replace, move } = useFieldArray({
     control,
@@ -554,6 +591,8 @@ export default function TeamFormTable({
       tag: "",
       teamLogo: null,
       countryLogo: null,
+      countryLogoId: "",
+      countryLogoPath: "",
       existingTeamLogo: "",
       existingCountryLogo: "",
     });
@@ -579,6 +618,28 @@ export default function TeamFormTable({
       const next = { ...prev };
       delete next[index];
       return next;
+    });
+  };
+
+  const handleCountryLogoSelect = (index: number, logoId: string) => {
+    const logo = findCountryLogoByValue(countryLogos, logoId);
+    const logoUrl = getLogoUrl(logo);
+
+    setValue(`teams.${index}.countryLogoId`, logo ? String(logo.id) : "", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setValue(`teams.${index}.countryLogoPath`, logo?.path || "", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setValue(`teams.${index}.countryLogo`, logoUrl, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setValue(`teams.${index}.existingCountryLogo`, logoUrl, {
+      shouldDirty: true,
+      shouldValidate: true,
     });
   };
 
@@ -729,11 +790,18 @@ export default function TeamFormTable({
 
                 <tbody>
                   {fields.map((field, index) => {
-                    const row = getValues(`teams.${index}`);
+                    const row = watchedTeams?.[index] || getValues(`teams.${index}`);
                     const rowErrors = (errors.teams as any)?.[index];
                     const isEditing = Boolean(editingRows[index] || !row.recordId);
                     const teamLogoFile = getFileName(row.teamLogo);
-                    const countryLogoFile = getFileName(row.countryLogo);
+                    const selectedCountryLogo =
+                      findCountryLogoByValue(countryLogos, row.countryLogoId) ||
+                      findCountryLogoByValue(countryLogos, row.existingCountryLogo) ||
+                      findCountryLogoByValue(countryLogos, row.countryLogo);
+                    const selectedCountryLogoUrl =
+                      getLogoUrl(selectedCountryLogo) ||
+                      row.existingCountryLogo ||
+                      (typeof row.countryLogo === "string" ? row.countryLogo : "");
 
                     return (
                       <TableRow
@@ -842,28 +910,34 @@ export default function TeamFormTable({
                         <TableCell data-label="Country Logo">
                           {isEditing ? (
                             <>
-                              <FileInput
-                                type="file"
-                                accept="image/*"
-                                {...register(`teams.${index}.countryLogo`)}
-                              />
+                              <SelectInput
+                                value={selectedCountryLogo ? String(selectedCountryLogo.id) : ""}
+                                onChange={(event) => handleCountryLogoSelect(index, event.target.value)}
+                              >
+                                <option value="">No country logo</option>
+                                {countryLogos.map((logo) => (
+                                  <option key={logo.id} value={logo.id}>
+                                    {logo.name}
+                                  </option>
+                                ))}
+                              </SelectInput>
                               <Muted>
-                                {countryLogoFile ||
-                                  (row.existingCountryLogo ? "Current flag kept" : "Optional")}
+                                {selectedCountryLogo?.name ||
+                                  (selectedCountryLogoUrl ? "Current flag kept" : "Select from country logos")}
                               </Muted>
                             </>
                           ) : (
                             <LogoPreview>
-                              {row.existingCountryLogo ? (
+                              {selectedCountryLogoUrl ? (
                                 <LogoImage
                                   $small
-                                  src={row.existingCountryLogo}
+                                  src={selectedCountryLogoUrl}
                                   alt={`${row.teamName} country logo`}
                                 />
                               ) : (
                                 <PlaceholderLogo $small>NA</PlaceholderLogo>
                               )}
-                              <Muted>{row.existingCountryLogo ? "Uploaded" : "No flag"}</Muted>
+                              <Muted>{selectedCountryLogo?.name || (selectedCountryLogoUrl ? "Selected" : "No flag")}</Muted>
                             </LogoPreview>
                           )}
                         </TableCell>

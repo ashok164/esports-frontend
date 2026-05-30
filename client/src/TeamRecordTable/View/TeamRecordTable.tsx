@@ -9,6 +9,7 @@ const TeamRecordTable = () => {
     deleteTeamTable,
     openTeamLogos,
     teams,
+    countryLogos,
     isLoading,
     isSaving,
     error,
@@ -22,6 +23,7 @@ const TeamRecordTable = () => {
         deleteTeamTable={deleteTeamTable}
         openTeamLogos={openTeamLogos}
         teams={teams}
+        countryLogos={countryLogos}
         isLoading={isLoading}
         isSaving={isSaving}
         error={error}

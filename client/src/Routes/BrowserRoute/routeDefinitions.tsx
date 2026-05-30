@@ -1,7 +1,9 @@
 import React from "react";
+import BooyahTeamStatsPage from "../../Result/view/BooyahTeamStatsPage";
 import BroadcastThemeView from "../../BroadcastTheme/View";
 import CircleAnalysis from "../../CircleAnalysis/View";
 import CircleAnalysisAdmin from "../../CircleAnalysis/View/CircleAnalysisAdmin";
+import CountryLogoView from "../../CountryLogo/View";
 import GameAssetUploadView from "../../GameAssetUpload/View";
 import GameDetailsView from "../../GameDetails/View";
 import ViewCharacters from "../../GameAssetUpload/View/ViewCharacters";
@@ -14,6 +16,7 @@ import LiveStandingsView from "../../LiveStandingsTable/View";
 import LoginView, { RegisterView } from "../../Auth/View";
 import MatchTeamMappingsView from "../../MatchTeamMappings/View";
 import MatchNumber from "../../MatchNumber/View";
+import MvpPage from "../../Result/view/MvpPage";
 import PlayerUploadProfile from "../../PlayerUpload/View/PlayerUploadProfile";
 import PlayerUploadView from "../../PlayerUpload/View";
 import OverallResultView from "../../Result/view/OverallResultView";
@@ -22,6 +25,7 @@ import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
 import RouteNavigator from "../RouteNavigator";
 import TeamEliminatedView from "../../TeamEliminated/View";
 import TeamRecordTable from "../../TeamRecordTable/View";
+import TopFraggersPage from "../../Result/view/TopFraggersPage";
 import ViewTeamLogo from "../../TeamLogo/View";
 
 export type AppRouteDefinition = {
@@ -43,6 +47,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/circle-analysis", element: <CircleAnalysis />, isBroadcast: true },
   { path: "/circle-analysis-control", element: <CircleAnalysisAdmin />, isProtected: true },
   { path: "/team-record", element: <TeamRecordTable />, isProtected: true },
+  { path: "/country-logo", element: <CountryLogoView />, isProtected: true },
   { path: "/team-logo", element: <ViewTeamLogo />, isProtected: true },
   { path: "/player-upload", element: <PlayerUploadView />, isProtected: true },
   { path: "/player-profile", element: <PlayerUploadProfile />, isProtected: true },
@@ -50,6 +55,9 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/game-details", element: <GameDetailsView />, isProtected: true },
   { path: "/match-team-mappings", element: <MatchTeamMappingsView />, isProtected: true },
   { path: "/result-json-control", element: <ResultJsonControlView />, isProtected: true },
+  { path: "/result-mvp", element: <MvpPage />, isProtected: true },
+  { path: "/result-booyah-team-stats", element: <BooyahTeamStatsPage />, isProtected: true },
+  { path: "/result-top-fraggers", element: <TopFraggersPage />, isProtected: true },
   { path: "/result", element: <ResultBroadcastView />, isBroadcast: true },
   { path: "/overall-result", element: <OverallResultView />, isBroadcast: true },
   { path: "/view-weapons", element: <ViewWeapons />, isProtected: true },

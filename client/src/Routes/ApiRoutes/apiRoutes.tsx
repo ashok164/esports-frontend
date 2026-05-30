@@ -1,6 +1,6 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-export const API_BASE_URL = "https://api.freefireesportsnepal.com";
-// export const API_BASE_URL = "http://localhost:3000";
+// export const API_BASE_URL = "https://api.freefireesportsnepal.com";
+export const API_BASE_URL = "http://localhost:3000";
 export const REAL_TIME_API = "/tablestandings";
 export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";
@@ -9,6 +9,12 @@ export const UPDATE_TEAM_DETAILS = (id: string | number) =>
   `/api/teams/update/${id}`;
 export const DELETE_TEAM_DETAILS = (id: string | number) =>
   `/api/teams/delete/${id}`;
+export const GET_COUNTRY_LOGOS = "/api/teams/country-logos";
+export const CREATE_COUNTRY_LOGO = "/api/teams/country-logos";
+export const UPDATE_COUNTRY_LOGO = (id: string | number) =>
+  `/api/teams/country-logos/${id}`;
+export const DELETE_COUNTRY_LOGO = (id: string | number) =>
+  `/api/teams/country-logos/${id}`;
 export const CREATE_PLAYER_UPLOAD = "/team-players";
 export const GET_PLAYER_UPLOADS = "/view-team-player";
 export const UPDATE_PLAYER_UPLOAD = (id: string | number) =>
@@ -96,6 +102,14 @@ export const CREATE_RESULT = "/api/results/create";
 export const SAVE_REALTIME_RESULT_BY_MATCH_IDS = "/api/results/from-realtime/by-match-ids";
 export const GET_RESULT_BY_MATCH_ID = (matchId: string | number) =>
   `/api/results/${matchId}`;
+export const GET_RESULT_TEAM_STATS = (matchId: string | number) =>
+  `/api/results/team-stats/${matchId}`;
+export const GET_RESULT_MVP = (matchId: string | number) =>
+  `/api/results/mvp/${matchId}`;
+export const GET_RESULT_TOP_FRAGGERS = (matchId: string | number) =>
+  `/api/results/top-fraggers/${matchId}`;
+export const GET_RESULT_BOOYAH = (matchId: string | number) =>
+  `/api/results/booyah/${matchId}`;
 export const GET_RESULTS_BY_MATCH_IDS = "/api/results/by-match-ids";
 export const UPDATE_RESULT = (id: string | number) =>
   `/api/results/update/${id}`;
