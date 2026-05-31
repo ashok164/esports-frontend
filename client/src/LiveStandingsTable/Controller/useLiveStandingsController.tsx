@@ -10,8 +10,8 @@ import {
 import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 import { getResultsByMatchIdsApi } from "../../Result/repository/remote";
 
-const RECONNECT_DELAY_MS = 1500;
-const WS_STALE_LIMIT_MS = 12000;
+const RECONNECT_DELAY_MS = 500;
+const WS_STALE_LIMIT_MS = 5000;
 
 const splitMatchIds = (matchIds: string) =>
   matchIds
@@ -48,6 +48,56 @@ const collectLiveRows = (result: any) => {
 
   return Array.isArray(source) ? source : null;
 };
+
+const firstValue = (...values: any[]) =>
+  values.find((value) => value !== undefined && value !== null) ?? "";
+
+const minimizePlayer = (player: any) => ({
+  account_id: firstValue(player?.account_id, player?.player_uid, player?.playerUid),
+  nickname: firstValue(player?.nickname, player?.player_name, player?.playerName, player?.name),
+  player_state: firstValue(player?.player_state, player?.playerState, 0),
+  be_killed_time: firstValue(player?.be_killed_time, player?.beKilledTime, 0),
+  hp_info: {
+    current_hp: firstValue(player?.hp_info?.current_hp, player?.hpInfo?.currentHp, 0),
+    total_hp: firstValue(player?.hp_info?.total_hp, player?.hpInfo?.totalHp, 200),
+  },
+  player_image: firstValue(player?.player_image, player?.player_pic, player?.playerPic),
+});
+
+const minimizeTeam = (team: any) => {
+  const players = Array.isArray(team?.player_stats)
+    ? team.player_stats
+    : Array.isArray(team?.players)
+      ? team.players
+      : [];
+
+  return {
+    team_id: firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId),
+    room_team_id: firstValue(team?.room_team_id, team?.roomTeamId, null),
+    team_name: firstValue(team?.team_name, team?.teamName, team?.name),
+    short_tag: firstValue(team?.short_tag, team?.teamTag, team?.tag),
+    team_logo: firstValue(team?.team_logo, team?.teamLogo),
+    country_logo: firstValue(team?.country_logo, team?.countryLogo),
+    full_team_banner: firstValue(team?.full_team_banner, team?.fullTeamBanner),
+    notification_team_banner: firstValue(
+      team?.notification_team_banner,
+      team?.notificationTeamBanner,
+    ),
+    booyah_banner: firstValue(team?.booyah_banner, team?.booyah_image, team?.booyahBanner),
+    ranking_score: firstValue(team?.ranking_score, team?.placementPoints, 0),
+    killing_score: firstValue(team?.killing_score, team?.kill_count, team?.kills, 0),
+    live_kills: firstValue(team?.live_kills, team?.liveKills, team?.killing_score, 0),
+    live_points: firstValue(team?.live_points, team?.livePoints, 0),
+    total_points: firstValue(team?.total_points, team?.totalPoints, 0),
+    historical_kills: firstValue(team?.historical_kills, team?.historicalKills, 0),
+    historical_points: firstValue(team?.historical_points, team?.historicalPoints, 0),
+    is_playing: firstValue(team?.is_playing, team?.isPlaying, players.length > 0),
+    is_eliminated: Boolean(firstValue(team?.is_eliminated, team?.isEliminated, false)),
+    player_stats: players.map(minimizePlayer),
+  };
+};
+
+const minimizeLiveRows = (rows: any[]) => rows.map(minimizeTeam);
 
 const useLiveStandingsController = () => {
   const [standings, setStandings] = useState<Team[]>([]);
@@ -96,13 +146,18 @@ const useLiveStandingsController = () => {
       return {
         ...team,
         ...(resultByTeamId.get(teamId) || {}),
-        teamId,
-        teamName: team?.teamName ?? team?.team_name,
-        teamTag: team?.teamTag ?? team?.shortTag ?? team?.short_tag ?? team?.tag,
-        teamLogo: team?.teamLogo ?? team?.team_logo,
-        countryLogo: team?.countryLogo ?? team?.country_logo,
+        team_id: teamId,
+        team_name: team?.team_name ?? team?.teamName,
+        short_tag: team?.short_tag ?? team?.shortTag ?? team?.teamTag ?? team?.tag,
+        team_logo: team?.team_logo ?? team?.teamLogo,
+        country_logo: team?.country_logo ?? team?.countryLogo,
       };
     });
+  }, []);
+
+  const publishStandings = useCallback((nextStandings: Team[]) => {
+    setStandings(nextStandings);
+    setLoading(false);
   }, []);
 
   const updateStandings = useCallback((result: any) => {
@@ -112,22 +167,23 @@ const useLiveStandingsController = () => {
 
     if (!source) return;
 
+    const liveRows = minimizeLiveRows(source);
+
     const mappedData = historicalRowsRef.current.length > 0
       ? mergeHistoricalWithLiveStandings(
           historicalRowsRef.current,
-          source,
+          liveRows,
           previousStandingsRef.current,
         )
-      : mapTeamData(source, previousStandingsRef.current);
+      : mapTeamData(liveRows, previousStandingsRef.current);
 
     previousStandingsRef.current = mappedData;
-    setStandings(
+    publishStandings(
       historicalRowsRef.current.length > 0
         ? mappedData.filter((team) => team.isPlaying)
         : mappedData,
     );
-    setLoading(false);
-  }, []);
+  }, [publishStandings]);
 
   /* ================= CONNECT ================= */
   const connect = useCallback(() => {
@@ -202,13 +258,11 @@ const useLiveStandingsController = () => {
   useEffect(() => {
     isMountedRef.current = true;
 
-    loadHistoricalRows()
-      .catch((err) => {
-        console.warn("Failed to load historical leaderboard rows.", err);
-      })
-      .finally(() => {
-        connect();
-      });
+    connect();
+
+    loadHistoricalRows().catch((err) => {
+      console.warn("Failed to load historical leaderboard rows.", err);
+    });
 
     const interval = setInterval(() => {
       const socket = socketRef.current;
@@ -220,7 +274,7 @@ const useLiveStandingsController = () => {
         console.warn("WS STALE → reconnecting");
         socket.close();
       }
-    }, 4000);
+    }, 1000);
 
     return () => {
       isMountedRef.current = false;

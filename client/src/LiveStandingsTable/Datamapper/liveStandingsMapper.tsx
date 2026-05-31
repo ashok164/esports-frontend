@@ -43,14 +43,6 @@ export interface Team {
 
 /* ================= MAPPING FUNCTION ================= */
 
-const pick = (source: any, keys: string[], fallback: any = "") => {
-  for (const key of keys) {
-    const value = source?.[key];
-    if (value !== undefined && value !== null && value !== "") return value;
-  }
-  return fallback;
-};
-
 const toNumber = (value: any, fallback = 0) => {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : fallback;
@@ -61,98 +53,29 @@ const normalizeTeamKey = (value: any) =>
     .trim()
     .toLowerCase();
 
+const firstValue = (...values: any[]) =>
+  values.find((value) => value !== undefined && value !== null) ?? "";
+
 const getTeamIdentityKeys = (team: any) =>
   [
-    pick(team, [
-      "permanentTeamId",
-      "permanent_team_id",
-      "teamId",
-      "team_id",
-      "teamID",
-      "teamid",
-      "id",
-      "_id",
-    ]),
-    pick(team, ["teamTag", "team_tag", "shortTag", "short_tag", "tag"]),
-    pick(team, ["teamName", "team_name", "name"]),
+    firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId),
+    firstValue(team?.short_tag, team?.team_tag, team?.teamTag, team?.tag),
+    firstValue(team?.team_name, team?.teamName, team?.name),
   ]
     .map(normalizeTeamKey)
     .filter(Boolean);
 
 const getPrimaryTeamId = (team: any, fallback: string | number) =>
-  pick(
-    team,
-    [
-      "permanentTeamId",
-      "permanent_team_id",
-      "teamId",
-      "team_id",
-      "teamID",
-      "teamid",
-      "id",
-      "_id",
-    ],
-    fallback,
-  );
+  firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId, fallback);
 
 const getHistoricalPoints = (team: any) =>
-  toNumber(
-    pick(
-      team,
-      [
-        "historicalPoints",
-        "historical_points",
-        "totalPoints",
-        "total_points",
-        "totalScore",
-        "total_score",
-        "totalKills",
-        "total_kills",
-        "overallScore",
-        "overall_score",
-        "points",
-      ],
-      0,
-    ),
-  );
+  toNumber(firstValue(team?.historical_points, team?.historicalPoints, team?.total_points, team?.totalPoints, team?.points, 0));
 
 const getLiveKills = (team: any) =>
-  toNumber(
-    pick(
-      team,
-      [
-        "liveKills",
-        "live_kills",
-        "currentKills",
-        "current_kills",
-        "totalKills",
-        "total_kills",
-        "kills",
-        "killing_score",
-        "kill_count",
-      ],
-      0,
-    ),
-  );
+  toNumber(firstValue(team?.live_kills, team?.liveKills, team?.killing_score, team?.kill_count, team?.kills, 0));
 
 const getLivePlacementPoints = (team: any) =>
-  toNumber(
-    pick(
-      team,
-      [
-        "livePlacementPoints",
-        "live_placement_points",
-        "currentPlacementPoints",
-        "current_placement_points",
-        "placementPoints",
-        "placement_points",
-        "rankingScore",
-        "ranking_score",
-        "survival_score",
-      ],
-      0,
-    ),
-  );
+  toNumber(firstValue(team?.live_placement_points, team?.livePlacementPoints, team?.ranking_score, 0));
 
 const getIdentitySignature = (team: Team) =>
   [
@@ -207,8 +130,7 @@ export const mergeHistoricalWithLiveStandings = (
   const baseRows = historicalTeams.length > 0 ? historicalTeams : liveTeams;
 
   const merged = (baseRows || []).map((historicalTeam, index) => {
-    const identityKeys = getTeamIdentityKeys(historicalTeam);
-    const liveTeam = identityKeys
+    const liveTeam = getTeamIdentityKeys(historicalTeam)
       .map((key) => liveByKey.get(key))
       .find(Boolean);
     const teamId = getPrimaryTeamId(historicalTeam, index + 1);
@@ -226,41 +148,15 @@ export const mergeHistoricalWithLiveStandings = (
       id: teamId,
       permanentTeamId: teamId,
       roomTeamId: mappedLiveTeam?.roomTeamId ?? null,
-      teamTag: String(
-        pick(
-          historicalTeam,
-          ["teamTag", "team_tag", "shortTag", "short_tag", "tag"],
-          mappedLiveTeam?.teamTag || "",
-        ),
-      ),
-      name: String(
-        pick(
-          historicalTeam,
-          ["teamName", "team_name", "name"],
-          mappedLiveTeam?.name || "UNKNOWN",
-        ),
-      ),
-      logoUrl: String(
-        pick(
-          historicalTeam,
-          ["teamLogo", "team_logo", "logo", "logoUrl"],
-          mappedLiveTeam?.logoUrl || "",
-        ),
-      ),
-      countryUrl: String(
-        pick(
-          historicalTeam,
-          ["countryLogo", "country_logo", "flag", "countryUrl"],
-          mappedLiveTeam?.countryUrl || "",
-        ),
-      ),
+      teamTag: String(firstValue(historicalTeam?.short_tag, historicalTeam?.teamTag, mappedLiveTeam?.teamTag, "")),
+      name: String(firstValue(historicalTeam?.team_name, historicalTeam?.teamName, mappedLiveTeam?.name, "UNKNOWN")),
+      logoUrl: String(firstValue(historicalTeam?.team_logo, historicalTeam?.teamLogo, mappedLiveTeam?.logoUrl, "")),
+      countryUrl: String(firstValue(historicalTeam?.country_logo, historicalTeam?.countryLogo, mappedLiveTeam?.countryUrl, "")),
       kills: liveKills,
       liveKills,
       placementPoints: livePlacementPoints,
       livePlacementPoints,
-      historicalKills: toNumber(
-        pick(historicalTeam, ["kills", "kill_score", "kill"], 0),
-      ),
+      historicalKills: toNumber(firstValue(historicalTeam?.historical_kills, historicalTeam?.historicalKills, historicalTeam?.kill_score, historicalTeam?.kills, 0)),
       livePoints,
       historicalPoints,
       totalPoints,
@@ -307,31 +203,22 @@ export const mapTeamData = (
   previousTeamsState?: Team[],
 ): Team[] => {
   const mapped = (data || []).map((team, teamIndex) => {
-    const rawPlayers = team?.players || team?.player_stats || [];
-    const permanentTeamId = pick(
-      team,
-      ["permanentTeamId", "permanent_team_id", "teamId", "team_id"],
-      team?.team_name || teamIndex,
-    );
-    const roomTeamId = pick(team, ["roomTeamId", "room_team_id"], null);
+    const rawPlayers = team?.player_stats || team?.players || [];
+    const permanentTeamId = firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId, team?.team_name, teamIndex);
+    const roomTeamId = firstValue(team?.room_team_id, team?.roomTeamId, null);
     const backendRank = toNumber(team?.rank, 0);
     const isOverallRow =
+      team?.total_points !== undefined ||
       team?.totalPoints !== undefined ||
+      team?.historical_points !== undefined ||
       team?.historicalPoints !== undefined ||
+      team?.live_points !== undefined ||
       team?.livePoints !== undefined ||
+      team?.is_playing !== undefined ||
       team?.isPlaying !== undefined;
 
-    const normalizedRawPlayers = rawPlayers.map((p: any) => ({
-      ...p,
-      playerPic: p.playerPic,
-    }));
-
-    const sortedRawPlayers = [...normalizedRawPlayers].sort((a, b) =>
-      String(
-        pick(a, ["account_id", "player_uid", "playerUid", "id"]),
-      ).localeCompare(
-        String(pick(b, ["account_id", "player_uid", "playerUid", "id"])),
-      ),
+    const sortedRawPlayers = [...rawPlayers].sort((a, b) =>
+      String(a?.account_id ?? "").localeCompare(String(b?.account_id ?? "")),
     );
 
     const prevTeam = previousTeamsState?.find(
@@ -348,9 +235,7 @@ export const mapTeamData = (
       let status: "alive" | "knocked" | "dead" = "dead";
 
       const prevPlayer = prevTeam?.players?.find(
-        (pl) =>
-          String(pl.id) ===
-          String(pick(p, ["account_id", "player_uid", "playerUid", "id"])),
+        (pl) => String(pl.id) === String(p?.account_id),
       );
 
       // 1. DETERMINE CURRENT STATUS & KNOCK PHASES
@@ -394,12 +279,8 @@ export const mapTeamData = (
       }
 
       return {
-        id: pick(p, ["account_id", "player_uid", "playerUid", "id"]),
-        name: pick(
-          p,
-          ["nickname", "player_name", "playerName", "name"],
-          "Unknown",
-        ),
+        id: p?.account_id,
+        name: p?.nickname || "Unknown",
         hp,
         maxHp,
         hpPercent: Math.max(0, Math.min(100, hpPercent)),
@@ -408,14 +289,7 @@ export const mapTeamData = (
         status,
         hasRecalled, // <-- Retained in state payload
         deadTime: p?.be_killed_time,
-        playerPic:
-          p.playerPic ||
-          p.player_pic ||
-          p.avatar ||
-          p.photoUrl ||
-          p.avatarUrl ||
-          p.player_image ||
-          undefined,
+        playerPic: p?.player_image || undefined,
       };
     });
 
@@ -427,40 +301,31 @@ export const mapTeamData = (
     const aliveCount = mappedPlayers.filter(
       (p) => p.status === "alive" || p.status === "knocked",
     ).length;
-    const isPlaying = Boolean(team?.isPlaying ?? rawPlayers.length > 0);
-    const kills = toNumber(
-      pick(
-        team,
-        [
-          "totalKills",
-          "total_kills",
-          "kills",
-          "liveKills",
-          "killing_score",
-          "kill_count",
-        ],
-        0,
-      ),
+    const isPlaying = Boolean(
+      firstValue(team?.is_playing, team?.isPlaying, rawPlayers.length > 0),
     );
+    const kills = toNumber(team?.killing_score ?? team?.kill_count, 0);
 
     return {
       id: permanentTeamId,
       permanentTeamId,
       roomTeamId,
-      teamTag: pick(team, ["teamTag", "team_tag", "tag"], ""),
-      name: pick(team, ["teamName", "team_name", "name"], "UNKNOWN"),
-      logoUrl: pick(team, ["teamLogo", "team_logo", "logo", "logoUrl"], ""),
-      countryUrl: pick(
-        team,
-        ["countryLogo", "country_logo", "flag", "countryUrl"],
-        "",
-      ),
+      teamTag: firstValue(team?.short_tag, team?.team_tag, team?.teamTag, ""),
+      name: firstValue(team?.team_name, team?.teamName, "UNKNOWN"),
+      logoUrl: firstValue(team?.team_logo, team?.teamLogo, ""),
+      countryUrl: firstValue(team?.country_logo, team?.countryLogo, ""),
       kills,
-      liveKills: toNumber(team?.liveKills, 0),
-      historicalKills: toNumber(team?.historicalKills, 0),
-      livePoints: toNumber(team?.livePoints, 0),
-      historicalPoints: toNumber(team?.historicalPoints, 0),
-      totalPoints: toNumber(team?.totalPoints, kills),
+      liveKills: toNumber(
+        firstValue(team?.live_kills, team?.liveKills, team?.killing_score, 0),
+      ),
+      historicalKills: toNumber(
+        firstValue(team?.historical_kills, team?.historicalKills, 0),
+      ),
+      livePoints: toNumber(firstValue(team?.live_points, team?.livePoints, 0)),
+      historicalPoints: toNumber(
+        firstValue(team?.historical_points, team?.historicalPoints, 0),
+      ),
+      totalPoints: toNumber(firstValue(team?.total_points, team?.totalPoints, kills)),
       isPlaying,
       players: mappedPlayers,
       playersAlive: aliveCount,
@@ -471,10 +336,7 @@ export const mapTeamData = (
       ),
       hpPercent: Math.round(squadHpPercent),
       rank: backendRank,
-      rankingScore: toNumber(
-        team?.rankingScore ?? team?.ranking_score ?? team?.totalPoints,
-        0,
-      ),
+      rankingScore: toNumber(team?.ranking_score ?? team?.total_points, 0),
       isOverallRow,
     };
   });

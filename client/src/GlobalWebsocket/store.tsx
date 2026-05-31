@@ -6,8 +6,18 @@ let listeners: Array<(data: any) => void> = [];
 
 let latestData: any = null;
 let activeMatchId: string | number | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearReconnectTimer = () => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+};
 
 export const connectRealtime = (matchId: string | number) => {
+  clearReconnectTimer();
+
   if (
     socket &&
     socket.readyState === WebSocket.OPEN &&
@@ -42,8 +52,10 @@ export const connectRealtime = (matchId: string | number) => {
   socket.onclose = () => {
     console.log("Realtime Closed");
 
-    // Optional auto reconnect
-    setTimeout(() => {
+    if (listeners.length === 0 || String(activeMatchId) !== String(matchId)) return;
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
       connectRealtime(matchId);
     }, 3000);
   };
@@ -65,6 +77,12 @@ export const subscribeRealtime = (callback: (data: any) => void) => {
 
   return () => {
     listeners = listeners.filter((l) => l !== callback);
+
+    if (listeners.length === 0) {
+      clearReconnectTimer();
+      socket?.close();
+      socket = null;
+    }
   };
 };
 

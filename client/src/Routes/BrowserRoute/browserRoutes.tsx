@@ -1,6 +1,5 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { RealtimeProvider } from "../../GlobalWebsocket/realtimeProvider";
 import { ProjectThemeProvider } from "../../Theme";
 import { clearAuthSession, isAuthenticated, saveAuthUser } from "../../Auth/Repository/authStorage";
 import { getCurrentUser } from "../../Auth/Repository/remote";
@@ -82,24 +81,22 @@ const App: React.FC = () => {
     <Router>
       <ProjectThemeProvider>
         <ThemeRouteScope>
-          <RealtimeProvider>
-            <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              {appRouteDefinitions.map((route) => (
-                <Route
-                  key={route.path}
-                  path={route.path}
-                  element={
-                    route.isProtected ? (
-                      <ProtectedRoute>{route.element}</ProtectedRoute>
-                    ) : (
-                      route.element
-                    )
-                  }
-                />
-              ))}
-            </Routes>
-          </RealtimeProvider>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            {appRouteDefinitions.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={
+                  route.isProtected ? (
+                    <ProtectedRoute>{route.element}</ProtectedRoute>
+                  ) : (
+                    route.element
+                  )
+                }
+              />
+            ))}
+          </Routes>
         </ThemeRouteScope>
       </ProjectThemeProvider>
     </Router>
