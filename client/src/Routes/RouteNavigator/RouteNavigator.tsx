@@ -159,6 +159,12 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
+        title: "Result Viewer",
+        path: "/result-viewer",
+        note: "View saved result rows by match ID.",
+        type: "Admin",
+      },
+      {
         title: "MVP",
         path: "/result-mvp",
         note: "Single MVP from booyah team players by kills, then damage.",

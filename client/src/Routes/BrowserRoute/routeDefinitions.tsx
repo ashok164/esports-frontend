@@ -22,6 +22,7 @@ import PlayerUploadView from "../../PlayerUpload/View";
 import OverallResultView from "../../Result/view/OverallResultView";
 import ResultJsonControlView from "../../ResultJsonControl/View";
 import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
+import ResultViewerPage from "../../Result/view/ResultViewerPage";
 import RouteNavigator from "../RouteNavigator";
 import TeamEliminatedView from "../../TeamEliminated/View";
 import TeamRecordTable from "../../TeamRecordTable/View";
@@ -66,6 +67,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/game-details", element: <GameDetailsView />, isProtected: true },
   { path: "/match-team-mappings", element: <MatchTeamMappingsView />, isProtected: true },
   { path: "/result-json-control", element: <ResultJsonControlView />, isProtected: true },
+  { path: "/result-viewer", element: <ResultViewerPage />, isProtected: true },
   { path: "/result-mvp", element: <MvpPage />, isProtected: true },
   { path: "/result-booyah-team-stats", element: <BooyahTeamStatsPage />, isProtected: true },
   { path: "/result-top-fraggers", element: <TopFraggersPage />, isProtected: true },

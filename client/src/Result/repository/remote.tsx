@@ -2,6 +2,7 @@ import http from "../../AxiosFile/axios";
 import {
   CREATE_RESULT,
   DELETE_RESULT,
+  DELETE_RESULTS_BY_MATCH_ID,
   FETCH_MATCH_RESULT_DATA,
   GET_RESULT_BOOYAH,
   GET_RESULT_BY_MATCH_ID,
@@ -85,6 +86,19 @@ export const updateResultApi = async (id: string | number, result: ResultRow) =>
 
 export const deleteResultApi = async (id: string | number) => {
   const response = await http.delete(DELETE_RESULT(id));
+  return response?.data;
+};
+
+export const deleteResultsApi = async (rows: ResultRow[]) => {
+  const deleteTargets = rows
+    .map((row) => row.id || row._id)
+    .filter((id): id is string | number => Boolean(id) && !String(id).startsWith("local-"));
+
+  await Promise.all(deleteTargets.map((id) => deleteResultApi(id)));
+};
+
+export const deleteResultsByMatchIdApi = async (matchId: string | number) => {
+  const response = await http.delete(DELETE_RESULTS_BY_MATCH_ID(matchId));
   return response?.data;
 };
 

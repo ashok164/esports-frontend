@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import {
+  publishActiveGameDetails,
+  readStoredGameDetails,
+} from "../../GameDetails/gameDetailsState";
+import {
   deleteMatchTeamMappingApi,
   deleteMatchTeamMappingsApi,
   getAllMatchTeamMappingsApi,
@@ -86,6 +90,11 @@ const MatchTeamMappingsView: React.FC = () => {
 
     try {
       await deleteMatchTeamMappingsApi(matchId);
+      publishActiveGameDetails(
+        readStoredGameDetails().map((game) =>
+          game.matchId === matchId ? { ...game, mappingTemplateId: "" } : game,
+        ),
+      );
       await loadMappings();
     } catch (err: any) {
       setError(err?.message || "Could not delete match mappings.");

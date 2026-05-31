@@ -143,4 +143,6 @@ export const UPDATE_RESULT = (id: string | number) =>
   `/api/results/update/${id}`;
 export const DELETE_RESULT = (id: string | number) =>
   `/api/results/delete/${id}`;
+export const DELETE_RESULTS_BY_MATCH_ID = (matchId: string | number) =>
+  `/api/results/${matchId}`;
 export const SYNC_RESULTS_SHEET = "/api/results/sync-sheet";

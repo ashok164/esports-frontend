@@ -9,6 +9,7 @@ import {
 import {
   createResultApi,
   deleteResultApi,
+  deleteResultsApi,
   getResultsByMatchIdsApi,
   ResultRow,
   saveRealtimeResultDataApi,
@@ -364,6 +365,29 @@ const useResultController = () => {
     }
   };
 
+  const deleteAllResults = async () => {
+    if (results.length === 0) return;
+
+    const scope = activeMatchIds || "current view";
+    if (!window.confirm(`Delete all ${results.length} result rows for ${scope}?`)) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    setStatus(null);
+
+    try {
+      await deleteResultsApi(results);
+      setResults([]);
+      setStatus(`Deleted ${results.length} result rows.`);
+    } catch (err: any) {
+      setError(err?.message || "Failed to delete all result rows");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const downloadResults = () => {
     if (results.length === 0) return;
 
@@ -381,6 +405,7 @@ const useResultController = () => {
     beginEdit,
     cancelEdit,
     deleteResult,
+    deleteAllResults,
     editingId,
     editingRow,
     error,

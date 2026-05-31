@@ -15,6 +15,7 @@ const ResultView: React.FC = () => {
     activeTab,
     beginEdit,
     cancelEdit,
+    deleteAllResults,
     deleteResult,
     downloadResults,
     editingId,
@@ -51,6 +52,9 @@ const ResultView: React.FC = () => {
             <IconButton type="button" title="Download result sheet" onClick={downloadResults} disabled={results.length === 0}>
               <DownloadIcon />
             </IconButton>
+            <DangerButton type="button" onClick={deleteAllResults} disabled={results.length === 0 || isSaving}>
+              Delete All
+            </DangerButton>
           </HeaderActions>
         </Header>
 
@@ -298,6 +302,12 @@ const ActionButton = styled.button`
     cursor: not-allowed;
     opacity: 0.55;
   }
+`;
+
+const DangerButton = styled(ActionButton)`
+  border-color: rgba(var(--project-danger-rgb, 239, 68, 68), 0.4);
+  background: var(--project-danger, #dc2626);
+  color: #ffffff;
 `;
 
 const GhostText = styled.span`

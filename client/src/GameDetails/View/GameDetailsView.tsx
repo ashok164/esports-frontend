@@ -5,6 +5,7 @@ import {
   createMappingTemplateApi,
   createGameDetailApi,
   deleteGameDetailApi,
+  deleteMappingTemplateApi,
   getGameDetailsApi,
   getMappingTemplatesApi,
   updateGameDetailApi,
@@ -406,6 +407,30 @@ const GameDetailsView: React.FC = () => {
     }
   };
 
+  const deleteMappingTemplate = async (template: MappingTemplate) => {
+    if (!window.confirm(`Delete mapping template "${template.name}"?`)) {
+      return;
+    }
+
+    setIsMappingSaving(true);
+    setError(null);
+
+    try {
+      await deleteMappingTemplateApi(template.id);
+      const clearTemplate = (row: GameDetail) =>
+        row.mappingTemplateId === template.id ? { ...row, mappingTemplateId: "" } : row;
+
+      syncGames(games.map(clearTemplate));
+      setDraftRows((rows) => rows.map(clearTemplate));
+      setEditingRow((row) => clearTemplate(row));
+      await loadMappingTemplates();
+    } catch (err: any) {
+      setError(err?.message || "Could not delete mapping template.");
+    } finally {
+      setIsMappingSaving(false);
+    }
+  };
+
   return (
     <Page>
       <GlobalGameDetailsStyles />
@@ -659,6 +684,22 @@ const GameDetailsView: React.FC = () => {
             </Button>
           </MappingToolbar>
 
+          <SavedMappingList>
+            {mappingTemplates.map((template) => (
+              <SavedMappingItem key={template.id}>
+                <span>{template.name} ({template.mappings.length})</span>
+                <IconButton
+                  type="button"
+                  title="Delete saved mapping template"
+                  onClick={() => deleteMappingTemplate(template)}
+                  disabled={isMappingSaving}
+                >
+                  <TrashIcon />
+                </IconButton>
+              </SavedMappingItem>
+            ))}
+          </SavedMappingList>
+
           <Table>
             <thead>
               <tr>
@@ -892,6 +933,29 @@ const MappingToolbar = styled.div`
 
   @media (max-width: 760px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+const SavedMappingList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+`;
+
+const SavedMappingItem = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  max-width: 100%;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.42);
+
+  span {
+    overflow-wrap: anywhere;
   }
 `;
 

@@ -16,6 +16,8 @@ const ZoneShrinkBroadcastView: React.FC = () => {
   const [visible, setVisible] = React.useState(false);
   const [isDissolving, setIsDissolving] = React.useState(false);
   const [secondsLeft, setSecondsLeft] = React.useState(10);
+  const [soundBlocked, setSoundBlocked] = React.useState(false);
+  const [soundUnlocked, setSoundUnlocked] = React.useState(false);
   const lastTriggerId = React.useRef(0);
   const timeoutRef = React.useRef<number | null>(null);
   const intervalRef = React.useRef<number | null>(null);
@@ -37,8 +39,13 @@ const ZoneShrinkBroadcastView: React.FC = () => {
     if (nextState.playSound) {
       const audio = audioRef.current || new Audio(soundPath);
       audioRef.current = audio;
+      audio.preload = "auto";
+      audio.volume = 1;
       audio.currentTime = 0;
-      audio.play().catch(() => undefined);
+      audio
+        .play()
+        .then(() => setSoundBlocked(false))
+        .catch(() => setSoundBlocked(true));
     }
 
     intervalRef.current = window.setInterval(() => {
@@ -56,6 +63,24 @@ const ZoneShrinkBroadcastView: React.FC = () => {
       }, 700);
     }, nextState.durationSeconds * 1000);
   }, []);
+
+  const unlockSound = async () => {
+    const audio = audioRef.current || new Audio(soundPath);
+    audioRef.current = audio;
+    audio.preload = "auto";
+    audio.volume = 0.001;
+
+    try {
+      await audio.play();
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1;
+      setSoundUnlocked(true);
+      setSoundBlocked(false);
+    } catch {
+      setSoundBlocked(true);
+    }
+  };
 
   React.useEffect(() => {
     const syncState = () => {
@@ -114,6 +139,11 @@ const ZoneShrinkBroadcastView: React.FC = () => {
 
   return (
     <Stage>
+      {(soundBlocked || !soundUnlocked) && (
+        <SoundUnlockButton type="button" onClick={unlockSound}>
+          Enable Sound
+        </SoundUnlockButton>
+      )}
       {visible && (
         <ZoneCard $dissolving={isDissolving}>
           <TopStripe aria-hidden="true" />
@@ -164,6 +194,21 @@ const Stage = styled.main`
   overflow: hidden;
   background: transparent;
   font-family: "Montserrat", "Arial Black", sans-serif;
+`;
+
+const SoundUnlockButton = styled.button`
+  position: fixed;
+  right: 14px;
+  top: 14px;
+  z-index: 20;
+  min-height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.82);
+  color: #ffffff;
+  padding: 0 12px;
+  font: 700 12px/1 "Segoe UI", sans-serif;
+  cursor: pointer;
 `;
 
 const ZoneCard = styled.section<{ $dissolving: boolean }>`
