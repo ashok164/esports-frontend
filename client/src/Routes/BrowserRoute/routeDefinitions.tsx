@@ -25,8 +25,12 @@ import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
 import RouteNavigator from "../RouteNavigator";
 import TeamEliminatedView from "../../TeamEliminated/View";
 import TeamRecordTable from "../../TeamRecordTable/View";
+import { FullTeamBannerView, NotificationTeamBannerView } from "../../TeamBanner/View";
 import TopFraggersPage from "../../Result/view/TopFraggersPage";
+import TournamentAssetsView from "../../TournamentAssets/View";
+import TournamentLogoView, { TournamentLogoBroadcastView } from "../../TournamentLogo/View";
 import ViewTeamLogo from "../../TeamLogo/View";
+import ZoneShrinkControlView, { ZoneShrinkBroadcastView } from "../../ZoneShrink/View";
 
 export type AppRouteDefinition = {
   path: string;
@@ -44,14 +48,21 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/team-eliminated", element: <TeamEliminatedView />, isBroadcast: true },
   { path: "/last-four-teams", element: <LastTeamNotification />, isBroadcast: true },
   { path: "/match-number", element: <MatchNumber />, isBroadcast: true },
+  { path: "/zone-shrink", element: <ZoneShrinkBroadcastView />, isBroadcast: true },
   { path: "/circle-analysis", element: <CircleAnalysis />, isBroadcast: true },
+  { path: "/zone-shrink-control", element: <ZoneShrinkControlView />, isProtected: true },
   { path: "/circle-analysis-control", element: <CircleAnalysisAdmin />, isProtected: true },
   { path: "/team-record", element: <TeamRecordTable />, isProtected: true },
   { path: "/country-logo", element: <CountryLogoView />, isProtected: true },
   { path: "/team-logo", element: <ViewTeamLogo />, isProtected: true },
+  { path: "/full-team-banner", element: <FullTeamBannerView />, isProtected: true },
+  { path: "/notification-team-banner", element: <NotificationTeamBannerView />, isProtected: true },
+  { path: "/tournament-logo", element: <TournamentLogoView />, isProtected: true },
+  { path: "/tournament-logo-live", element: <TournamentLogoBroadcastView />, isBroadcast: true },
   { path: "/player-upload", element: <PlayerUploadView />, isProtected: true },
   { path: "/player-profile", element: <PlayerUploadProfile />, isProtected: true },
   { path: "/game-asset-upload", element: <GameAssetUploadView />, isProtected: true },
+  { path: "/tournament-assets", element: <TournamentAssetsView />, isProtected: true },
   { path: "/game-details", element: <GameDetailsView />, isProtected: true },
   { path: "/match-team-mappings", element: <MatchTeamMappingsView />, isProtected: true },
   { path: "/result-json-control", element: <ResultJsonControlView />, isProtected: true },

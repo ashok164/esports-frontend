@@ -56,6 +56,24 @@ const routeGroups: RouteGroup[] = [
         note: "Upload reusable country logos for team records.",
         type: "Admin",
       },
+      {
+        title: "Tournament Logo",
+        path: "/tournament-logo",
+        note: "Upload tournament logos and choose the active live logo.",
+        type: "Admin",
+      },
+      {
+        title: "Full Team Banner",
+        path: "/full-team-banner",
+        note: "Upload, edit, and delete full team banner images.",
+        type: "Admin",
+      },
+      {
+        title: "Notification Banner",
+        path: "/notification-team-banner",
+        note: "Upload, edit, and delete notification team banner images.",
+        type: "Admin",
+      },
     ],
   },
   {
@@ -78,6 +96,12 @@ const routeGroups: RouteGroup[] = [
         title: "Game Asset Upload",
         path: "/game-asset-upload",
         note: "Create and update gameplay asset images.",
+        type: "Admin",
+      },
+      {
+        title: "Tournament Assets",
+        path: "/tournament-assets",
+        note: "Upload tournament assets with asset id, name, image, and active status.",
         type: "Admin",
       },
       {
@@ -165,9 +189,21 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
+        title: "Zone Shrink Control",
+        path: "/zone-shrink-control",
+        note: "Switch on the zone closing overlay and sound.",
+        type: "Admin",
+      },
+      {
         title: "Live Standings",
         path: "/live-standings",
         note: "Live standings table overlay.",
+        type: "Broadcast",
+      },
+      {
+        title: "Tournament Logo Live",
+        path: "/tournament-logo-live",
+        note: "Centered active tournament logo overlay with shine animation.",
         type: "Broadcast",
       },
       {
@@ -186,6 +222,12 @@ const routeGroups: RouteGroup[] = [
         title: "Match Number",
         path: "/match-number",
         note: "Current match number graphic.",
+        type: "Broadcast",
+      },
+      {
+        title: "Zone Shrink",
+        path: "/zone-shrink",
+        note: "Zone closing timer card for live broadcast.",
         type: "Broadcast",
       },
       {

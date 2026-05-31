@@ -47,6 +47,12 @@ const PlaceholderLogo = styled.div`
   text-align: center;
 `;
 
+const TournamentLogo = styled.img`
+  width: 92px;
+  height: 82px;
+  object-fit: contain;
+`;
+
 // Right info panel (Purple texture)
 const InfoPanel = styled.div`
   background: linear-gradient(90deg, var(--project-primary, #4b0082) 0%, var(--project-surface, #3a0066) 100%);
@@ -107,6 +113,7 @@ interface MatchOverlayProps {
   dayName: string; // e.g., "GRAND FINALS" or "DAY 1"
   gameNumber: number | string; // e.g., 2 or "02"
   modeName: string;
+  logoUrl?: string;
 }
 
 // --- MAIN COMPONENT ---
@@ -115,16 +122,12 @@ export const MatchOverlay: React.FC<MatchOverlayProps> = ({
   dayName,
   gameNumber,
   modeName,
+  logoUrl,
 }) => {
   return (
     <OverlayContainer>
       <BrandPanel>
-        {/* Replace this with your actual <img src="..." /> logo asset */}
-        <PlaceholderLogo>
-          ASIA
-          <br />
-          INVITE
-        </PlaceholderLogo>
+        {logoUrl ? <TournamentLogo src={logoUrl} alt="Tournament logo" /> : <PlaceholderLogo>LOGO</PlaceholderLogo>}
       </BrandPanel>
 
       <InfoPanel>

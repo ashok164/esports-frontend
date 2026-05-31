@@ -15,6 +15,34 @@ export const UPDATE_COUNTRY_LOGO = (id: string | number) =>
   `/api/teams/country-logos/${id}`;
 export const DELETE_COUNTRY_LOGO = (id: string | number) =>
   `/api/teams/country-logos/${id}`;
+export const CREATE_TOURNAMENT_LOGO = "/api/tournamentLogo/create";
+export const GET_TOURNAMENT_LOGOS = "/api/tournamentLogo/all";
+export const UPDATE_TOURNAMENT_LOGO = (id: string | number) =>
+  `/api/tournamentLogo/update/${id}`;
+export const DELETE_TOURNAMENT_LOGO = (id: string | number) =>
+  `/api/tournamentLogo/delete/${id}`;
+export const GET_ZONE_SHRINK = "/api/zone-shrink";
+export const CREATE_ZONE_SHRINK = "/api/zone-shrink";
+export const UPDATE_ZONE_SHRINK = "/api/zone-shrink";
+export const PATCH_ZONE_SHRINK = "/api/zone-shrink";
+export const CREATE_FULL_TEAM_BANNER = "/api/fullTeamBanner/create";
+export const GET_FULL_TEAM_BANNERS = "/api/fullTeamBanner/all";
+export const UPDATE_FULL_TEAM_BANNER = (id: string | number) =>
+  `/api/fullTeamBanner/update/${id}`;
+export const DELETE_FULL_TEAM_BANNER = (id: string | number) =>
+  `/api/fullTeamBanner/delete/${id}`;
+export const CREATE_NOTIFICATION_TEAM_BANNER = "/api/notificationTeamBanner/create";
+export const GET_NOTIFICATION_TEAM_BANNERS = "/api/notificationTeamBanner/all";
+export const UPDATE_NOTIFICATION_TEAM_BANNER = (id: string | number) =>
+  `/api/notificationTeamBanner/update/${id}`;
+export const DELETE_NOTIFICATION_TEAM_BANNER = (id: string | number) =>
+  `/api/notificationTeamBanner/delete/${id}`;
+export const CREATE_TOURNAMENT_ASSET = "/api/tournamentAssets/create";
+export const GET_TOURNAMENT_ASSETS = "/api/tournamentAssets/all";
+export const UPDATE_TOURNAMENT_ASSET = (id: string | number) =>
+  `/api/tournamentAssets/update/${id}`;
+export const DELETE_TOURNAMENT_ASSET = (id: string | number) =>
+  `/api/tournamentAssets/delete/${id}`;
 export const CREATE_PLAYER_UPLOAD = "/team-players";
 export const GET_PLAYER_UPLOADS = "/view-team-player";
 export const UPDATE_PLAYER_UPLOAD = (id: string | number) =>

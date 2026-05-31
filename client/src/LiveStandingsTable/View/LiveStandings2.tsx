@@ -769,6 +769,7 @@ export default function StandingsTable({
   teams = [],
   maxRows = 18,
 }: StandingsTableProps) {
+  console.log(teams,'teams')
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousDeadIdsRef = useRef<Set<string>>(new Set());
   const hasDeadBaselineRef = useRef(false);
