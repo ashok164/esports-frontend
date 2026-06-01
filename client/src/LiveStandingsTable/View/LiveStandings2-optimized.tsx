@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useEffect,
   useMemo,
   useState,
@@ -17,6 +17,10 @@ type PlayerStatus = "alive" | "knocked" | "recalled" | "dead";
 
 interface Player {
   hp?: number;
+  id?: string;
+  nm?: string;
+  st?: number;
+  pic?: string;
   hpPercent?: number;
   isKnocked?: boolean;
   status?: PlayerStatus;
@@ -27,20 +31,33 @@ interface Player {
 
 interface Team {
   id: string | number;
+  rnk?: number;
   rank?: number;
-  name: string;
+  name?: string;
+  nm?: string;
+  tg?: string;
   teamTag?: string;
   shortName?: string;
   tag?: string;
+  tl?: string;
   logoUrl?: string;
+  cl?: string;
   countryUrl?: string;
-  kills: number;
-  playersAlive: number;
-  placementPoints?: number;
-  rankingScore?: number;
+  k?: number;
+  kills?: number;
+  a?: number;
+  playersAlive?: number;
+  tp?: number;
   totalPoints?: number;
+  pp?: number;
+  placementPoints?: number;
+  rs?: number;
+  rankingScore?: number;
+  el?: boolean;
   isEliminated?: boolean;
+  pl?: boolean;
   isPlaying?: boolean;
+  pls?: Player[];
   players?: Player[];
 }
 
@@ -49,7 +66,7 @@ interface StandingsTableProps {
   maxRows?: number;
 }
 
-/* ================= THEME & DESIGN SYSTEM ================= */
+/* ================= THEME ================= */
 const Theme = {
   green: "#62df63",
   greenDeep: "#2fbf4a",
@@ -61,16 +78,13 @@ const Theme = {
   rowA: "rgba(255,255,255,0.02)",
   rowB: "rgba(0,0,0,0.18)",
   border: "rgba(98,223,99,0.14)",
-  pipeLine: "rgba(98,223,99,0.35)",
   muted: "#3d4741",
   danger: "#e52e45",
-  dangerDeep: "#1a0305",
-  dangerGlow: "rgba(229, 46, 69, 0.6)",
   headerText: "#b3ffd7",
   white: "#ffffff",
 };
 
-/* ================= ANIMATION CORE ================= */
+/* ================= OPTIMIZED ANIMATIONS ================= */
 const paperShake = keyframes`
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(-0.5deg); }
@@ -95,6 +109,7 @@ const eliminatedTextSwap = keyframes`
 
 /* ================= LAYOUT CONSTANTS ================= */
 const BASE_ROW_HEIGHT = 64;
+const ELIMINATION_ROW_HEIGHT = 112;
 
 const GRID_LAYOUT = css`
   display: grid;
@@ -104,7 +119,7 @@ const GRID_LAYOUT = css`
   align-items: center;
 `;
 
-/* ================= CONTAINER COMPONENTS ================= */
+/* ================= STYLED COMPONENTS ================= */
 const Board = styled.div`
   position: fixed;
   top: 50%;
@@ -129,7 +144,6 @@ const Frame = styled.div`
   overflow: hidden;
 `;
 
-/* ================= HUD TABLE HEADER ================= */
 const HeaderRow = styled.div`
   ${GRID_LAYOUT}
   height: 44px;
@@ -209,13 +223,9 @@ const LiveRow = styled(motion.div)<LiveRowProps>`
     `}
 `;
 
-/* ================= CINEMATIC LAYER WIPE (SLIDES ABOVE ENTIRE ROW) ================= */
 const CinematicWipeOverlay = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: linear-gradient(
     90deg,
     transparent,
@@ -230,13 +240,10 @@ const CinematicWipeOverlay = styled.div`
   animation: ${redWipeEffect} 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 `;
 
-/* Master absolute overlay container for large portraits spanning across the entire row data cells */
 const FullRowRosterOverlay = styled(motion.div)`
   position: absolute;
-  top: 0;
-  left: 62px; /* Starts right after the Rank badge container */
-  right: 0;
-  bottom: 0;
+  inset: 0;
+  left: 62px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
@@ -278,9 +285,7 @@ const SkullIndicator = styled.div`
   color: ${Theme.danger};
   font-weight: 900;
   z-index: 3;
-  text-shadow:
-    0 0 6px #000000,
-    0 0 2px #000000;
+  text-shadow: 0 0 6px #000000, 0 0 2px #000000;
 `;
 
 const EliminatedTextOverlay = styled(motion.div)`
@@ -319,14 +324,13 @@ const EliminatedTextOverlay = styled(motion.div)`
   }
 `;
 
-/* Wrapper to easily control overall transparency of base stats content layout */
 const BaseContentGroup = styled.div<{ $hidden: boolean }>`
   display: contents;
   opacity: ${(p) => (p.$hidden ? 0 : 1)};
   visibility: ${(p) => (p.$hidden ? "hidden" : "visible")};
+  pointer-events: ${(p) => (p.$hidden ? "none" : "auto")};
 `;
 
-/* ================= GRID DATA CELLS ================= */
 const PipeDivider = styled.div`
   font-family: system-ui, sans-serif;
   font-weight: 500;
@@ -438,7 +442,6 @@ const Num = styled.div`
   justify-content: center;
 `;
 
-/* ================= MINI COMPACT HUD INTERFACES ================= */
 const AliveWrap = styled(motion.div)`
   display: flex;
   gap: 3px;
@@ -458,24 +461,23 @@ const Bar = styled.div`
   will-change: auto;
 `;
 
-const Fill = styled.div<{ $hp: number; $status: PlayerStatus | "empty" }>`
+const Fill = styled.div<{ $hp: number; $status: number }>`
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: ${(p) => (p.$status === "empty" ? "0%" : `${p.$hp}%`)};
+  height: ${(p) => (p.$status === 3 ? "0%" : `${p.$hp}%`)};
   transition: height 0.15s ease;
   will-change: height;
 
   background: ${(p) => {
-    if (p.$status === "alive") return Theme.aliveYellow;
-    if (p.$status === "knocked") return Theme.danger;
-    if (p.$status === "recalled") return Theme.aliveBlue;
+    if (p.$status === 0) return Theme.aliveYellow; // Alive
+    if (p.$status === 1) return Theme.danger; // Knocked
+    if (p.$status === 2) return Theme.aliveBlue; // Recalled
     return "transparent";
   }};
 `;
 
-/* ================= FOOTER COMPONENT ================= */
 const Footer = styled.div`
   height: 40px;
   position: relative;
@@ -519,11 +521,11 @@ const LegendItem = styled.div`
   text-transform: uppercase;
 `;
 
-const ColorSquare = styled.div<{ $color: string; $border?: string }>`
+const ColorSquare = styled.div<{ $color: string }>`
   width: 10px;
   height: 10px;
   background: ${(p) => p.$color};
-  border: 1px solid ${(p) => p.$border || "rgba(0,0,0,0.5)"};
+  border: 1px solid rgba(0, 0, 0, 0.5);
 `;
 
 const EmptyState = styled.div`
@@ -537,31 +539,29 @@ const EmptyState = styled.div`
   text-transform: uppercase;
 `;
 
-/* ================= CONVERSION PARSERS ================= */
+/* ================= HELPERS ================= */
 const toNumber = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const getPoints = (t: Team) =>
-  typeof t.totalPoints === "number"
-    ? t.totalPoints
-    : toNumber(t.rankingScore ?? t.placementPoints) + toNumber(t.kills);
-const getTag = (t: Team) => t.teamTag || t.shortName || t.tag || t.name;
+const getTeamName = (t: Team) => t.nm || t.name || "";
+const getTeamTag = (t: Team) => t.tg || t.tag || "";
+const getTeamKills = (t: Team) => toNumber(t.k ?? t.kills ?? 0);
+const getTeamPoints = (t: Team) => toNumber(t.tp ?? t.totalPoints ?? 0);
 const getPlayers = (team: Team): Array<Player | null> =>
-  Array.from({ length: 4 }, (_, i) => team.players?.[i] ?? null);
-const getPlayerHpPercent = (p: Player | null) => {
+  Array.from({ length: 4 }, (_, i) => team.pls?.[i] ?? team.players?.[i] ?? null);
+const getPlayerHp = (p: Player | null) => {
   if (!p) return 0;
-  return Math.max(0, Math.min(100, toNumber(p.hpPercent ?? p.hp ?? 100)));
+  return Math.max(0, Math.min(100, toNumber(p.hp ?? p.hpPercent ?? 100)));
 };
-const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
-  if (!p) return "empty";
-  if (getPlayerHpPercent(p) <= 0) return "dead";
-  if (p.hasRecalled) return "recalled";
-  if (p.status === "dead") return "dead";
-  if (p.status === "knocked" || p.isKnocked) return "knocked";
-  return "alive";
+const getPlayerStatus = (p: Player | null): number => {
+  if (!p) return 3; // empty
+  if (p.st !== undefined) return p.st;
+  if (getPlayerHp(p) <= 0) return 2; // dead
+  if (p.status === "knocked" || p.isKnocked) return 1; // knocked
+  if (p.status === "recalled") return 2; // recalled
+  return 0; // alive
 };
 const isTeamDead = (t: Team) =>
-  t.isPlaying !== false && (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
+  t.pl === false || (t.el === true || toNumber(t.a ?? t.playersAlive ?? 0) <= 0);
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
-const getTeamId = (team: Team) => String(team.id);
 
 // ================= OPTIMIZED MEMOIZED TEAM ROW =================
 interface TeamRowData {
@@ -617,7 +617,7 @@ const TeamRowComponent = memo(function TeamRow({
     }
   }, [isDead]);
 
-  const rank = team.rank ?? team.rankingScore ?? index + 1;
+  const rank = team.rnk ?? team.rank ?? index + 1;
 
   return (
     <div style={style}>
@@ -625,7 +625,7 @@ const TeamRowComponent = memo(function TeamRow({
         $dead={isDead}
         $odd={index % 2 === 1}
         $top={rank === 1}
-        $height={phase === "flash_wipe" ? 112 : 64}
+        $height={phase === "flash_wipe" ? ELIMINATION_ROW_HEIGHT : BASE_ROW_HEIGHT}
         $phase={phase}
         layout={false}
       >
@@ -667,8 +667,8 @@ const TeamRowComponent = memo(function TeamRow({
                   layout={false}
                 >
                   <SkullIndicator>☠</SkullIndicator>
-                  {player?.playerPic ? (
-                    <PlayerPortrait src={player.playerPic} alt="" />
+                  {player?.pic ? (
+                    <PlayerPortrait src={player.pic} alt="" />
                   ) : (
                     <div style={{ color: "#222", fontSize: "14px" }}>☠</div>
                   )}
@@ -686,17 +686,17 @@ const TeamRowComponent = memo(function TeamRow({
 
           <CellWrap>
             <CountryBox>
-              {team.countryUrl && <Img src={team.countryUrl} alt="" />}
+              {team.cl && <Img src={team.cl} alt="" />}
             </CountryBox>
           </CellWrap>
 
           <CellWrap>
             <LogoBox>
-              {team.logoUrl && <Logo src={team.logoUrl} alt="" />}
+              {team.tl && <Logo src={team.tl} alt="" />}
             </LogoBox>
           </CellWrap>
 
-          <TeamName $dead={isDead}>{getTag(team)}</TeamName>
+          <TeamName $dead={isDead}>{getTeamTag(team)}</TeamName>
 
           <AliveWrap layout={false}>
             {players.map((player, pIdx) => {
@@ -704,7 +704,7 @@ const TeamRowComponent = memo(function TeamRow({
               return (
                 <Bar key={pIdx}>
                   <Fill
-                    $hp={getPlayerHpPercent(player)}
+                    $hp={getPlayerHp(player)}
                     $status={st}
                   />
                 </Bar>
@@ -713,10 +713,10 @@ const TeamRowComponent = memo(function TeamRow({
           </AliveWrap>
 
           <PipeDivider>|</PipeDivider>
-          <Num>{getPoints(team)}</Num>
+          <Num>{getTeamPoints(team)}</Num>
 
           <PipeDivider>|</PipeDivider>
-          <Num>{toNumber(team.kills)}</Num>
+          <Num>{getTeamKills(team)}</Num>
         </BaseContentGroup>
       </LiveRow>
     </div>
@@ -735,14 +735,14 @@ export default function StandingsTable({
   const sortedTeams = useMemo(() => {
     return [...teams]
       .sort((a, b) => {
-        const pointDiff = getPoints(b) - getPoints(a);
+        const pointDiff = getTeamPoints(b) - getTeamPoints(a);
         if (pointDiff !== 0) return pointDiff;
-        return toNumber(b.kills) - toNumber(a.kills);
+        return getTeamKills(b) - getTeamKills(a);
       })
       .slice(0, maxRows)
       .map((team, index) => ({
         ...team,
-        rank: index + 1,
+        rnk: index + 1,
       }));
   }, [teams, maxRows]);
 
@@ -750,8 +750,8 @@ export default function StandingsTable({
   useEffect(() => {
     const urls = new Set<string>();
     sortedTeams.forEach((team) => {
-      team.players?.forEach((player) => {
-        if (player?.playerPic) urls.add(player.playerPic);
+      team.pls?.forEach((player) => {
+        if (player?.pic) urls.add(player.pic);
       });
     });
 
