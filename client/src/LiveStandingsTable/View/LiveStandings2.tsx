@@ -8,7 +8,6 @@
 } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
-import { List } from "react-window";
 
 const ELIMINATION_BANNER_MS = 2000;
 const ELIMINATION_SWAP_DELAY_MS = 1000;
@@ -171,6 +170,11 @@ const RowsContainer = styled.div`
   position: relative;
   flex: 1;
   overflow: hidden;
+`;
+
+const RowSlot = styled.div`
+  position: relative;
+  height: ${BASE_ROW_HEIGHT}px;
 `;
 
 interface LiveRowProps {
@@ -723,10 +727,6 @@ const TeamRowComponent = memo(function TeamRow({
   );
 });
 
-const VirtualTeamRow = TeamRowComponent as unknown as (
-  props: TeamRowProps
-) => React.ReactElement | null;
-
 /* ================= MAIN COMPONENT ================= */
 export default function StandingsTable({
   teams = [],
@@ -806,14 +806,15 @@ export default function StandingsTable({
         </HeaderRow>
 
         <RowsContainer>
-          <List<TeamRowData>
-            rowComponent={VirtualTeamRow}
-            rowCount={sortedTeams.length}
-            rowHeight={BASE_ROW_HEIGHT}
-            rowProps={{ teams: sortedTeams } as TeamRowData}
-            style={{ height: 500, width: "100%" }}
-            overscanCount={2}
-          />
+          {sortedTeams.map((team, index) => (
+            <RowSlot key={getTeamId(team)}>
+              <TeamRowComponent
+                index={index}
+                teams={sortedTeams}
+                style={{ height: BASE_ROW_HEIGHT, width: "100%" }}
+              />
+            </RowSlot>
+          ))}
         </RowsContainer>
 
         <Footer>
