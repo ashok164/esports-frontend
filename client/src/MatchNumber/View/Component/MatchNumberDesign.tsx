@@ -51,6 +51,8 @@ const TournamentLogo = styled.img`
   width: 124px;
   height: 106px;
   object-fit: contain;
+  transform: scale(1.28);
+  transform-origin: center;
 `;
 
 // Right info panel (Purple texture)
