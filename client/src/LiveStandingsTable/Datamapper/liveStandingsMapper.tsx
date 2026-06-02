@@ -326,6 +326,7 @@ export const mapTeamData = (
         firstValue(team?.historical_points, team?.historicalPoints, 0),
       ),
       totalPoints: toNumber(firstValue(team?.total_points, team?.totalPoints, kills)),
+      winRate: toNumber(firstValue(team?.win_rate, team?.winRate, 0)),
       isPlaying,
       players: mappedPlayers,
       playersAlive: aliveCount,

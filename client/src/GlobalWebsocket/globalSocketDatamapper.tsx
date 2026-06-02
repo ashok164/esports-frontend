@@ -183,6 +183,7 @@ export const mapTeamData = (
       livePoints: toNumber(team?.livePoints, 0),
       historicalPoints: toNumber(team?.historicalPoints, 0),
       totalPoints: toNumber(team?.totalPoints, kills),
+      winRate: toNumber(pick(team, ["winRate", "win_rate"], 0)),
       isPlaying,
       players: mappedPlayers,
       playersAlive: aliveCount,

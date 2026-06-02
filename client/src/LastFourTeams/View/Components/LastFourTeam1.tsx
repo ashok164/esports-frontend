@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
    TYPE DEFINITIONS
    ========================================================================== */
 
-export type PlayerStatus = "alive" | "knocked" | "dead";
+export type PlayerStatus = "alive" | "knocked" | "recalled" | "dead";
 
 export interface PlayerData {
   status: PlayerStatus;
@@ -21,9 +21,11 @@ export interface TeamData {
   shortName?: string;
   logoUrl?: string;
   countryFlag?: string;
+  countryUrl?: string;
   rank: number;
   playersAlive: number;
   is_eliminated?: boolean;
+  isEliminated?: boolean;
   winRate?: string | number;
   players?: PlayerData[];
 }
@@ -50,9 +52,10 @@ const Theme = {
   blackLogoBg: "var(--project-background, #0d0d11)",
   limeBadge: "var(--project-accent, #bfff00)",
   orangeBadge: "var(--project-warning, #ff6a00)",
+  aliveYellow: "#ffd35a",
+  aliveBlue: "#2575fc",
   knocked: "var(--project-danger, #FF0055)",
   lowAlert: "var(--project-danger, #FF2A6D)",
-  recalled: "var(--project-success, #00FF88)",
   textDark: "var(--project-background, #000000)",
   textLight: "var(--project-text-primary, #ffffff)",
 };
@@ -220,7 +223,7 @@ const HPBlock = styled.div<{
     if (props.$isDead) return "rgba(255, 255, 255, 0.2)"; /* Slightly visible structural border frame for dead state */
     if (props.$isKnocked) return Theme.knocked;
     if (props.$isLow) return Theme.lowAlert;
-    if (props.$hasRecalled) return Theme.recalled;
+    if (props.$hasRecalled) return Theme.aliveBlue;
     return "rgba(255, 255, 255, 0.35)";
   }};
   border-radius: 1px;
@@ -242,9 +245,9 @@ const HealthFill = styled.div<{
   width: 100%;
   height: ${(props) => props.$percent}%;
   background: ${(props) => {
-    if (props.$hasRecalled) return `linear-gradient(to top, var(--project-success, #008f51) 0%, var(--project-success, #00ffaa) 60%, var(--project-text-primary, #ffffff) 100%)`;
-    if (props.$isKnocked) return `linear-gradient(to top, var(--project-danger, #6a001d) 0%, var(--project-danger, #ff0044) 80%, var(--project-text-primary, #ff66aa) 100%)`;
-    return `linear-gradient(to top, var(--project-accent, #76b800) 0%, var(--project-accent, #bfff00) 75%, var(--project-text-primary, #ffffff) 100%)`;
+    if (props.$hasRecalled) return Theme.aliveBlue;
+    if (props.$isKnocked) return Theme.knocked;
+    return Theme.aliveYellow;
   }};
   transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 `;
@@ -256,15 +259,27 @@ const HealthFill = styled.div<{
 const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
   // Filters out eliminated squads immediately, showcasing active Top 4 survivors
   const activeTopFour = [...teams]
-    .filter(team => team.playersAlive > 0 && !team.is_eliminated)
+    .filter(team => team.playersAlive > 0 && !team.is_eliminated && !team.isEliminated)
     .slice(0, 4)
     .sort((a, b) => a.rank - b.rank);
 
   // Helper function to format the Win Rate string matching image reference spacing
   const formatWinRate = (val: string | number | undefined) => {
-    if (!val) return "0 %";
-    const numericStr = String(val).replace(/[^0-9]/g, "");
-    return `${numericStr} %`;
+    if (val === undefined || val === null || val === "") return "0 %";
+    const numeric = Number(String(val).replace(/[^0-9.]/g, ""));
+    if (!Number.isFinite(numeric)) return "0 %";
+    return `${Math.round(numeric)} %`;
+  };
+
+  const getPlayerHpPercent = (player: PlayerData) =>
+    Math.max(0, Math.min(100, Number(player.hpPercent ?? 0) || 0));
+
+  const getPlayerStatus = (player: PlayerData): PlayerStatus => {
+    if (getPlayerHpPercent(player) <= 0) return "dead";
+    if (player.hasRecalled) return "recalled";
+    if (player.status === "dead") return "dead";
+    if (player.status === "knocked" || player.isKnocked) return "knocked";
+    return "alive";
   };
 
   return (
@@ -304,22 +319,26 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                 {/* Embedded Esports 4-Squad Individual Teammate Monitor bars */}
                 <HealthSystemRow>
                   {squadDataSlots.map((player, index) => {
-                    const isDead = player.status === "dead" && !player.hasRecalled;
-                    const isLow = !player.hasRecalled && player.hpPercent > 0 && player.hpPercent < 30;
+                    const playerStatus = getPlayerStatus(player);
+                    const hpPercent = getPlayerHpPercent(player);
+                    const isDead = playerStatus === "dead";
+                    const isKnocked = playerStatus === "knocked";
+                    const hasRecalled = playerStatus === "recalled";
+                    const isLow = playerStatus === "alive" && hpPercent > 0 && hpPercent < 30;
 
                     return (
                       <HPBlock
                         key={index}
                         $isDead={isDead}
                         $isLow={isLow}
-                        $isKnocked={player.isKnocked}
-                        $hasRecalled={!!player.hasRecalled}
+                        $isKnocked={isKnocked}
+                        $hasRecalled={hasRecalled}
                       >
-                        {(!isDead || player.hasRecalled) && (
+                        {!isDead && (
                           <HealthFill
-                            $percent={player.hasRecalled ? 100 : player.hpPercent}
-                            $isKnocked={player.isKnocked}
-                            $hasRecalled={!!player.hasRecalled}
+                            $percent={hasRecalled ? 100 : hpPercent}
+                            $isKnocked={isKnocked}
+                            $hasRecalled={hasRecalled}
                           />
                         )}
                       </HPBlock>
@@ -332,7 +351,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
               {/* Sub-Badge One: Name Plate */}
               <LimeNameTag>
                 <FlagImg 
-                  src={team.countryFlag || "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg"} 
+                  src={team.countryFlag || team.countryUrl || "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg"} 
                   alt="Flag" 
                 />
                 <TeamShortText>{team.shortName || team.name?.substring(0, 4)}</TeamShortText>

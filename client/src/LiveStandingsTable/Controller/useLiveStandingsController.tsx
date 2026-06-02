@@ -84,6 +84,7 @@ const minimizeTeam = (team: any) => {
       team?.notificationTeamBanner,
     ),
     booyah_banner: firstValue(team?.booyah_banner, team?.booyah_image, team?.booyahBanner),
+    win_rate: firstValue(team?.win_rate, team?.winRate, 0),
     ranking_score: firstValue(team?.ranking_score, team?.placementPoints, 0),
     killing_score: firstValue(team?.killing_score, team?.kill_count, team?.kills, 0),
     live_kills: firstValue(team?.live_kills, team?.liveKills, team?.killing_score, 0),
