@@ -22,7 +22,7 @@ const OverlayContainer = styled.div`
 
 // Left branding panel (Black/Charcoal with right slant)
 const BrandPanel = styled.div`
-  background: linear-gradient(135deg, var(--project-surface, #151515) 0%, var(--project-background, #0d0d0d) 100%);
+  background: linear-gradient(135deg, var(--project-surface, #151515) 0%, #0d0d0d 100%);
   padding: 20px 40px 20px 30px;
   display: flex;
   align-items: center;
@@ -34,8 +34,8 @@ const BrandPanel = styled.div`
 `;
 
 const PlaceholderLogo = styled.div`
-  width: 80px;
-  height: 80px;
+  width: 104px;
+  height: 104px;
   background: var(--project-accent, #ffcc00);
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
   display: flex;
@@ -48,8 +48,8 @@ const PlaceholderLogo = styled.div`
 `;
 
 const TournamentLogo = styled.img`
-  width: 92px;
-  height: 82px;
+  width: 124px;
+  height: 106px;
   object-fit: contain;
 `;
 
@@ -68,7 +68,7 @@ const InfoPanel = styled.div`
 // Dynamic top tag (e.g., GRAND FINALS)
 const HeaderTag = styled.div`
   background-color: var(--project-text-primary, #ffffff);
-  color: var(--project-background, #000000);
+  color: #000000;
   padding: 4px 16px;
   font-size: 14px;
   letter-spacing: 1px;
@@ -86,7 +86,7 @@ const GameText = styled.h1`
   font-size: 48px;
   margin: 0;
   line-height: 1;
-  color: var(--project-accent, #bfff00);
+  color: var(--project-accent, #bfff00) !important;
   text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
   letter-spacing: 2px;
 `;
@@ -94,7 +94,7 @@ const GameText = styled.h1`
 // Bottom tag (Fixed or dynamic secondary info)
 const SubTag = styled.div`
   background-color: var(--project-text-primary, #ffffff);
-  color: var(--project-background, #000000);
+  color: #000000;
   padding: 4px 12px;
   font-size: 12px;
   letter-spacing: 0.5px;

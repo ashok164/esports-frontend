@@ -30,6 +30,7 @@ export interface Team {
   livePoints?: number;
   historicalPoints?: number;
   totalPoints?: number;
+  winRate?: number;
   isPlaying?: boolean;
   players: Player[];
   playersAlive: number;
@@ -91,6 +92,7 @@ const getIdentitySignature = (team: Team) =>
     team.livePoints,
     team.historicalPoints,
     team.totalPoints,
+    team.winRate,
     team.isPlaying,
     team.playersAlive,
     team.totalPlayers,
@@ -160,6 +162,7 @@ export const mergeHistoricalWithLiveStandings = (
       livePoints,
       historicalPoints,
       totalPoints,
+      winRate: toNumber(firstValue(historicalTeam?.win_rate, historicalTeam?.winRate, mappedLiveTeam?.winRate, 0)),
       isPlaying: Boolean(liveTeam),
       players: mappedLiveTeam?.players || previousTeam?.players || [],
       playersAlive:

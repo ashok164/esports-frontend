@@ -27,6 +27,7 @@ export interface TeamData {
   is_eliminated?: boolean;
   isEliminated?: boolean;
   winRate?: string | number;
+  win_rate?: string | number;
   players?: PlayerData[];
 }
 
@@ -125,13 +126,13 @@ const TeamLogoImg = styled.img`
    4. TEXT LABELS & DATA NESTED TAGS
    ========================================================================== */
 
-// Lime green tag beneath logo for country flag and short-name identifier
+// Warning-colored tag beneath logo for country flag and short-name identifier
 const LimeNameTag = styled.div`
   position: absolute;
   bottom: 6px;
   left: 2%;
   height: 22px; /* Increased structural layout density slightly */
-  background: ${Theme.limeBadge};
+  background: ${Theme.orangeBadge};
   clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
   display: flex;
   align-items: center;
@@ -359,7 +360,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
 
               {/* Sub-Badge Two: Win Rate Tag with formatted string */}
               <OrangeWrBadge>
-                <WinRateText>{formatWinRate(team.winRate)}</WinRateText>
+                <WinRateText>{formatWinRate(team.winRate ?? team.win_rate)}</WinRateText>
               </OrangeWrBadge>
 
             </CardContainer>
