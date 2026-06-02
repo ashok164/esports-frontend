@@ -25,24 +25,19 @@ const TeamEliminatedView = () => {
     );
   };
 
-  const getPlacement = (score, isTwelfth) => {
-    if (score === 0) return isTwelfth ? 12 : 11;
+  const getEliminationOrder = (teams) =>
+    [...teams]
+      .filter((team) => team?.isEliminated)
+      .sort((a, b) => {
+        const timeDiff = getEliminationTime(a) - getEliminationTime(b);
+        if (timeDiff !== 0) return timeDiff;
 
-    const scoreToPlacementMap = {
-      1: 10,
-      2: 9,
-      3: 8,
-      4: 7,
-      5: 6,
-      6: 5,
-      7: 4,
-      8: 3,
-      9: 2,
-      12: 1,
-    };
+        const scoreDiff =
+          (Number(a?.rankingScore) || 0) - (Number(b?.rankingScore) || 0);
+        if (scoreDiff !== 0) return scoreDiff;
 
-    return scoreToPlacementMap[score] || null;
-  };
+        return String(getTeamId(a)).localeCompare(String(getTeamId(b)));
+      });
 
   const getLatestEliminatedTeam = (teams) =>
     [...teams].sort((a, b) => getEliminationTime(b) - getEliminationTime(a))[0];
@@ -61,27 +56,22 @@ const TeamEliminatedView = () => {
       return;
     }
 
-    let isTwelfth = false;
-    if (Number(targetTeam.rankingScore) === 0) {
-      const zeroScoreEliminations = allStandings
-        .filter((t) => Number(t?.rankingScore) === 0 && t?.isEliminated)
-        .sort((a, b) => getEliminationTime(a) - getEliminationTime(b));
-
-      isTwelfth = getTeamId(zeroScoreEliminations[0]) === targetTeamId;
-    }
-
-    const accuratePlacement = getPlacement(
-      Number(targetTeam.rankingScore) || 0,
-      isTwelfth,
+    const eliminationOrder = getEliminationOrder(allStandings);
+    const eliminationIndex = eliminationOrder.findIndex(
+      (team) => getTeamId(team) === targetTeamId,
     );
+    const eliminatedNumber =
+      eliminationIndex >= 0 ? eliminationIndex + 1 : eliminationOrder.length;
+
     const enrichedTeam = {
       ...targetTeam,
       originalRank: targetTeam.rank,
-      rank: accuratePlacement ?? targetTeam.rank,
-      calculatedPlacement: accuratePlacement,
-      placementText: accuratePlacement
-        ? `${accuratePlacement}th Place`
-        : "Eliminated",
+      rank: eliminatedNumber,
+      eliminatedNumber,
+      placementText: `Team Eliminated #${String(eliminatedNumber).padStart(
+        2,
+        "0",
+      )}`,
     };
 
     shownEliminations.current.add(targetTeamId);

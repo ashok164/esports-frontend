@@ -172,7 +172,7 @@ const RowsContainer = styled.div`
   overflow: hidden;
 `;
 
-const RowSlot = styled.div`
+const RowSlot = styled(motion.div)`
   position: relative;
   height: ${BASE_ROW_HEIGHT}px;
 `;
@@ -803,15 +803,24 @@ export default function StandingsTable({
         </HeaderRow>
 
         <RowsContainer>
-          {sortedTeams.map((team, index) => (
-            <RowSlot key={getTeamId(team)}>
-              <TeamRowComponent
-                index={index}
-                teams={sortedTeams}
-                style={{ height: BASE_ROW_HEIGHT, width: "100%" }}
-              />
-            </RowSlot>
-          ))}
+          <AnimatePresence mode="popLayout">
+            {sortedTeams.map((team, index) => (
+              <RowSlot
+                key={getTeamId(team)}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TeamRowComponent
+                  index={index}
+                  teams={sortedTeams}
+                  style={{ height: BASE_ROW_HEIGHT, width: "100%" }}
+                />
+              </RowSlot>
+            ))}
+          </AnimatePresence>
         </RowsContainer>
 
         <Footer>
