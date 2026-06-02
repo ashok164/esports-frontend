@@ -11,7 +11,8 @@ const TeamEliminatedView = () => {
   const shownEliminations = useRef(new Set());
   const previousEliminatedIds = useRef(new Set());
   const hasBaseline = useRef(false);
-  const activeEliminationTime = useRef(0);
+  const queuedEliminations = useRef([]);
+  const isShowingElimination = useRef(false);
   const timeoutRef = useRef(null);
 
   const getTeamId = (team) => String(team?.id ?? team?.name ?? "");
@@ -25,45 +26,48 @@ const TeamEliminatedView = () => {
     );
   };
 
+  const getTotalPlayerDeathTime = (team) => {
+    if (!team?.players || !Array.isArray(team.players)) return 0;
+
+    return team.players.reduce(
+      (total, player) => total + (Number(player?.deadTime) || 0),
+      0,
+    );
+  };
+
+  const compareEliminationOrder = (a, b) => {
+    const timeDiff = getEliminationTime(a) - getEliminationTime(b);
+    if (timeDiff !== 0) return timeDiff;
+
+    const scoreA = Number(a?.rankingScore) || 0;
+    const scoreB = Number(b?.rankingScore) || 0;
+    const scoreDiff = scoreA - scoreB;
+    if (scoreDiff !== 0) return scoreDiff;
+
+    const totalDeathTimeDiff =
+      getTotalPlayerDeathTime(a) - getTotalPlayerDeathTime(b);
+    if (totalDeathTimeDiff !== 0) return totalDeathTimeDiff;
+
+    return String(getTeamId(a)).localeCompare(String(getTeamId(b)));
+  };
+
   const getEliminationOrder = (teams) =>
     [...teams]
       .filter((team) => team?.isEliminated)
-      .sort((a, b) => {
-        const timeDiff = getEliminationTime(a) - getEliminationTime(b);
-        if (timeDiff !== 0) return timeDiff;
+      .sort(compareEliminationOrder);
 
-        const scoreDiff =
-          (Number(a?.rankingScore) || 0) - (Number(b?.rankingScore) || 0);
-        if (scoreDiff !== 0) return scoreDiff;
-
-        return String(getTeamId(a)).localeCompare(String(getTeamId(b)));
-      });
-
-  const getLatestEliminatedTeam = (teams) =>
-    [...teams].sort((a, b) => getEliminationTime(b) - getEliminationTime(a))[0];
-
-  const showEliminatedTeam = (targetTeam, allStandings) => {
-    if (!targetTeam) return;
-
-    const targetTeamId = getTeamId(targetTeam);
-    const targetEliminationTime = getEliminationTime(targetTeam);
-
-    if (
-      activeEliminationTime.current &&
-      targetEliminationTime < activeEliminationTime.current
-    ) {
-      shownEliminations.current.add(targetTeamId);
-      return;
-    }
-
+  const buildEliminatedTeam = (targetTeam, allStandings) => {
     const eliminationOrder = getEliminationOrder(allStandings);
     const eliminationIndex = eliminationOrder.findIndex(
-      (team) => getTeamId(team) === targetTeamId,
+      (team) => getTeamId(team) === getTeamId(targetTeam),
     );
+    const totalTeams = Array.isArray(allStandings) ? allStandings.length : 0;
     const eliminatedNumber =
-      eliminationIndex >= 0 ? eliminationIndex + 1 : eliminationOrder.length;
+      eliminationIndex >= 0
+        ? Math.max(1, totalTeams - eliminationIndex)
+        : Math.max(1, totalTeams - eliminationOrder.length + 1);
 
-    const enrichedTeam = {
+    return {
       ...targetTeam,
       originalRank: targetTeam.rank,
       rank: eliminatedNumber,
@@ -73,17 +77,38 @@ const TeamEliminatedView = () => {
         "0",
       )}`,
     };
+  };
 
-    shownEliminations.current.add(targetTeamId);
-    activeEliminationTime.current = targetEliminationTime;
-    setActiveEliminatedTeam(enrichedTeam);
+  const showNextQueuedElimination = () => {
+    if (isShowingElimination.current) return;
+
+    const nextTeam = queuedEliminations.current.shift();
+    if (!nextTeam) return;
+
+    isShowingElimination.current = true;
+    setActiveEliminatedTeam(nextTeam);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
       setActiveEliminatedTeam(null);
-      activeEliminationTime.current = 0;
+      isShowingElimination.current = false;
+      showNextQueuedElimination();
     }, 5000);
+  };
+
+  const queueEliminatedTeams = (targetTeams, allStandings) => {
+    const orderedTeams = [...targetTeams].sort(compareEliminationOrder);
+
+    orderedTeams.forEach((team) => {
+      const teamId = getTeamId(team);
+      if (!teamId || shownEliminations.current.has(teamId)) return;
+
+      shownEliminations.current.add(teamId);
+      queuedEliminations.current.push(buildEliminatedTeam(team, allStandings));
+    });
+
+    showNextQueuedElimination();
   };
 
   useEffect(() => {
@@ -103,8 +128,8 @@ const TeamEliminatedView = () => {
     if (!hasBaseline.current) {
       previousEliminatedIds.current = currentEliminatedIds;
       hasBaseline.current = true;
-      showEliminatedTeam(
-        getLatestEliminatedTeam(standings.filter((team) => team?.isEliminated)),
+      queueEliminatedTeams(
+        standings.filter((team) => team?.isEliminated),
         standings,
       );
       return;
@@ -125,12 +150,14 @@ const TeamEliminatedView = () => {
 
     if (newEliminations.length === 0) return;
 
-    showEliminatedTeam(getLatestEliminatedTeam(newEliminations), standings);
+    queueEliminatedTeams(newEliminations, standings);
   }, [standings, loading, isThemeLoading]);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      queuedEliminations.current = [];
+      isShowingElimination.current = false;
     };
   }, []);
 

@@ -94,6 +94,9 @@ const eliminatedTextSwap = keyframes`
 
 /* ================= LAYOUT CONSTANTS ================= */
 const BASE_ROW_HEIGHT = 64;
+const SINGLE_ELIMINATION_ROW_HEIGHT = 112;
+const MULTI_ELIMINATION_ROW_HEIGHT = 96;
+const MIN_COMPACT_ROW_HEIGHT = 42;
 
 const GRID_LAYOUT = css`
   display: grid;
@@ -172,9 +175,9 @@ const RowsContainer = styled.div`
   overflow: hidden;
 `;
 
-const RowSlot = styled(motion.div)`
+const RowSlot = styled(motion.div)<{ $height: number }>`
   position: relative;
-  height: ${BASE_ROW_HEIGHT}px;
+  height: ${(p) => p.$height}px;
 `;
 
 interface LiveRowProps {
@@ -568,6 +571,41 @@ const isTeamDead = (t: Team) =>
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
 
+const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
+  const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
+  const totalHeight = teams.length * BASE_ROW_HEIGHT;
+
+  if (teams.length === 0 || activeCount === 0) {
+    return new Map(teams.map((team) => [getTeamId(team), BASE_ROW_HEIGHT]));
+  }
+
+  let eliminationHeight =
+    activeCount === 1
+      ? SINGLE_ELIMINATION_ROW_HEIGHT
+      : MULTI_ELIMINATION_ROW_HEIGHT;
+
+  const compactCount = teams.length - activeCount;
+  if (compactCount > 0) {
+    const maxEliminationHeight =
+      (totalHeight - compactCount * MIN_COMPACT_ROW_HEIGHT) / activeCount;
+    eliminationHeight = Math.min(eliminationHeight, maxEliminationHeight);
+  } else {
+    eliminationHeight = totalHeight / activeCount;
+  }
+
+  const compactHeight =
+    compactCount > 0
+      ? (totalHeight - eliminationHeight * activeCount) / compactCount
+      : eliminationHeight;
+
+  return new Map(
+    teams.map((team) => [
+      getTeamId(team),
+      flashingIds.has(getTeamId(team)) ? eliminationHeight : compactHeight,
+    ]),
+  );
+};
+
 // ================= OPTIMIZED MEMOIZED TEAM ROW =================
 interface TeamRowData {
   teams: Team[];
@@ -575,11 +613,13 @@ interface TeamRowData {
 
 interface TeamRowProps extends TeamRowData {
   index: number;
+  rowHeight: number;
   style: React.CSSProperties;
 }
 
 const TeamRowComponent = memo(function TeamRow({
   index,
+  rowHeight,
   style,
   teams,
 }: TeamRowProps) {
@@ -630,8 +670,10 @@ const TeamRowComponent = memo(function TeamRow({
         $dead={isDead}
         $odd={index % 2 === 1}
         $top={rank === 1}
-        $height={phase === "flash_wipe" ? 112 : 64}
+        $height={rowHeight}
         $phase={phase}
+        animate={{ height: rowHeight }}
+        transition={{ duration: 0.24, ease: "easeOut" }}
         layout={false}
       >
         {phase === "flash_wipe" && showElimText && <CinematicWipeOverlay />}
@@ -729,6 +771,13 @@ export default function StandingsTable({
   maxRows = 18,
 }: StandingsTableProps) {
   console.log("Want to see api Call for realtime api? lol you cant track api");
+  const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
+  const previousDeadIdsRef = useRef<Set<string>>(new Set());
+  const hasDeadBaselineRef = useRef(false);
+  const flashingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
+
   const sortedTeams = useMemo(() => {
     return [...teams]
       .sort((a, b) => {
@@ -742,6 +791,71 @@ export default function StandingsTable({
         rank: index + 1,
       }));
   }, [teams, maxRows]);
+
+  useEffect(() => {
+    const currentDeadIds = new Set(
+      sortedTeams.filter(isTeamDead).map((team) => getTeamId(team)),
+    );
+    const visibleIds = new Set(sortedTeams.map((team) => getTeamId(team)));
+
+    if (!hasDeadBaselineRef.current) {
+      previousDeadIdsRef.current = currentDeadIds;
+      hasDeadBaselineRef.current = true;
+      return;
+    }
+
+    flashingTimersRef.current.forEach((timer, id) => {
+      if (!currentDeadIds.has(id) || !visibleIds.has(id)) {
+        clearTimeout(timer);
+        flashingTimersRef.current.delete(id);
+        setFlashingIds((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    });
+
+    currentDeadIds.forEach((id) => {
+      if (previousDeadIdsRef.current.has(id) || flashingTimersRef.current.has(id)) {
+        return;
+      }
+
+      setFlashingIds((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+
+      const timer = setTimeout(() => {
+        flashingTimersRef.current.delete(id);
+        setFlashingIds((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }, ELIMINATION_BANNER_MS);
+
+      flashingTimersRef.current.set(id, timer);
+    });
+
+    previousDeadIdsRef.current = currentDeadIds;
+  }, [sortedTeams]);
+
+  useEffect(() => {
+    return () => {
+      flashingTimersRef.current.forEach((timer) => clearTimeout(timer));
+      flashingTimersRef.current.clear();
+    };
+  }, []);
+
+  const rowHeights = useMemo(
+    () => getRowHeightMap(sortedTeams, flashingIds),
+    [sortedTeams, flashingIds],
+  );
 
   // Batch image preloading
   useEffect(() => {
@@ -807,16 +921,25 @@ export default function StandingsTable({
             {sortedTeams.map((team, index) => (
               <RowSlot
                 key={getTeamId(team)}
+                $height={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
                 layout
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
+                }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
               >
                 <TeamRowComponent
                   index={index}
+                  rowHeight={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
                   teams={sortedTeams}
-                  style={{ height: BASE_ROW_HEIGHT, width: "100%" }}
+                  style={{
+                    height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
+                    width: "100%",
+                  }}
                 />
               </RowSlot>
             ))}
