@@ -12,6 +12,7 @@ import ViewRoles from "../../GameAssetUpload/View/ViewRoles";
 import ViewSkills from "../../GameAssetUpload/View/ViewSkills";
 import ViewWeapons from "../../GameAssetUpload/View/ViewWeapons";
 import LastTeamNotification from "../../LastFourTeams/View/LastTeamNotification";
+import LandingView from "../../Landing/view";
 import LiveStandingsView from "../../LiveStandingsTable/View";
 import LoginView, { RegisterView } from "../../Auth/View";
 import MatchTeamMappingsView from "../../MatchTeamMappings/View";
@@ -41,6 +42,7 @@ export type AppRouteDefinition = {
 };
 
 export const appRouteDefinitions: AppRouteDefinition[] = [
+  { path: "/", element: <LandingView /> },
   { path: "/login", element: <LoginView /> },
   { path: "/register", element: <RegisterView /> },
   { path: "/routes", element: <RouteNavigator />, isProtected: true },

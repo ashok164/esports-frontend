@@ -1,5 +1,6 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import { ProjectThemeProvider } from "../../Theme";
 import { clearAuthSession, isAuthenticated, saveAuthUser } from "../../Auth/Repository/authStorage";
 import { getCurrentUser } from "../../Auth/Repository/remote";
@@ -24,7 +25,37 @@ const ThemeRouteScope: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
-const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+const AdminPageShell: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const showRoutesLink = location.pathname !== "/routes";
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate("/login", { replace: true });
+  };
+
+  return (
+    <AdminShell>
+      <AdminTopBar>
+        {showRoutesLink ? (
+          <AdminHomeLink to="/routes" title="Back to route navigator">
+            <AdminHomeMark aria-hidden="true">R</AdminHomeMark>
+            <span>Routes</span>
+          </AdminHomeLink>
+        ) : (
+          <AdminTopLabel>Tournament Control</AdminTopLabel>
+        )}
+        <AdminLogoutButton type="button" onClick={handleLogout}>
+          Logout
+        </AdminLogoutButton>
+      </AdminTopBar>
+      {children}
+    </AdminShell>
+  );
+};
+
+const ProtectedRoute: React.FC<{ children: React.ReactElement; withShell?: boolean }> = ({ children, withShell = true }) => {
   const [isChecking, setIsChecking] = React.useState(isAuthenticated());
   const [isAllowed, setIsAllowed] = React.useState(isAuthenticated());
 
@@ -73,34 +104,117 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return withShell ? <AdminPageShell>{children}</AdminPageShell> : children;
 };
 
 const App: React.FC = () => {
   return (
     <Router>
-      <ProjectThemeProvider>
-        <ThemeRouteScope>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            {appRouteDefinitions.map((route) => (
-              <Route
-                key={route.path}
-                path={route.path}
-                element={
-                  route.isProtected ? (
-                    <ProtectedRoute>{route.element}</ProtectedRoute>
-                  ) : (
-                    route.element
-                  )
-                }
-              />
-            ))}
-          </Routes>
-        </ThemeRouteScope>
-      </ProjectThemeProvider>
+      <Routes>
+        {appRouteDefinitions.map((route) => {
+          const routeElement = route.isProtected ? (
+            <ProtectedRoute withShell={route.path !== "/routes"}>{route.element}</ProtectedRoute>
+          ) : (
+            route.element
+          );
+
+          return (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={
+                route.path === "/" ? (
+                  routeElement
+                ) : (
+                  <ProjectThemeProvider>
+                    <ThemeRouteScope>{routeElement}</ThemeRouteScope>
+                  </ProjectThemeProvider>
+                )
+              }
+            />
+          );
+        })}
+      </Routes>
     </Router>
   );
 };
 
 export default App;
+
+const AdminShell = styled.div`
+  min-height: 100vh;
+  background: var(--project-background, #0b0f19);
+  color: var(--project-text-primary, #ffffff);
+`;
+
+const AdminTopBar = styled.nav`
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px clamp(14px, 3vw, 28px);
+  border-bottom: 1px solid rgba(var(--project-primary-rgb, 239, 68, 68), 0.28);
+  background:
+    linear-gradient(90deg, rgba(var(--project-primary-rgb, 239, 68, 68), 0.16), transparent 36%),
+    rgba(8, 12, 22, 0.92);
+  backdrop-filter: blur(14px);
+`;
+
+const AdminHomeLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 14px 0 10px;
+  border: 1px solid rgba(var(--project-secondary-rgb, 56, 189, 248), 0.34);
+  border-radius: 8px;
+  color: var(--project-text-primary, #ffffff);
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-decoration: none;
+  background: var(--project-surface, #111827);
+
+  &:hover {
+    border-color: var(--project-secondary, #38bdf8);
+    background: rgba(var(--project-secondary-rgb, 56, 189, 248), 0.14);
+  }
+`;
+
+const AdminHomeMark = styled.span`
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--project-secondary, #38bdf8);
+  color: var(--project-background, #0b0f19);
+  font-size: 0.82rem;
+`;
+
+const AdminTopLabel = styled.div`
+  color: var(--project-accent, #bfff00);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+`;
+
+const AdminLogoutButton = styled.button`
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid rgba(var(--project-danger-rgb, 239, 68, 68), 0.46);
+  border-radius: 8px;
+  background: rgba(var(--project-danger-rgb, 239, 68, 68), 0.14);
+  color: var(--project-text-primary, #ffffff);
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 900;
+
+  &:hover {
+    background: var(--project-danger, #ef4444);
+  }
+`;

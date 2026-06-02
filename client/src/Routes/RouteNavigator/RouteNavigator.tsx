@@ -1,6 +1,7 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
+import { clearAuthSession } from "../../Auth/Repository/authStorage";
 
 type RouteItem = {
   title: string;
@@ -14,6 +15,14 @@ type RouteGroup = {
   description: string;
   routes: RouteItem[];
 };
+
+const getGroupInitials = (title: string) =>
+  title
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
 const routeGroups: RouteGroup[] = [
   {
@@ -272,8 +281,15 @@ const broadcastGroups = routeGroups
   .filter((group) => group.routes.length > 0);
 
 const RouteNavigator: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate("/login", { replace: true });
+  };
+
   return (
-    <Page data-theme-surface="page">
+    <Page>
       <GlobalRouteStyles />
       <Shell>
         <WindowBar>
@@ -283,14 +299,17 @@ const RouteNavigator: React.FC = () => {
             <ControlDot $tone="green" />
           </WindowControls>
           <WindowTitle>Admin Center</WindowTitle>
+          <LogoutButton type="button" onClick={handleLogout}>
+            Logout
+          </LogoutButton>
         </WindowBar>
 
         <Header>
           <TitleBlock>
-            <Kicker>Tournament Control</Kicker>
-            <Title>Admin Center</Title>
+            <Kicker>Tournament Control Deck</Kicker>
+            <Title>Route Arena</Title>
             <Subtitle>
-              Blue cards control admin pages in this tab. Red cards launch broadcast overlays in new tabs.
+              Jump between admin controls in this tab, or open broadcast overlays in clean production windows.
             </Subtitle>
           </TitleBlock>
           <Stats>
@@ -305,17 +324,23 @@ const RouteNavigator: React.FC = () => {
           </Stats>
         </Header>
 
-        <RouteHalf $variant="admin" data-theme-surface="panel">
+        <RouteHalf $variant="admin">
           <SectionHeader>
             <SectionTitle>Admin Navigator</SectionTitle>
             <SectionHint>Same tab controls</SectionHint>
           </SectionHeader>
           <Groups aria-label="Admin route groups">
             {adminGroups.map((group) => (
-              <GroupSection key={group.title} $variant="admin" data-theme-surface="card">
+              <GroupSection key={group.title} $variant="admin">
                 <GroupHeader>
-                  <GroupTitle>{group.title}</GroupTitle>
-                  <GroupDescription>{group.description}</GroupDescription>
+                  <GroupBadge $variant="admin" aria-hidden="true">
+                    {getGroupInitials(group.title)}
+                  </GroupBadge>
+                  <GroupCopy>
+                    <GroupTitle>{group.title}</GroupTitle>
+                    <GroupDescription>{group.description}</GroupDescription>
+                  </GroupCopy>
+                  <GroupCount>{group.routes.length}</GroupCount>
                 </GroupHeader>
                 <GroupRoutes>
                   {group.routes.map((route) => (
@@ -330,17 +355,23 @@ const RouteNavigator: React.FC = () => {
           </Groups>
         </RouteHalf>
 
-        <RouteHalf $variant="broadcast" data-theme-surface="panel">
+        <RouteHalf $variant="broadcast">
           <SectionHeader>
             <SectionTitle>Broadcast Navigator</SectionTitle>
             <SectionHint>New tab overlays</SectionHint>
           </SectionHeader>
           <Groups aria-label="Broadcast route groups">
             {broadcastGroups.map((group) => (
-              <GroupSection key={group.title} $variant="broadcast" data-theme-surface="card">
+              <GroupSection key={group.title} $variant="broadcast">
                 <GroupHeader>
-                  <GroupTitle>{group.title}</GroupTitle>
-                  <GroupDescription>{group.description}</GroupDescription>
+                  <GroupBadge $variant="broadcast" aria-hidden="true">
+                    {getGroupInitials(group.title)}
+                  </GroupBadge>
+                  <GroupCopy>
+                    <GroupTitle>{group.title}</GroupTitle>
+                    <GroupDescription>{group.description}</GroupDescription>
+                  </GroupCopy>
+                  <GroupCount>{group.routes.length}</GroupCount>
                 </GroupHeader>
                 <GroupRoutes>
                   {group.routes.map((route) => (
@@ -385,6 +416,9 @@ const GlobalRouteStyles = createGlobalStyle`
 const Page = styled.main`
   min-height: 100vh;
   background:
+    radial-gradient(circle at 12% 8%, rgba(var(--project-primary-rgb, 239, 68, 68), 0.32), transparent 28%),
+    radial-gradient(circle at 84% 14%, rgba(var(--project-secondary-rgb, 56, 189, 248), 0.24), transparent 30%),
+    linear-gradient(135deg, rgba(var(--project-accent-rgb, 191, 255, 0), 0.08), transparent 34%),
     linear-gradient(
       180deg,
       var(--project-background, #0a1220) 0%,
@@ -397,9 +431,9 @@ const Page = styled.main`
 `;
 
 const Shell = styled.div`
-  width: min(1180px, calc(100% - 32px));
+  width: min(1280px, calc(100% - 28px));
   margin: 0 auto;
-  padding: 20px 0 28px;
+  padding: 18px 0 32px;
 `;
 
 const WindowBar = styled.div`
@@ -409,9 +443,13 @@ const WindowBar = styled.div`
   min-height: 44px;
   margin-bottom: 22px;
   padding: 0 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(var(--project-primary-rgb, 239, 68, 68), 0.28);
   border-radius: 8px;
-  background: rgba(var(--project-primary-rgb, 2, 6, 23), 0.12);
+  background:
+    linear-gradient(90deg, rgba(var(--project-primary-rgb, 239, 68, 68), 0.18), transparent 42%),
+    rgba(2, 6, 23, 0.64);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(14px);
 `;
 
 const WindowControls = styled.div`
@@ -431,9 +469,25 @@ const ControlDot = styled.span<{ $tone: "red" | "amber" | "green" }>`
 
 const WindowTitle = styled.div`
   color: var(--project-text-secondary, #cbd5e1);
-  color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.86rem;
   font-weight: 800;
+  flex: 1;
+`;
+
+const LogoutButton = styled.button`
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(var(--project-danger-rgb, 239, 68, 68), 0.46);
+  border-radius: 8px;
+  background: rgba(var(--project-danger-rgb, 239, 68, 68), 0.16);
+  color: var(--project-text-primary, #ffffff);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+
+  &:hover {
+    background: var(--project-danger, #ef4444);
+  }
 `;
 
 const Header = styled.header`
@@ -464,9 +518,10 @@ const Kicker = styled.div`
 const Title = styled.h1`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(2.4rem, 6vw, 5.4rem);
   line-height: 0.95;
   letter-spacing: 0;
+  text-shadow: 0 0 32px rgba(var(--project-primary-rgb, 239, 68, 68), 0.32);
 `;
 
 const Subtitle = styled.p`
@@ -492,7 +547,10 @@ const Stat = styled.div`
   padding: 18px;
   border: 1px solid var(--project-border, rgba(148, 163, 184, 0.22));
   border-radius: 8px;
-  background: rgba(var(--project-secondary-rgb, 15, 23, 42), 0.12);
+  background:
+    linear-gradient(145deg, rgba(var(--project-secondary-rgb, 56, 189, 248), 0.18), rgba(2, 6, 23, 0.54)),
+    var(--project-surface, #111827);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 `;
 
 const RouteHalf = styled.section<{ $variant: "admin" | "broadcast" }>`
@@ -518,7 +576,8 @@ const RouteHalf = styled.section<{ $variant: "admin" | "broadcast" }>`
       rgba(15, 23, 42, 0.7)
     ),
     var(--project-surface, #101722);
-  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(12px);
 `;
 
 const SectionHeader = styled.div`
@@ -562,54 +621,153 @@ const StatLabel = styled.span`
 
 const Groups = styled.section`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
   gap: 14px;
 
-  @media (max-width: 980px) {
+  @media (max-width: 620px) {
     grid-template-columns: 1fr;
   }
 `;
 
 const GroupSection = styled.section<{ $variant: "admin" | "broadcast" }>`
+  position: relative;
   min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--project-border, rgba(148, 163, 184, 0.2));
+  min-height: 220px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid
+    ${({ $variant }) =>
+      $variant === "admin"
+        ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.28)"
+        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.28)"};
   border-radius: 8px;
   background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 36%),
     linear-gradient(
-      180deg,
+      145deg,
       ${({ $variant }) =>
         $variant === "admin"
-          ? "rgba(var(--project-secondary-rgb, 59, 130, 246), 0.12)"
-          : "rgba(var(--project-primary-rgb, 244, 114, 182), 0.11)"},
-      rgba(10, 15, 24, 0.82)
-    );
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+          ? "rgba(var(--project-secondary-rgb, 59, 130, 246), 0.2)"
+          : "rgba(var(--project-primary-rgb, 244, 114, 182), 0.18)"},
+      rgba(10, 15, 24, 0.88) 54%
+    ),
+    var(--project-surface-alt, #1f293d);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: ${({ $variant }) =>
+      $variant === "admin"
+        ? "linear-gradient(90deg, var(--project-secondary, #67e8f9), transparent)"
+        : "linear-gradient(90deg, var(--project-primary, #fb7185), transparent)"};
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: -48px;
+    top: -48px;
+    width: 128px;
+    height: 128px;
+    border: 1px solid
+      ${({ $variant }) =>
+        $variant === "admin"
+          ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.16)"
+          : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.16)"};
+    border-radius: 999px;
+  }
+
+  &:hover {
+    border-color: ${({ $variant }) =>
+      $variant === "admin"
+        ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.48)"
+        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.46)"};
+    box-shadow:
+      0 24px 52px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+  }
 `;
 
 const GroupHeader = styled.div`
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 16px;
+`;
+
+const GroupBadge = styled.div<{ $variant: "admin" | "broadcast" }>`
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid
+    ${({ $variant }) =>
+      $variant === "admin"
+        ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.36)"
+        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.34)"};
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(2, 6, 23, 0.38)),
+    ${({ $variant }) =>
+      $variant === "admin"
+        ? "rgba(var(--project-secondary-rgb, 14, 116, 144), 0.2)"
+        : "rgba(var(--project-primary-rgb, 190, 24, 93), 0.18)"};
+  color: var(--project-text-primary, #ffffff);
+  font-size: 0.88rem;
+  font-weight: 900;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.04);
+`;
+
+const GroupCopy = styled.div`
+  min-width: 0;
 `;
 
 const GroupTitle = styled.h3`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: 1.25rem;
+  font-size: 1.22rem;
+  line-height: 1.1;
 `;
 
 const GroupDescription = styled.p`
-  margin: 0;
+  margin: 6px 0 0;
   color: var(--project-text-secondary, #94a3b8);
   font-size: 0.86rem;
   line-height: 1.5;
 `;
 
+const GroupCount = styled.div`
+  min-width: 30px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.56);
+  color: var(--project-text-secondary, #cbd5e1);
+  font-size: 0.78rem;
+  font-weight: 900;
+`;
+
 const GroupRoutes = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 9px;
 `;
 
 const chipStyles = `
@@ -621,12 +779,15 @@ const chipStyles = `
   padding: 8px 12px 8px 9px;
   border: 1px solid var(--chip-border);
   border-radius: 999px;
-  background: rgba(2, 6, 23, 0.7);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent),
+    rgba(2, 6, 23, 0.7);
   color: var(--project-text-primary, #e0f2fe);
   font-size: 0.86rem;
   font-weight: 800;
   text-decoration: none;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, color 160ms ease;
 
   span {
     overflow: hidden;
@@ -637,6 +798,7 @@ const chipStyles = `
   &:hover {
     border-color: var(--chip-hover-border);
     background: var(--chip-hover-bg);
+    color: #ffffff;
     transform: translateY(-1px);
   }
 
