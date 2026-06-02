@@ -10,10 +10,17 @@ type RouteItem = {
   type: "Admin" | "Broadcast";
 };
 
+type GroupAccent = {
+  line: string;
+  glow: string;
+  badge: string;
+};
+
 type RouteGroup = {
   title: string;
   description: string;
   routes: RouteItem[];
+  accent: GroupAccent;
 };
 
 const getGroupInitials = (title: string) =>
@@ -28,6 +35,11 @@ const routeGroups: RouteGroup[] = [
   {
     title: "Player",
     description: "Player uploads, photos, profiles, and related team player data.",
+    accent: {
+      line: "#38bdf8",
+      glow: "rgba(56, 189, 248, 0.22)",
+      badge: "linear-gradient(145deg, rgba(56, 189, 248, 0.36), rgba(14, 116, 144, 0.28))",
+    },
     routes: [
       {
         title: "Player Upload",
@@ -46,6 +58,11 @@ const routeGroups: RouteGroup[] = [
   {
     title: "Team",
     description: "Team records, logos, country logos, and team identity screens.",
+    accent: {
+      line: "#22c55e",
+      glow: "rgba(34, 197, 94, 0.2)",
+      badge: "linear-gradient(145deg, rgba(34, 197, 94, 0.34), rgba(21, 128, 61, 0.26))",
+    },
     routes: [
       {
         title: "Team Record",
@@ -88,6 +105,11 @@ const routeGroups: RouteGroup[] = [
   {
     title: "Theme",
     description: "Project colors, default color mode, and broadcast theme setup.",
+    accent: {
+      line: "#a855f7",
+      glow: "rgba(168, 85, 247, 0.2)",
+      badge: "linear-gradient(145deg, rgba(168, 85, 247, 0.34), rgba(126, 34, 206, 0.24))",
+    },
     routes: [
       {
         title: "Broadcast Theme",
@@ -100,6 +122,11 @@ const routeGroups: RouteGroup[] = [
   {
     title: "Game Assets",
     description: "Weapon, character, skill, role, and equipment image upload tools.",
+    accent: {
+      line: "#f59e0b",
+      glow: "rgba(245, 158, 11, 0.2)",
+      badge: "linear-gradient(145deg, rgba(245, 158, 11, 0.34), rgba(180, 83, 9, 0.25))",
+    },
     routes: [
       {
         title: "Game Asset Upload",
@@ -160,6 +187,11 @@ const routeGroups: RouteGroup[] = [
   {
     title: "Result",
     description: "Result controls, MVP, and booyah team player stat tables.",
+    accent: {
+      line: "#ef4444",
+      glow: "rgba(239, 68, 68, 0.22)",
+      badge: "linear-gradient(145deg, rgba(239, 68, 68, 0.36), rgba(153, 27, 27, 0.26))",
+    },
     routes: [
       {
         title: "Result JSON Control",
@@ -196,6 +228,11 @@ const routeGroups: RouteGroup[] = [
   {
     title: "Live Broadcast",
     description: "Overlay pages intended for live production windows.",
+    accent: {
+      line: "#f20d20",
+      glow: "rgba(242, 13, 32, 0.24)",
+      badge: "linear-gradient(145deg, rgba(242, 13, 32, 0.38), rgba(127, 29, 29, 0.28))",
+    },
     routes: [
       {
         title: "Circle Analysis Control",
@@ -331,21 +368,27 @@ const RouteNavigator: React.FC = () => {
           </SectionHeader>
           <Groups aria-label="Admin route groups">
             {adminGroups.map((group) => (
-              <GroupSection key={group.title} $variant="admin">
+              <GroupSection key={group.title} $variant="admin" $accent={group.accent}>
                 <GroupHeader>
-                  <GroupBadge $variant="admin" aria-hidden="true">
+                  <GroupBadge $variant="admin" $accent={group.accent} aria-hidden="true">
                     {getGroupInitials(group.title)}
                   </GroupBadge>
                   <GroupCopy>
                     <GroupTitle>{group.title}</GroupTitle>
                     <GroupDescription>{group.description}</GroupDescription>
                   </GroupCopy>
-                  <GroupCount>{group.routes.length}</GroupCount>
+                  <GroupCount $accent={group.accent}>{group.routes.length}</GroupCount>
                 </GroupHeader>
                 <GroupRoutes>
                   {group.routes.map((route) => (
-                    <RouteChip key={route.path} to={route.path} title={route.note} $variant="admin">
-                      <ChipDot aria-hidden="true" $variant="admin" />
+                    <RouteChip
+                      key={route.path}
+                      to={route.path}
+                      title={route.note}
+                      $variant="admin"
+                      $accent={group.accent}
+                    >
+                      <ChipDot aria-hidden="true" $variant="admin" $accent={group.accent} />
                       <span>{route.title}</span>
                     </RouteChip>
                   ))}
@@ -362,16 +405,16 @@ const RouteNavigator: React.FC = () => {
           </SectionHeader>
           <Groups aria-label="Broadcast route groups">
             {broadcastGroups.map((group) => (
-              <GroupSection key={group.title} $variant="broadcast">
+              <GroupSection key={group.title} $variant="broadcast" $accent={group.accent}>
                 <GroupHeader>
-                  <GroupBadge $variant="broadcast" aria-hidden="true">
+                  <GroupBadge $variant="broadcast" $accent={group.accent} aria-hidden="true">
                     {getGroupInitials(group.title)}
                   </GroupBadge>
                   <GroupCopy>
                     <GroupTitle>{group.title}</GroupTitle>
                     <GroupDescription>{group.description}</GroupDescription>
                   </GroupCopy>
-                  <GroupCount>{group.routes.length}</GroupCount>
+                  <GroupCount $accent={group.accent}>{group.routes.length}</GroupCount>
                 </GroupHeader>
                 <GroupRoutes>
                   {group.routes.map((route) => (
@@ -382,8 +425,9 @@ const RouteNavigator: React.FC = () => {
                       rel="noreferrer"
                       title={route.note}
                       $variant="broadcast"
+                      $accent={group.accent}
                     >
-                      <ChipDot aria-hidden="true" $variant="broadcast" />
+                      <ChipDot aria-hidden="true" $variant="broadcast" $accent={group.accent} />
                       <span>{route.title}</span>
                     </AnchorChip>
                   ))}
@@ -431,18 +475,23 @@ const Page = styled.main`
 `;
 
 const Shell = styled.div`
-  width: min(1280px, calc(100% - 28px));
+  width: min(1420px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 18px 0 32px;
+  padding: 28px 0 48px;
+
+  @media (max-width: 720px) {
+    width: min(100% - 28px, 1420px);
+    padding: 18px 0 34px;
+  }
 `;
 
 const WindowBar = styled.div`
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 44px;
-  margin-bottom: 22px;
-  padding: 0 16px;
+  min-height: 54px;
+  margin-bottom: 34px;
+  padding: 0 18px;
   border: 1px solid rgba(var(--project-primary-rgb, 239, 68, 68), 0.28);
   border-radius: 8px;
   background:
@@ -492,19 +541,21 @@ const LogoutButton = styled.button`
 
 const Header = styled.header`
   display: flex;
-  align-items: stretch;
+  align-items: end;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 16px;
+  gap: 34px;
+  margin-bottom: 34px;
 
-  @media (max-width: 760px) {
+  @media (max-width: 900px) {
+    align-items: stretch;
     flex-direction: column;
   }
 `;
 
 const TitleBlock = styled.div`
   display: grid;
-  gap: 8px;
+  gap: 12px;
+  max-width: 920px;
 `;
 
 const Kicker = styled.div`
@@ -518,33 +569,37 @@ const Kicker = styled.div`
 const Title = styled.h1`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: clamp(2.4rem, 6vw, 5.4rem);
-  line-height: 0.95;
+  font-size: clamp(3rem, 6vw, 6.8rem);
+  line-height: 0.9;
   letter-spacing: 0;
   text-shadow: 0 0 32px rgba(var(--project-primary-rgb, 239, 68, 68), 0.32);
 `;
 
 const Subtitle = styled.p`
-  max-width: 720px;
+  max-width: 820px;
   margin: 0;
   color: var(--project-text-secondary, #a8b3c7);
-  font-size: 1rem;
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
   line-height: 1.6;
 `;
 
 const Stats = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(112px, 1fr));
-  gap: 12px;
-  min-width: 240px;
+  gap: 14px;
+  min-width: 300px;
+
+  @media (max-width: 900px) {
+    min-width: 0;
+  }
 `;
 
 const Stat = styled.div`
   display: grid;
   align-content: center;
   gap: 4px;
-  min-height: 104px;
-  padding: 18px;
+  min-height: 122px;
+  padding: 24px;
   border: 1px solid var(--project-border, rgba(148, 163, 184, 0.22));
   border-radius: 8px;
   background:
@@ -556,10 +611,9 @@ const Stat = styled.div`
 const RouteHalf = styled.section<{ $variant: "admin" | "broadcast" }>`
   display: grid;
   align-content: start;
-  gap: 14px;
-  min-height: calc(50vh - 78px);
-  margin-top: 16px;
-  padding: 18px;
+  gap: 24px;
+  margin-top: 22px;
+  padding: clamp(20px, 2.5vw, 32px);
   border: 1px solid
     ${({ $variant }) =>
       $variant === "admin"
@@ -584,7 +638,8 @@ const SectionHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 22px;
+  padding-bottom: 4px;
 
   @media (max-width: 560px) {
     align-items: flex-start;
@@ -596,7 +651,7 @@ const SectionHeader = styled.div`
 const SectionTitle = styled.h2`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: 1.15rem;
+  font-size: clamp(1.28rem, 2vw, 1.75rem);
   letter-spacing: 0;
 `;
 
@@ -609,7 +664,7 @@ const SectionHint = styled.span`
 
 const StatValue = styled.strong`
   color: var(--project-text-primary, #ffffff);
-  font-size: 2rem;
+  font-size: 2.35rem;
   line-height: 1;
 `;
 
@@ -621,34 +676,32 @@ const StatLabel = styled.span`
 
 const Groups = styled.section`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
 
-  @media (max-width: 620px) {
+  @media (min-width: 1500px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const GroupSection = styled.section<{ $variant: "admin" | "broadcast" }>`
+const GroupSection = styled.section<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
   position: relative;
   min-width: 0;
-  min-height: 220px;
-  padding: 18px;
+  min-height: 0;
+  padding: clamp(20px, 2vw, 28px);
   overflow: hidden;
-  border: 1px solid
-    ${({ $variant }) =>
-      $variant === "admin"
-        ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.28)"
-        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.28)"};
+  border: 1px solid ${({ $accent }) => $accent.line};
   border-radius: 8px;
   background:
+    radial-gradient(circle at 10% 0%, ${({ $accent }) => $accent.glow}, transparent 34%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 36%),
     linear-gradient(
       145deg,
-      ${({ $variant }) =>
-        $variant === "admin"
-          ? "rgba(var(--project-secondary-rgb, 59, 130, 246), 0.2)"
-          : "rgba(var(--project-primary-rgb, 244, 114, 182), 0.18)"},
+      ${({ $accent }) => $accent.glow},
       rgba(10, 15, 24, 0.88) 54%
     ),
     var(--project-surface-alt, #1f293d);
@@ -665,10 +718,8 @@ const GroupSection = styled.section<{ $variant: "admin" | "broadcast" }>`
     position: absolute;
     inset: 0 0 auto;
     height: 3px;
-    background: ${({ $variant }) =>
-      $variant === "admin"
-        ? "linear-gradient(90deg, var(--project-secondary, #67e8f9), transparent)"
-        : "linear-gradient(90deg, var(--project-primary, #fb7185), transparent)"};
+    background: ${({ $accent }) =>
+      `linear-gradient(90deg, ${$accent.line}, transparent)`};
   }
 
   &::after {
@@ -678,21 +729,16 @@ const GroupSection = styled.section<{ $variant: "admin" | "broadcast" }>`
     top: -48px;
     width: 128px;
     height: 128px;
-    border: 1px solid
-      ${({ $variant }) =>
-        $variant === "admin"
-          ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.16)"
-          : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.16)"};
+    border: 1px solid ${({ $accent }) => $accent.line};
+    opacity: 0.18;
     border-radius: 999px;
   }
 
   &:hover {
-    border-color: ${({ $variant }) =>
-      $variant === "admin"
-        ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.48)"
-        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.46)"};
+    border-color: ${({ $accent }) => $accent.line};
     box-shadow:
       0 24px 52px rgba(0, 0, 0, 0.28),
+      0 0 36px ${({ $accent }) => $accent.glow},
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
     transform: translateY(-2px);
   }
@@ -702,33 +748,28 @@ const GroupHeader = styled.div`
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
   align-items: start;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 22px;
 `;
 
-const GroupBadge = styled.div<{ $variant: "admin" | "broadcast" }>`
-  width: 46px;
-  height: 46px;
+const GroupBadge = styled.div<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
+  width: 54px;
+  height: 54px;
   display: grid;
   place-items: center;
-  border: 1px solid
-    ${({ $variant }) =>
-      $variant === "admin"
-        ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.36)"
-        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.34)"};
+  border: 1px solid ${({ $accent }) => $accent.line};
   border-radius: 8px;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(2, 6, 23, 0.38)),
-    ${({ $variant }) =>
-      $variant === "admin"
-        ? "rgba(var(--project-secondary-rgb, 14, 116, 144), 0.2)"
-        : "rgba(var(--project-primary-rgb, 190, 24, 93), 0.18)"};
+    ${({ $accent }) => $accent.badge};
   color: var(--project-text-primary, #ffffff);
   font-size: 0.88rem;
   font-weight: 900;
-  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.04),
+    0 0 22px ${({ $accent }) => $accent.glow};
 `;
 
 const GroupCopy = styled.div`
@@ -738,26 +779,27 @@ const GroupCopy = styled.div`
 const GroupTitle = styled.h3`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: 1.22rem;
+  font-size: clamp(1.18rem, 1.6vw, 1.42rem);
   line-height: 1.1;
 `;
 
 const GroupDescription = styled.p`
-  margin: 6px 0 0;
+  max-width: 540px;
+  margin: 8px 0 0;
   color: var(--project-text-secondary, #94a3b8);
-  font-size: 0.86rem;
-  line-height: 1.5;
+  font-size: 0.95rem;
+  line-height: 1.55;
 `;
 
-const GroupCount = styled.div`
-  min-width: 30px;
-  height: 26px;
+const GroupCount = styled.div<{ $accent: GroupAccent }>`
+  min-width: 36px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid ${({ $accent }) => $accent.line};
   border-radius: 999px;
   background: rgba(2, 6, 23, 0.56);
-  color: var(--project-text-secondary, #cbd5e1);
+  color: ${({ $accent }) => $accent.line};
   font-size: 0.78rem;
   font-weight: 900;
 `;
@@ -765,25 +807,29 @@ const GroupCount = styled.div`
 const GroupRoutes = styled.div`
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 12px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const chipStyles = `
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  max-width: 100%;
-  padding: 8px 12px 8px 9px;
+  min-height: 44px;
+  width: 100%;
+  padding: 9px 14px 9px 11px;
   border: 1px solid var(--chip-border);
   border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent),
     rgba(2, 6, 23, 0.7);
   color: var(--project-text-primary, #e0f2fe);
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   font-weight: 800;
   text-decoration: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -808,48 +854,25 @@ const chipStyles = `
   }
 `;
 
-const RouteChip = styled(Link)<{ $variant: "admin" | "broadcast" }>`
+const RouteChip = styled(Link)<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
   ${chipStyles}
-  --chip-border: ${({ $variant }) =>
-    $variant === "admin"
-      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.28)"
-      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.26)"};
-  --chip-hover-border: ${({ $variant }) =>
-    $variant === "admin"
-      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.58)"
-      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.54)"};
-  --chip-hover-bg: ${({ $variant }) =>
-    $variant === "admin"
-      ? "rgba(var(--project-secondary-rgb, 14, 116, 144), 0.16)"
-      : "rgba(var(--project-primary-rgb, 190, 24, 93), 0.15)"};
+  --chip-border: ${({ $accent }) => $accent.line};
+  --chip-hover-border: ${({ $accent }) => $accent.line};
+  --chip-hover-bg: ${({ $accent }) => $accent.glow};
 `;
 
-const AnchorChip = styled.a<{ $variant: "admin" | "broadcast" }>`
+const AnchorChip = styled.a<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
   ${chipStyles}
-  --chip-border: ${({ $variant }) =>
-    $variant === "admin"
-      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.28)"
-      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.26)"};
-  --chip-hover-border: ${({ $variant }) =>
-    $variant === "admin"
-      ? "rgba(var(--project-secondary-rgb, 125, 211, 252), 0.58)"
-      : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.54)"};
-  --chip-hover-bg: ${({ $variant }) =>
-    $variant === "admin"
-      ? "rgba(var(--project-secondary-rgb, 14, 116, 144), 0.16)"
-      : "rgba(var(--project-primary-rgb, 190, 24, 93), 0.15)"};
+  --chip-border: ${({ $accent }) => $accent.line};
+  --chip-hover-border: ${({ $accent }) => $accent.line};
+  --chip-hover-bg: ${({ $accent }) => $accent.glow};
 `;
 
-const ChipDot = styled.span<{ $variant: "admin" | "broadcast" }>`
+const ChipDot = styled.span<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
   flex: 0 0 auto;
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: ${({ $variant }) =>
-    $variant === "admin" ? "var(--project-secondary, #67e8f9)" : "var(--project-primary, #fb7185)"};
-  box-shadow: 0 0 14px
-    ${({ $variant }) =>
-      $variant === "admin"
-        ? "rgba(var(--project-secondary-rgb, 103, 232, 249), 0.62)"
-        : "rgba(var(--project-primary-rgb, 251, 113, 133), 0.58)"};
+  background: ${({ $accent }) => $accent.line};
+  box-shadow: 0 0 14px ${({ $accent }) => $accent.line};
 `;
