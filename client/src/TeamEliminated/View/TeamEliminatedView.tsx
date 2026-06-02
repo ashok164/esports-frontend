@@ -76,6 +76,8 @@ const TeamEliminatedView = () => {
     );
     const enrichedTeam = {
       ...targetTeam,
+      originalRank: targetTeam.rank,
+      rank: accuratePlacement ?? targetTeam.rank,
       calculatedPlacement: accuratePlacement,
       placementText: accuratePlacement
         ? `${accuratePlacement}th Place`
