@@ -563,7 +563,8 @@ const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
   return "alive";
 };
 const isTeamDead = (t: Team) =>
-  t.isPlaying !== false && (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
+  t.isPlaying !== false &&
+  (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
 
@@ -589,7 +590,7 @@ const TeamRowComponent = memo(function TeamRow({
   const players = getPlayers(team);
 
   const [phase, setPhase] = useState<"alive" | "flash_wipe" | "settled_normal">(
-    isDead ? "settled_normal" : "alive"
+    isDead ? "settled_normal" : "alive",
   );
   const [showElimText, setShowElimText] = useState(false);
   const phaseRef = useRef(phase);
@@ -633,9 +634,7 @@ const TeamRowComponent = memo(function TeamRow({
         $phase={phase}
         layout={false}
       >
-        {phase === "flash_wipe" && showElimText && (
-          <CinematicWipeOverlay />
-        )}
+        {phase === "flash_wipe" && showElimText && <CinematicWipeOverlay />}
 
         {/* Player portraits overlay */}
         <AnimatePresence mode="wait">
@@ -707,10 +706,7 @@ const TeamRowComponent = memo(function TeamRow({
               const st = getPlayerStatus(player);
               return (
                 <Bar key={pIdx}>
-                  <Fill
-                    $hp={getPlayerHpPercent(player)}
-                    $status={st}
-                  />
+                  <Fill $hp={getPlayerHpPercent(player)} $status={st} />
                 </Bar>
               );
             })}
@@ -732,6 +728,7 @@ export default function StandingsTable({
   teams = [],
   maxRows = 18,
 }: StandingsTableProps) {
+  console.log("Want to see api Call for realtime api? lol you cant track api");
   const sortedTeams = useMemo(() => {
     return [...teams]
       .sort((a, b) => {
