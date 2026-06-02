@@ -18,6 +18,7 @@ import LoginView, { RegisterView } from "../../Auth/View";
 import MatchTeamMappingsView from "../../MatchTeamMappings/View";
 import MatchNumber from "../../MatchNumber/View";
 import MvpPage from "../../Result/view/MvpPage";
+import PlayersModeView from "../../PlayersMode/View";
 import PlayerUploadProfile from "../../PlayerUpload/View/PlayerUploadProfile";
 import PlayerUploadView from "../../PlayerUpload/View";
 import OverallResultView from "../../Result/view/OverallResultView";
@@ -48,6 +49,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/routes", element: <RouteNavigator />, isProtected: true },
   { path: "/broadcast-theme", element: <BroadcastThemeView />, isProtected: true },
   { path: "/live-standings", element: <LiveStandingsView />, isBroadcast: true },
+  { path: "/players-mode", element: <PlayersModeView />, isBroadcast: true },
   { path: "/team-eliminated", element: <TeamEliminatedView />, isBroadcast: true },
   { path: "/last-four-teams", element: <LastTeamNotification />, isBroadcast: true },
   { path: "/match-number", element: <MatchNumber />, isBroadcast: true },

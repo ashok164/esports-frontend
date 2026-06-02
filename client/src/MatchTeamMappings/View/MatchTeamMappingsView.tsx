@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
+import http from "../../AxiosFile/axios";
 import {
   publishActiveGameDetails,
   readStoredGameDetails,
@@ -9,6 +10,7 @@ import {
   deleteMatchTeamMappingsApi,
   getAllMatchTeamMappingsApi,
 } from "../../GameDetails/Repository/remote";
+import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 
 type MappingRow = {
   id?: string | number;
@@ -28,8 +30,134 @@ type MappingGroup = {
   mappings: MappingRow[];
 };
 
+type MappingCorrection = {
+  matchId?: string;
+  roomTeamId: string;
+  previousPermanentTeamId?: string | null;
+  detectedPermanentTeamId: string;
+  matchedPlayers?: number;
+  matchScore?: number;
+  source?: string;
+  correctedAt?: string;
+};
+
+type TeamOption = {
+  teamId: string;
+  teamName: string;
+  teamTag: string;
+};
+
+type RawTeamRow = {
+  roomTeamId: string;
+  teamName: string;
+};
+
+type NameSuggestion = {
+  teamId: string;
+  teamName: string;
+  score: number;
+  ambiguous: boolean;
+};
+
+const TEAM_MAPPING_CORRECTIONS_STORAGE_KEY = "team_mapping_corrections";
+
+const readMappingCorrections = (): Record<string, MappingCorrection[]> => {
+  try {
+    const stored = window.localStorage.getItem(TEAM_MAPPING_CORRECTIONS_STORAGE_KEY);
+    const parsed = stored ? JSON.parse(stored) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const firstValue = (...values: any[]) =>
+  values.find((value) => value !== undefined && value !== null && value !== "") ?? "";
+
+const normalizeTeamId = (value: any) => {
+  const clean = String(value ?? "").trim();
+  if (!/^\d+$/.test(clean)) return clean;
+  const numberValue = Number(clean);
+  return Number.isSafeInteger(numberValue) ? String(numberValue) : clean;
+};
+
+const normalizeName = (value: any) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/4/g, "a")
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/5/g, "s")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const getNameTokens = (value: any) =>
+  normalizeName(value)
+    .split(" ")
+    .filter((token) => token.length > 1 && !["esport", "esports", "team", "gaming"].includes(token));
+
+const scoreNameMatch = (rawName: string, team: TeamOption) => {
+  const raw = normalizeName(rawName);
+  const dbName = normalizeName(team.teamName);
+  const tag = normalizeName(team.teamTag);
+  const rawTokens = getNameTokens(raw);
+  const dbTokens = getNameTokens(dbName);
+  let score = 0;
+
+  if (raw && dbName === raw) score += 100;
+  if (tag && tag === raw) score += 90;
+  if (dbName && raw.includes(dbName)) score += 70;
+  if (dbName && dbName.includes(raw)) score += 60;
+  score += dbTokens.filter((token) => rawTokens.includes(token)).length * 18;
+  if (tag && rawTokens.includes(tag) && tag.length >= 2) score += 35;
+
+  return score;
+};
+
+const suggestTeamByName = (rawName: string, teams: TeamOption[]): NameSuggestion | null => {
+  const ranked = teams
+    .map((team) => ({ team, score: scoreNameMatch(rawName, team) }))
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score);
+  const best = ranked[0];
+  const second = ranked[1];
+
+  if (!best || best.score < 70) return null;
+
+  return {
+    teamId: best.team.teamId,
+    teamName: best.team.teamName,
+    score: best.score,
+    ambiguous: Boolean(second && best.score - second.score < 20),
+  };
+};
+
+const getRawTeams = (payload: any): RawTeamRow[] => {
+  const teams =
+    payload?.data?.team_stats ||
+    payload?.data?.match?.team_stats ||
+    payload?.team_stats ||
+    payload?.match?.team_stats ||
+    [];
+
+  return Array.isArray(teams)
+    ? teams.map((team: any) => ({
+        roomTeamId: normalizeTeamId(firstValue(team.team_id, team.teamId, team.id)),
+        teamName: String(firstValue(team.team_name, team.teamName, team.name)),
+      })).filter((team) => team.roomTeamId)
+    : [];
+};
+
 const MatchTeamMappingsView: React.FC = () => {
   const [groups, setGroups] = useState<MappingGroup[]>([]);
+  const [corrections, setCorrections] = useState<Record<string, MappingCorrection[]>>(
+    readMappingCorrections,
+  );
+  const [rawTeamsByMatch, setRawTeamsByMatch] = useState<Record<string, RawTeamRow[]>>({});
+  const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,12 +166,21 @@ const MatchTeamMappingsView: React.FC = () => {
     () => groups.find((group) => group.matchId === selectedMatchId) || groups[0],
     [groups, selectedMatchId],
   );
+  const correctionsByRoom = useMemo(() => {
+    const rows = selectedGroup ? corrections[selectedGroup.matchId] || [] : [];
+    return new Map(rows.map((correction) => [String(correction.roomTeamId), correction]));
+  }, [corrections, selectedGroup]);
+  const rawTeamsByRoom = useMemo(() => {
+    const rows = selectedGroup ? rawTeamsByMatch[selectedGroup.matchId] || [] : [];
+    return new Map(rows.map((team) => [String(team.roomTeamId), team]));
+  }, [rawTeamsByMatch, selectedGroup]);
 
   const loadMappings = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
+      setCorrections(readMappingCorrections());
       const response = await getAllMatchTeamMappingsApi();
       const nextGroups = Array.isArray(response) ? response : [];
       setGroups(nextGroups);
@@ -62,6 +199,49 @@ const MatchTeamMappingsView: React.FC = () => {
   useEffect(() => {
     loadMappings();
   }, [loadMappings]);
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const teams = await getTeamTableApi();
+        setTeamOptions(
+          (Array.isArray(teams) ? teams : [])
+            .map((team: any) => ({
+              teamId: String(firstValue(team.team_id, team.teamId)),
+              teamName: String(firstValue(team.team_name, team.teamName)),
+              teamTag: String(firstValue(team.short_tag, team.shortTag, team.teamTag, team.tag)),
+            }))
+            .filter((team: TeamOption) => team.teamId),
+        );
+      } catch (err: any) {
+        setError(err?.message || "Could not load teams for raw compare.");
+      }
+    };
+
+    loadTeams();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedGroup?.matchId || rawTeamsByMatch[selectedGroup.matchId]) return;
+
+    const loadRawTeams = async () => {
+      try {
+        const response = await http.get(`/raw/${selectedGroup.matchId}`);
+        const rows = getRawTeams(response?.data);
+        setRawTeamsByMatch((current) => ({
+          ...current,
+          [selectedGroup.matchId]: rows,
+        }));
+      } catch {
+        setRawTeamsByMatch((current) => ({
+          ...current,
+          [selectedGroup.matchId]: [],
+        }));
+      }
+    };
+
+    loadRawTeams();
+  }, [rawTeamsByMatch, selectedGroup]);
 
   const deleteRoomMapping = async (mapping: MappingRow) => {
     if (!window.confirm(`Delete room ${mapping.roomTeamId} mapping for ${mapping.matchId}?`)) {
@@ -175,30 +355,80 @@ const MatchTeamMappingsView: React.FC = () => {
                   <tr>
                     <th>Room ID</th>
                     <th>Permanent Team ID</th>
+                    <th>Garena Team</th>
+                    <th>Auto Change</th>
                     <th>Team</th>
                     <th>Tag</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedGroup.mappings.map((mapping) => (
-                    <tr key={`${mapping.matchId}-${mapping.roomTeamId}`}>
-                      <td><Mono>{mapping.roomTeamId}</Mono></td>
-                      <td><Mono>{mapping.permanentTeamId}</Mono></td>
-                      <td>{mapping.teamName || "-"}</td>
-                      <td>{mapping.teamTag || "-"}</td>
-                      <td>
-                        <IconButton
-                          type="button"
-                          title="Delete room mapping"
-                          onClick={() => deleteRoomMapping(mapping)}
-                          disabled={isLoading}
-                        >
-                          <TrashIcon />
-                        </IconButton>
-                      </td>
-                    </tr>
-                  ))}
+                  {selectedGroup.mappings.map((mapping) => {
+                    const correction = correctionsByRoom.get(String(mapping.roomTeamId));
+                    const rawTeam = rawTeamsByRoom.get(String(mapping.roomTeamId));
+                    const suggestion = rawTeam
+                      ? suggestTeamByName(rawTeam.teamName, teamOptions)
+                      : null;
+                    const hasLiveMismatch =
+                      suggestion &&
+                      !suggestion.ambiguous &&
+                      String(suggestion.teamId) !== String(mapping.permanentTeamId);
+                    return (
+                      <tr key={`${mapping.matchId}-${mapping.roomTeamId}`}>
+                        <td><Mono>{mapping.roomTeamId}</Mono></td>
+                        <td><Mono>{mapping.permanentTeamId}</Mono></td>
+                        <td>
+                          {rawTeam ? (
+                            <RawNameBlock>
+                              <span>{rawTeam.teamName || "-"}</span>
+                              {hasLiveMismatch ? (
+                                <small>suggest {suggestion.teamId} - {suggestion.teamName}</small>
+                              ) : suggestion?.ambiguous ? (
+                                <small>ambiguous name</small>
+                              ) : null}
+                            </RawNameBlock>
+                          ) : (
+                            <MutedText>No raw data</MutedText>
+                          )}
+                        </td>
+                        <td>
+                          {correction ? (
+                            <CorrectionPill>
+                              <Mono>{correction.previousPermanentTeamId || "-"}</Mono>
+                              <span>to</span>
+                              <Mono>{correction.detectedPermanentTeamId}</Mono>
+                              {correction.source === "team-name" ? (
+                                <small>name {correction.matchScore || ""}</small>
+                              ) : correction.matchedPlayers ? (
+                                <small>{correction.matchedPlayers} UID</small>
+                              ) : null}
+                            </CorrectionPill>
+                          ) : hasLiveMismatch ? (
+                            <CorrectionPill>
+                              <Mono>{mapping.permanentTeamId}</Mono>
+                              <span>to</span>
+                              <Mono>{suggestion.teamId}</Mono>
+                              <small>name {suggestion.score}</small>
+                            </CorrectionPill>
+                          ) : (
+                            <MutedText>No change</MutedText>
+                          )}
+                        </td>
+                        <td>{mapping.teamName || "-"}</td>
+                        <td>{mapping.teamTag || "-"}</td>
+                        <td>
+                          <IconButton
+                            type="button"
+                            title="Delete room mapping"
+                            onClick={() => deleteRoomMapping(mapping)}
+                            disabled={isLoading}
+                          >
+                            <TrashIcon />
+                          </IconButton>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </Table>
             )}
@@ -411,6 +641,45 @@ const IconButton = styled.button`
 
 const Mono = styled.span`
   font-family: "SFMono-Regular", Consolas, monospace;
+`;
+
+const CorrectionPill = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 7px;
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fde68a;
+  font-size: 0.82rem;
+
+  small {
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+`;
+
+const RawNameBlock = styled.div`
+  display: grid;
+  gap: 4px;
+
+  span {
+    color: var(--project-text-primary, #ffffff);
+  }
+
+  small {
+    color: #fbbf24;
+    font-size: 0.76rem;
+    font-weight: 800;
+  }
+`;
+
+const MutedText = styled.span`
+  color: var(--project-text-secondary, #94a3b8);
+  font-size: 0.82rem;
 `;
 
 const GhostText = styled.span`

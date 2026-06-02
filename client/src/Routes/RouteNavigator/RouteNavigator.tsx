@@ -253,6 +253,12 @@ const routeGroups: RouteGroup[] = [
         type: "Broadcast",
       },
       {
+        title: "Players Mode",
+        path: "/players-mode",
+        note: "All live players with team cards, photos, and health bars.",
+        type: "Broadcast",
+      },
+      {
         title: "Tournament Logo Live",
         path: "/tournament-logo-live",
         note: "Centered active tournament logo overlay with shine animation.",

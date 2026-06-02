@@ -66,7 +66,7 @@ const emptyMappingRows = (): MappingRow[] =>
 
 const mergeResultSwitches = (game: GameDetail, fallback?: GameDetail): GameDetail => ({
   ...game,
-  mappingTemplateId: game.mappingTemplateId || fallback?.mappingTemplateId || "",
+  mappingTemplateId: game.mappingTemplateId || "",
   resultEnabled: Boolean(game.resultEnabled || fallback?.resultEnabled),
   todaysResultEnabled: Boolean(game.todaysResultEnabled || fallback?.todaysResultEnabled),
   leagueStageResultEnabled: Boolean(game.leagueStageResultEnabled || fallback?.leagueStageResultEnabled),

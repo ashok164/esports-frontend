@@ -12,6 +12,7 @@ import { getResultsByMatchIdsApi } from "../../Result/repository/remote";
 
 const RECONNECT_DELAY_MS = 500;
 const WS_STALE_LIMIT_MS = 5000;
+const TEAM_MAPPING_CORRECTIONS_STORAGE_KEY = "team_mapping_corrections";
 
 const splitMatchIds = (matchIds: string) =>
   matchIds
@@ -47,6 +48,49 @@ const collectLiveRows = (result: any) => {
     (Array.isArray(result) ? result : null);
 
   return Array.isArray(source) ? source : null;
+};
+
+const collectTeamMappingCorrections = (result: any) => {
+  const source =
+    result?.data?.teamMappingCorrections ??
+    result?.teamMappingCorrections ??
+    [];
+
+  return Array.isArray(source) ? source : [];
+};
+
+const storeTeamMappingCorrections = (matchId: string, corrections: any[]) => {
+  if (!corrections.length || typeof window === "undefined") return;
+
+  try {
+    const stored = window.localStorage.getItem(TEAM_MAPPING_CORRECTIONS_STORAGE_KEY);
+    const parsed = stored ? JSON.parse(stored) : {};
+    const currentRows = Array.isArray(parsed?.[matchId]) ? parsed[matchId] : [];
+    const nextRows = [...currentRows];
+
+    for (const correction of corrections) {
+      const row = {
+        ...correction,
+        matchId,
+        correctedAt: new Date().toISOString(),
+      };
+      const index = nextRows.findIndex(
+        (item: any) => String(item.roomTeamId) === String(row.roomTeamId),
+      );
+      if (index >= 0) nextRows[index] = row;
+      else nextRows.push(row);
+    }
+
+    window.localStorage.setItem(
+      TEAM_MAPPING_CORRECTIONS_STORAGE_KEY,
+      JSON.stringify({
+        ...parsed,
+        [matchId]: nextRows,
+      }),
+    );
+  } catch {
+    // Ignore storage failures; live standings should never depend on local history.
+  }
 };
 
 const firstValue = (...values: any[]) =>
@@ -165,6 +209,8 @@ const useLiveStandingsController = () => {
     if (!result) return;
 
     const source = collectLiveRows(result);
+    const correctionMatchId = String(result?.data?.matchId ?? result?.matchId ?? matchId ?? "");
+    storeTeamMappingCorrections(correctionMatchId, collectTeamMappingCorrections(result));
 
     if (!source) return;
 
