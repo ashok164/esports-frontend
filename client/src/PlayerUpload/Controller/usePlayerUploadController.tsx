@@ -11,6 +11,11 @@ import {
   updateTeamPlayersApi,
 } from "../Repository/remote";
 import { API_BASE_URL } from "../../Routes/ApiRoutes/apiRoutes";
+import {
+  getTournamentAssetName,
+  getTournamentAssetUrl,
+  getTournamentAssetsApi,
+} from "../../TournamentAssets/Repository/remote";
 
 export interface PlayerUploadRecord {
   id?: string | number;
@@ -233,6 +238,9 @@ const usePlayerUploadController = () => {
   const [playerUploads, setPlayerUploads] = useState<PlayerUploadRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tournamentAssetOptions, setTournamentAssetOptions] = useState<
+    Array<{ name: string; url: string }>
+  >([]);
 
   const getPlayerUploads = async () => {
     try {
@@ -257,13 +265,16 @@ const usePlayerUploadController = () => {
       const uid = player?.uid || "";
       const playerName = player?.playerName || "";
       const cameraLink = player?.cameraLink || "";
+      const playerPicUrl = String(player?.playerPicUrl || "").trim();
 
       formData.append(`players[${index}][uid]`, uid);
       formData.append(`players[${index}][playerName]`, playerName);
       formData.append(`players[${index}][cameraLink]`, cameraLink);
+      formData.append(`players[${index}][player_pic]`, playerPicUrl);
       formData.append("playerUid", uid);
       formData.append("playerName", playerName);
       formData.append("cameraLink", cameraLink);
+      if (playerPicUrl) formData.append("player_pic", playerPicUrl);
 
       extractFiles(player?.playerPic).forEach((photoFile) => {
         formData.append("player_pic", photoFile);
@@ -273,6 +284,8 @@ const usePlayerUploadController = () => {
         uid,
         playerName,
         cameraLink,
+        playerPic: playerPicUrl,
+        player_pic: playerPicUrl,
       };
     });
 
@@ -435,6 +448,18 @@ const usePlayerUploadController = () => {
 
   useEffect(() => {
     getPlayerUploads();
+    getTournamentAssetsApi()
+      .then((assets) => {
+        setTournamentAssetOptions(
+          assets
+            .map((asset) => ({
+              name: getTournamentAssetName(asset),
+              url: getTournamentAssetUrl(asset),
+            }))
+            .filter((asset) => asset.url),
+        );
+      })
+      .catch(() => setTournamentAssetOptions([]));
   }, []);
 
   return {
@@ -447,6 +472,7 @@ const usePlayerUploadController = () => {
     getPlayerByUid: handleGetPlayerByUid,
     getPlayerUploads,
     playerUploads,
+    tournamentAssetOptions,
     loading,
     error,
   };

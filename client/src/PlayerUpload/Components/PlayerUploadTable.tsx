@@ -6,6 +6,7 @@ type PlayerInfo = {
   uid: string;
   playerName: string;
   playerPic: any;
+  playerPicUrl: string;
   cameraLink: string;
 };
 
@@ -30,6 +31,7 @@ type PlayerUploadTableProps = {
   }>;
   loading?: boolean;
   error?: string | null;
+  tournamentAssetOptions?: Array<{ name: string; url: string }>;
 };
 
 type FormValues = {
@@ -54,6 +56,7 @@ const emptyPlayer = (): PlayerInfo => ({
   uid: "",
   playerName: "",
   playerPic: null,
+  playerPicUrl: "",
   cameraLink: "",
 });
 
@@ -108,6 +111,7 @@ type TeamPlayersProps = {
   sectionIndex: number;
   errors: any;
   previewUrls: Record<string, string>;
+  tournamentAssetOptions: Array<{ name: string; url: string }>;
 };
 
 const TeamPlayers = ({
@@ -116,6 +120,7 @@ const TeamPlayers = ({
   sectionIndex,
   errors,
   previewUrls,
+  tournamentAssetOptions,
 }: TeamPlayersProps) => {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -165,6 +170,16 @@ const TeamPlayers = ({
                 )}
               </InputStack>
               <InputStack>
+                <AssetSelect
+                  {...register(`sections.${sectionIndex}.players.${playerIndex}.playerPicUrl`)}
+                >
+                  <option value="">Choose existing tournament asset</option>
+                  {tournamentAssetOptions.map((asset) => (
+                    <option key={asset.url} value={asset.url}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </AssetSelect>
                 <FileField
                   type="file"
                   accept="image/*"
@@ -206,6 +221,7 @@ const PlayerUploadTable = ({
   playerUploads = [],
   loading,
   error,
+  tournamentAssetOptions = [],
 }: PlayerUploadTableProps) => {
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
@@ -235,17 +251,23 @@ const PlayerUploadTable = ({
         const file = getFirstFile(player?.playerPic);
         if (file) {
           nextUrls[`${sectionIndex}-${playerIndex}`] = URL.createObjectURL(file);
+        } else if (player?.playerPicUrl) {
+          nextUrls[`${sectionIndex}-${playerIndex}`] = player.playerPicUrl;
         }
       });
     });
 
     setPreviewUrls((previousUrls) => {
-      Object.values(previousUrls).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(previousUrls).forEach((url) => {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
       return nextUrls;
     });
 
     return () => {
-      Object.values(nextUrls).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(nextUrls).forEach((url) => {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
     };
   }, [watchedSections]);
 
@@ -312,6 +334,7 @@ const PlayerUploadTable = ({
                           sectionIndex={sectionIndex}
                           errors={errors}
                           previewUrls={previewUrls}
+                          tournamentAssetOptions={tournamentAssetOptions}
                         />
                       </TableCell>
 
@@ -553,6 +576,19 @@ const FileField = styled.input`
     background-color: var(--project-surface, #14171c);
     color: var(--project-text-primary, #ffffff);
   }
+`;
+
+const AssetSelect = styled.select`
+  width: 100%;
+  min-height: 2.25rem;
+  margin-bottom: 0.45rem;
+  box-sizing: border-box;
+  border-radius: 0.25rem;
+  border: 1px solid var(--project-border, #2a313d);
+  padding: 0 0.55rem;
+  background-color: var(--project-surface, #14171c);
+  color: var(--project-text-primary, #ffffff);
+  font-size: 0.72rem;
 `;
 
 const PlayersPanel = styled.div`
