@@ -75,7 +75,7 @@ export const getActiveGameDetails = (): ActiveGameDetails => {
 
     const parsed = JSON.parse(stored);
     return {
-      matchIds: String(parsed?.matchIds || DEFAULT_ACTIVE_GAME_DETAILS.matchIds),
+      matchIds: String(parsed?.matchIds ?? DEFAULT_ACTIVE_GAME_DETAILS.matchIds),
       gameNumber: String(parsed?.gameNumber || DEFAULT_ACTIVE_GAME_DETAILS.gameNumber),
       roundName: String(parsed?.roundName || DEFAULT_ACTIVE_GAME_DETAILS.roundName),
       phase: String(parsed?.phase || DEFAULT_ACTIVE_GAME_DETAILS.phase),
@@ -126,17 +126,23 @@ export const getLeagueStageResultGameDetails = (): ActiveGameDetails => {
 export const publishActiveGameDetails = (games: GameDetail[]) => {
   if (!isBrowser()) return;
 
+  const previousGames = readStoredGameDetails();
+  const previousActiveDetails = getActiveGameDetails();
   const enabledGames = games.filter((game) => game.enabled && game.matchId.trim());
   const primaryGame = enabledGames[0] || games[0];
 
   const activeDetails: ActiveGameDetails = {
-    matchIds:
-      enabledGames.map((game) => game.matchId.trim()).filter(Boolean).join(",") ||
-      DEFAULT_ACTIVE_GAME_DETAILS.matchIds,
+    matchIds: enabledGames.map((game) => game.matchId.trim()).filter(Boolean).join(","),
     gameNumber: primaryGame?.gameNumber || DEFAULT_ACTIVE_GAME_DETAILS.gameNumber,
     roundName: primaryGame?.roundName || DEFAULT_ACTIVE_GAME_DETAILS.roundName,
     phase: primaryGame?.phase || DEFAULT_ACTIVE_GAME_DETAILS.phase,
   };
+
+  const gamesChanged = JSON.stringify(previousGames) !== JSON.stringify(games);
+  const activeDetailsChanged =
+    JSON.stringify(previousActiveDetails) !== JSON.stringify(activeDetails);
+
+  if (!gamesChanged && !activeDetailsChanged) return;
 
   writeStoredGameDetails(games);
   window.localStorage.setItem(

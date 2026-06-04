@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { getGameDetailsApi } from "../../GameDetails/Repository/remote";
-import { GameDetail, normalizeGameDetail, readStoredGameDetails } from "../../GameDetails/gameDetailsState";
+import { GameDetail, normalizeGameDetail } from "../../GameDetails/gameDetailsState";
 import {
   deleteResultsByMatchIdApi,
   getResultByMatchIdApi,
@@ -24,7 +24,7 @@ const getGameLabel = (game: GameDetail) =>
     .join(" / ") || game.matchId;
 
 const ResultViewerPage: React.FC = () => {
-  const [games, setGames] = useState<GameDetail[]>(() => readStoredGameDetails());
+  const [games, setGames] = useState<GameDetail[]>([]);
   const [matchId, setMatchId] = useState("");
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +42,7 @@ const ResultViewerPage: React.FC = () => {
       const response = await getGameDetailsApi();
       const nextGames = Array.isArray(response)
         ? response.map(normalizeGameDetail)
-        : readStoredGameDetails();
+        : [];
 
       setGames(nextGames);
       setMatchId((current) => {
@@ -54,14 +54,22 @@ const ResultViewerPage: React.FC = () => {
         );
       });
     } catch {
-      const storedGames = readStoredGameDetails();
-      setGames(storedGames);
-      setMatchId((current) => current || storedGames.find((game) => game.matchId.trim())?.matchId || "");
+      setGames([]);
     }
   }, []);
 
   useEffect(() => {
     loadGames();
+  }, [loadGames]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(loadGames, 15000);
+    window.addEventListener("focus", loadGames);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", loadGames);
+    };
   }, [loadGames]);
 
   const loadResults = useCallback(async () => {

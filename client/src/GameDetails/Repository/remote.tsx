@@ -41,7 +41,10 @@ export const createGameDetailApi = async (game: GameDetail) => {
 };
 
 export const getGameDetailsApi = async () => {
-  const response = await http.get(GET_GAME_DETAILS);
+  const response = await http.get(GET_GAME_DETAILS, {
+    params: { _t: Date.now() },
+    headers: { "Cache-Control": "no-cache" },
+  });
   return unwrapGameDetails(response);
 };
 

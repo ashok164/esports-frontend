@@ -16,7 +16,6 @@ import {
   getGameRecordId,
   normalizeGameDetail,
   publishActiveGameDetails,
-  readStoredGameDetails,
 } from "../gameDetailsState";
 
 const emptyRow = (): GameDetail => ({
@@ -36,8 +35,6 @@ const isValidRow = (row: GameDetail) =>
   row.roundName.trim() &&
   row.phase.trim() &&
   row.matchId.trim();
-
-const makeLocalId = () => `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 type TeamOption = {
   teamId: string;
@@ -94,7 +91,7 @@ const normalizeMappingTemplate = (template: any): MappingTemplate => ({
 
 const GameDetailsView: React.FC = () => {
   const [draftRows, setDraftRows] = useState<GameDetail[]>([emptyRow()]);
-  const [games, setGames] = useState<GameDetail[]>(() => readStoredGameDetails());
+  const [games, setGames] = useState<GameDetail[]>([]);
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editingRow, setEditingRow] = useState<GameDetail>(emptyRow());
   const [isLoading, setIsLoading] = useState(false);
@@ -135,27 +132,13 @@ const GameDetailsView: React.FC = () => {
 
     try {
       const result = await getGameDetailsApi();
-      const storedRows = readStoredGameDetails();
       const rows = Array.isArray(result)
-        ? result.map((item) => {
-            const normalized = normalizeGameDetail(item);
-            const storedMatch = storedRows.find((row) =>
-              String(getGameRecordId(row)) === String(getGameRecordId(normalized)) ||
-              (row.matchId && row.matchId === normalized.matchId),
-            );
-
-            return mergeResultSwitches(normalized, storedMatch);
-          })
+        ? result.map(normalizeGameDetail)
         : [];
 
-      if (rows.length > 0) {
-        syncGames(rows);
-      } else {
-        syncGames(readStoredGameDetails());
-      }
+      syncGames(rows);
     } catch (err: any) {
       setError(err?.message || "Could not load saved game details");
-      syncGames(readStoredGameDetails());
     } finally {
       setIsLoading(false);
     }
@@ -163,6 +146,17 @@ const GameDetailsView: React.FC = () => {
 
   useEffect(() => {
     loadGames();
+  }, [loadGames]);
+
+  useEffect(() => {
+    const refreshOnFocus = () => loadGames();
+    const intervalId = window.setInterval(loadGames, 15000);
+
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
   }, [loadGames]);
 
   const loadMappingTemplates = useCallback(async () => {
@@ -258,13 +252,11 @@ const GameDetailsView: React.FC = () => {
         savedRows.push(mergeResultSwitches(normalizeGameDetail(result?.data || result || row), row));
       }
 
-      syncGames([...games, ...savedRows.map((row) => ({ ...row, id: getGameRecordId(row) || makeLocalId() }))]);
+      syncGames([...games, ...savedRows]);
       setDraftRows([emptyRow()]);
     } catch (err: any) {
-      const fallbackRows = rowsToSave.map((row) => ({ ...row, id: makeLocalId() }));
-      syncGames([...games, ...fallbackRows]);
-      setDraftRows([emptyRow()]);
-      setError(err?.message || "API request failed. Rows were kept locally for the broadcast pages.");
+      setError(err?.message || "API request failed. The list was refreshed from the server.");
+      await loadGames();
     } finally {
       setIsSaving(false);
     }
@@ -344,14 +336,13 @@ const GameDetailsView: React.FC = () => {
         : row,
     );
 
-    syncGames(nextGames);
-
-    if (!recordId || String(recordId).startsWith("local-")) return;
+    if (!recordId) return;
 
     try {
       await updateGameDetailApi(recordId, nextGame);
+      syncGames(nextGames);
     } catch (err: any) {
-      setError(err?.message || "Switch changed locally, but API update failed.");
+      setError(err?.message || "Could not update the switch.");
     }
   };
 
