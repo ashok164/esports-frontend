@@ -14,6 +14,7 @@ export type ZoneShrinkState = {
   triggerId: number;
   durationSeconds: number;
   playSound: boolean;
+  soundVolume: number;
   updatedAt?: string;
 };
 
@@ -22,6 +23,7 @@ export const defaultZoneShrinkState: ZoneShrinkState = {
   triggerId: 0,
   durationSeconds: 10,
   playSound: true,
+  soundVolume: 1,
 };
 
 export const getZoneShrinkState = (): ZoneShrinkState => {

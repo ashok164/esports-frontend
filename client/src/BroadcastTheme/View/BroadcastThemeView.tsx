@@ -6,7 +6,12 @@ import {
   GET_PROJECT_COLOR_THEME,
   PATCH_PROJECT_COLOR_THEME,
 } from "../../Routes/ApiRoutes/apiRoutes";
-import { DEFAULT_PROJECT_THEME, ProjectColorTheme } from "../../Theme";
+import {
+  DEFAULT_PROJECT_THEME,
+  getBroadcastDisplaySettings,
+  ProjectColorTheme,
+  setBroadcastDisplaySettings,
+} from "../../Theme";
 
 type ColorField = {
   key: keyof Omit<ProjectColorTheme, "useDefaultColors">;
@@ -57,6 +62,7 @@ const BroadcastThemeView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
 
   const invalidFields = useMemo(
     () => colorFields.filter((field) => !isHexColor(theme[field.key])).map((field) => field.label),
@@ -132,6 +138,12 @@ const BroadcastThemeView: React.FC = () => {
     setStatus("Form reset to default colors.");
   };
 
+  const updateDisplaySetting = (key: keyof typeof displaySettings, checked: boolean) => {
+    const nextSettings = { ...displaySettings, [key]: checked };
+    setDisplaySettings(nextSettings);
+    setBroadcastDisplaySettings(nextSettings);
+  };
+
   return (
     <Page data-theme-surface="page">
       <Shell>
@@ -162,6 +174,37 @@ const BroadcastThemeView: React.FC = () => {
             {error || (isLoading ? "Loading saved theme..." : status)}
           </StatusBar>
         )}
+
+        <DisplaySettings data-theme-surface="panel">
+          <PanelHeader>
+            <PanelTitle>Broadcast Display Switches</PanelTitle>
+            <PanelNote>Saved in this browser and applied to open broadcast windows.</PanelNote>
+          </PanelHeader>
+          <ToggleGrid>
+            <DefaultToggle>
+              <input
+                type="checkbox"
+                checked={displaySettings.showCountryFlags}
+                onChange={(event) => updateDisplaySetting("showCountryFlags", event.target.checked)}
+              />
+              <span>
+                <strong>Show country flags</strong>
+                <small>Controls flags across results, live standings, and broadcast overlays.</small>
+              </span>
+            </DefaultToggle>
+            <DefaultToggle>
+              <input
+                type="checkbox"
+                checked={displaySettings.showLiveStandingsPoints}
+                onChange={(event) => updateDisplaySetting("showLiveStandingsPoints", event.target.checked)}
+              />
+              <span>
+                <strong>Show live standings points</strong>
+                <small>Hides the points column only in the live standings overlay.</small>
+              </span>
+            </DefaultToggle>
+          </ToggleGrid>
+        </DisplaySettings>
 
         <ContentGrid>
           <FormPanel data-theme-surface="panel">
@@ -331,6 +374,24 @@ const ContentGrid = styled.section`
   gap: 18px;
 
   @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const DisplaySettings = styled.section`
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  background: var(--project-surface, #111827);
+`;
+
+const ToggleGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 780px) {
     grid-template-columns: 1fr;
   }
 `;

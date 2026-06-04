@@ -700,7 +700,7 @@ function TeamRow({
           {/* Columns 2-4: Identity Elements */}
           <CellWrap>
             <CountryBox>
-              {team.countryUrl && <Img src={team.countryUrl} alt="" />}
+              {team.countryUrl && <Img src={team.countryUrl} alt="Country flag" />}
             </CountryBox>
           </CellWrap>
 

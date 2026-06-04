@@ -40,7 +40,7 @@ const ZoneShrinkBroadcastView: React.FC = () => {
       const audio = audioRef.current || new Audio(soundPath);
       audioRef.current = audio;
       audio.preload = "auto";
-      audio.volume = 1;
+      audio.volume = Math.max(0, Math.min(1, nextState.soundVolume));
       audio.currentTime = 0;
       audio
         .play()
@@ -74,7 +74,7 @@ const ZoneShrinkBroadcastView: React.FC = () => {
       await audio.play();
       audio.pause();
       audio.currentTime = 0;
-      audio.volume = 1;
+      audio.volume = Math.max(0, Math.min(1, state.soundVolume));
       setSoundUnlocked(true);
       setSoundBlocked(false);
     } catch {

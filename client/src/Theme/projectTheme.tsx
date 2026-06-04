@@ -25,6 +25,34 @@ type ProjectThemeContextValue = {
   isLoading: boolean;
 };
 
+export type BroadcastDisplaySettings = {
+  showCountryFlags: boolean;
+  showLiveStandingsPoints: boolean;
+};
+
+export const BROADCAST_DISPLAY_SETTINGS_KEY = "broadcast_display_settings";
+export const BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT = "broadcast-display-settings-updated";
+export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
+  showCountryFlags: true,
+  showLiveStandingsPoints: true,
+};
+
+export const getBroadcastDisplaySettings = (): BroadcastDisplaySettings => {
+  try {
+    return {
+      ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
+      ...JSON.parse(localStorage.getItem(BROADCAST_DISPLAY_SETTINGS_KEY) || "{}"),
+    };
+  } catch {
+    return DEFAULT_BROADCAST_DISPLAY_SETTINGS;
+  }
+};
+
+export const setBroadcastDisplaySettings = (settings: BroadcastDisplaySettings) => {
+  localStorage.setItem(BROADCAST_DISPLAY_SETTINGS_KEY, JSON.stringify(settings));
+  window.dispatchEvent(new CustomEvent(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, { detail: settings }));
+};
+
 export const DEFAULT_PROJECT_THEME: ProjectColorTheme = {
   useDefaultColors: true,
   primary: "#ef4444",
@@ -115,6 +143,14 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
     --project-secondary-rgb: ${({ $theme }) => hexToRgb($theme.secondary)};
     --project-accent-rgb: ${({ $theme }) => hexToRgb($theme.accent)};
     --project-danger-rgb: ${({ $theme }) => hexToRgb($theme.danger)};
+  }
+
+  body[data-show-country-flags="false"] img:is([alt*="Country" i], [alt*="Flag" i]) {
+    display: none !important;
+  }
+
+  body[data-show-live-standings-points="false"] [data-live-standings-points="true"] {
+    display: none !important;
   }
 
   ${({ $theme, $custom }) =>
@@ -289,6 +325,27 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
       delete document.body.dataset.projectTheme;
     };
   }, [value.isCustomTheme]);
+
+  useEffect(() => {
+    const applySettings = () => {
+      const settings = getBroadcastDisplaySettings();
+      document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
+      document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === BROADCAST_DISPLAY_SETTINGS_KEY) applySettings();
+    };
+
+    applySettings();
+    window.addEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, applySettings);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, applySettings);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
 
   return (
     <ProjectThemeContext.Provider value={value}>

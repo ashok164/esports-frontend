@@ -537,7 +537,7 @@ export default function StandingsTable({
                     <CountryDataCell>
                       <CountryBox>
                         {team.countryUrl ? (
-                          <Country src={team.countryUrl} alt="" />
+                          <Country src={team.countryUrl} alt="Country flag" />
                         ) : null}
                       </CountryBox>
                     </CountryDataCell>

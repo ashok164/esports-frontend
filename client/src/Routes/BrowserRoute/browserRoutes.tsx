@@ -1,7 +1,14 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import { ProjectThemeProvider } from "../../Theme";
+import styled, { createGlobalStyle } from "styled-components";
+import {
+  getBroadcastDisplaySettings,
+  ProjectThemeProvider,
+} from "../../Theme";
+import {
+  BROADCAST_DISPLAY_SETTINGS_KEY,
+  BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
+} from "../../Theme/projectTheme";
 import { clearAuthSession, isAuthenticated, saveAuthUser } from "../../Auth/Repository/authStorage";
 import { getCurrentUser } from "../../Auth/Repository/remote";
 import { appRouteDefinitions, broadcastRoutePaths } from "./routeDefinitions";
@@ -108,10 +115,33 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement; withShell?: boole
 };
 
 const App: React.FC = () => {
+  React.useEffect(() => {
+    const applyDisplaySettings = () => {
+      const settings = getBroadcastDisplaySettings();
+      document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
+      document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === BROADCAST_DISPLAY_SETTINGS_KEY) applyDisplaySettings();
+    };
+
+    applyDisplaySettings();
+    window.addEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, applyDisplaySettings);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, applyDisplaySettings);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   return (
     <Router>
+      <GlobalDisplayStyles />
       <Routes>
         {appRouteDefinitions.map((route) => {
+          const usesBroadcastTheme =
+            route.path === "/broadcast-theme" ||
+            route.isBroadcast === true;
           const routeElement = route.isProtected ? (
             <ProtectedRoute withShell={route.path !== "/routes"}>{route.element}</ProtectedRoute>
           ) : (
@@ -123,12 +153,12 @@ const App: React.FC = () => {
               key={route.path}
               path={route.path}
               element={
-                route.path === "/" ? (
-                  routeElement
-                ) : (
+                usesBroadcastTheme ? (
                   <ProjectThemeProvider>
                     <ThemeRouteScope>{routeElement}</ThemeRouteScope>
                   </ProjectThemeProvider>
+                ) : (
+                  routeElement
                 )
               }
             />
@@ -140,6 +170,16 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+const GlobalDisplayStyles = createGlobalStyle`
+  body[data-show-country-flags="false"] img:is([alt*="Country" i], [alt*="Flag" i]) {
+    display: none !important;
+  }
+
+  body[data-show-live-standings-points="false"] [data-live-standings-points="true"] {
+    display: none !important;
+  }
+`;
 
 const AdminShell = styled.div`
   min-height: 100vh;

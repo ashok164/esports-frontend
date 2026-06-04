@@ -240,6 +240,13 @@ const TournamentAssetsView: React.FC = () => {
                         <AssetName>{getTournamentAssetName(asset)}</AssetName>
                         <Muted>{getTournamentAssetId(asset)}</Muted>
                         {asset.description && <Muted>{asset.description}</Muted>}
+                        {imageUrl ? (
+                          <AssetLink href={imageUrl} target="_blank" rel="noopener noreferrer">
+                            Open image
+                          </AssetLink>
+                        ) : (
+                          <Muted>No image link</Muted>
+                        )}
                         <Badge $active={isTournamentAssetActive(asset)}>{isTournamentAssetActive(asset) ? "Active" : "Disabled"}</Badge>
                       </>
                     )}
@@ -280,6 +287,7 @@ const Page = styled.main`
 
 const Container = styled.div`
   width: min(1120px, 100%);
+  min-width: 0;
   margin: 0 auto;
 `;
 
@@ -326,6 +334,7 @@ const UploadPanel = styled.form`
 `;
 
 const Field = styled.div`
+  min-width: 0;
   display: grid;
   gap: 0.4rem;
 `;
@@ -350,6 +359,8 @@ const Input = styled.input`
 
 const FileInput = styled.input`
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   color: var(--project-text-secondary, #94a3b8);
   font-size: 0.76rem;
 `;
@@ -389,11 +400,14 @@ const Button = styled.button<{ $variant?: "danger" | "ghost" }>`
 
 const AssetGrid = styled.section`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 0.85rem;
+  min-width: 0;
 `;
 
 const AssetCard = styled.article`
+  min-width: 0;
+  box-sizing: border-box;
   display: grid;
   gap: 0.75rem;
   padding: 0.85rem;
@@ -404,6 +418,8 @@ const AssetCard = styled.article`
 
 const Preview = styled.img`
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   aspect-ratio: 16 / 10;
   border: 1px solid var(--project-border, #334155);
   border-radius: 8px;
@@ -415,6 +431,8 @@ const PreviewFallback = styled.div`
   display: grid;
   place-items: center;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   aspect-ratio: 16 / 10;
   border: 1px dashed var(--project-border, #334155);
   border-radius: 8px;
@@ -445,6 +463,18 @@ const Muted = styled.span`
   font-size: 0.78rem;
 `;
 
+const AssetLink = styled.a`
+  width: fit-content;
+  color: var(--project-secondary, #38bdf8);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Badge = styled.span<{ $active: boolean }>`
   width: fit-content;
   border: 1px solid ${({ $active }) => ($active ? "#22c55e" : "var(--project-border, #334155)")};
@@ -459,8 +489,13 @@ const Badge = styled.span<{ $active: boolean }>`
 
 const Actions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
+
+  ${Button} {
+    flex: 0 1 auto;
+  }
 `;
 
 const EmptyState = styled.div`

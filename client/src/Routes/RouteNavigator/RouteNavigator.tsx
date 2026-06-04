@@ -112,9 +112,9 @@ const routeGroups: RouteGroup[] = [
     },
     routes: [
       {
-        title: "Broadcast Theme",
+        title: "Theme & Display Settings",
         path: "/broadcast-theme",
-        note: "Create or update project theme colors.",
+        note: "Manage broadcast colors, country flag visibility, and live standings points.",
         type: "Admin",
       },
     ],
@@ -450,6 +450,23 @@ const RouteNavigator: React.FC = () => {
 export default RouteNavigator;
 
 const GlobalRouteStyles = createGlobalStyle`
+  :root {
+    --project-primary: #ff3d54;
+    --project-secondary: #24d6ff;
+    --project-accent: #b7ff3c;
+    --project-background: #060a12;
+    --project-surface: #0d1420;
+    --project-surface-alt: #111b2a;
+    --project-text-primary: #f7fbff;
+    --project-text-secondary: #91a1b8;
+    --project-border: #223249;
+    --project-danger: #ff3d54;
+    --project-primary-rgb: 255, 61, 84;
+    --project-secondary-rgb: 36, 214, 255;
+    --project-accent-rgb: 183, 255, 60;
+    --project-danger-rgb: 255, 61, 84;
+  }
+
   html,
   body,
   #root {
@@ -466,22 +483,18 @@ const GlobalRouteStyles = createGlobalStyle`
 const Page = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(var(--project-primary-rgb, 239, 68, 68), 0.32), transparent 28%),
-    radial-gradient(circle at 84% 14%, rgba(var(--project-secondary-rgb, 56, 189, 248), 0.24), transparent 30%),
-    linear-gradient(135deg, rgba(var(--project-accent-rgb, 191, 255, 0), 0.08), transparent 34%),
-    linear-gradient(
-      180deg,
-      var(--project-background, #0a1220) 0%,
-      var(--project-surface, #10151e) 48%,
-      var(--project-surface-alt, #161017) 100%
-    ),
-    var(--project-background, #090d14);
-  color: var(--project-text-primary, #e5edf8);
+    radial-gradient(circle at 12% 0%, rgba(255, 61, 84, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(36, 214, 255, 0.14), transparent 26%),
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    #060a12;
+  background-size: auto, auto, 48px 48px, 48px 48px, auto;
+  color: #f7fbff;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 `;
 
 const Shell = styled.div`
-  width: min(1420px, calc(100% - 48px));
+  width: min(1320px, calc(100% - 48px));
   margin: 0 auto;
   padding: 28px 0 48px;
 
@@ -496,14 +509,12 @@ const WindowBar = styled.div`
   align-items: center;
   gap: 14px;
   min-height: 54px;
-  margin-bottom: 34px;
+  margin-bottom: 28px;
   padding: 0 18px;
-  border: 1px solid rgba(var(--project-primary-rgb, 239, 68, 68), 0.28);
-  border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(var(--project-primary-rgb, 239, 68, 68), 0.18), transparent 42%),
-    rgba(2, 6, 23, 0.64);
-  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.26);
+  border: 1px solid #223249;
+  border-radius: 12px;
+  background: rgba(13, 20, 32, 0.88);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(14px);
 `;
 
@@ -519,7 +530,6 @@ const ControlDot = styled.span<{ $tone: "red" | "amber" | "green" }>`
   border-radius: 999px;
   background: ${({ $tone }) =>
     $tone === "red" ? "#fb7185" : $tone === "amber" ? "#fbbf24" : "#34d399"};
-  box-shadow: 0 0 18px currentColor;
 `;
 
 const WindowTitle = styled.div`
@@ -533,15 +543,15 @@ const LogoutButton = styled.button`
   min-height: 34px;
   padding: 0 14px;
   border: 1px solid rgba(var(--project-danger-rgb, 239, 68, 68), 0.46);
-  border-radius: 8px;
-  background: rgba(var(--project-danger-rgb, 239, 68, 68), 0.16);
-  color: var(--project-text-primary, #ffffff);
+  border-radius: 7px;
+  background: rgba(255, 61, 84, 0.1);
+  color: #ff9aa8;
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 900;
 
   &:hover {
-    background: var(--project-danger, #ef4444);
+    background: rgba(255, 61, 84, 0.2);
   }
 `;
 
@@ -550,7 +560,7 @@ const Header = styled.header`
   align-items: end;
   justify-content: space-between;
   gap: 34px;
-  margin-bottom: 34px;
+  margin-bottom: 26px;
 
   @media (max-width: 900px) {
     align-items: stretch;
@@ -565,7 +575,7 @@ const TitleBlock = styled.div`
 `;
 
 const Kicker = styled.div`
-  color: var(--project-accent, #5eead4);
+  color: #b7ff3c;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -575,10 +585,10 @@ const Kicker = styled.div`
 const Title = styled.h1`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: clamp(3rem, 6vw, 6.8rem);
-  line-height: 0.9;
-  letter-spacing: 0;
-  text-shadow: 0 0 32px rgba(var(--project-primary-rgb, 239, 68, 68), 0.32);
+  font-size: clamp(2.25rem, 4vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 34px rgba(36, 214, 255, 0.15);
 `;
 
 const Subtitle = styled.p`
@@ -604,40 +614,32 @@ const Stat = styled.div`
   display: grid;
   align-content: center;
   gap: 4px;
-  min-height: 122px;
-  padding: 24px;
-  border: 1px solid var(--project-border, rgba(148, 163, 184, 0.22));
-  border-radius: 8px;
+  min-height: 96px;
+  padding: 20px;
+  border: 1px solid #223249;
+  border-radius: 12px;
   background:
-    linear-gradient(145deg, rgba(var(--project-secondary-rgb, 56, 189, 248), 0.18), rgba(2, 6, 23, 0.54)),
-    var(--project-surface, #111827);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    linear-gradient(145deg, rgba(36, 214, 255, 0.08), transparent 58%),
+    #0d1420;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 `;
 
 const RouteHalf = styled.section<{ $variant: "admin" | "broadcast" }>`
   display: grid;
   align-content: start;
-  gap: 24px;
-  margin-top: 22px;
-  padding: clamp(20px, 2.5vw, 32px);
-  border: 1px solid
-    ${({ $variant }) =>
-      $variant === "admin"
-        ? "rgba(var(--project-secondary-rgb, 59, 130, 246), 0.22)"
-        : "rgba(var(--project-primary-rgb, 244, 114, 182), 0.22)"};
-  border-radius: 8px;
+  gap: 18px;
+  margin-top: 18px;
+  padding: clamp(18px, 2.5vw, 28px);
+  border: 1px solid #223249;
+  border-radius: 14px;
   background:
     linear-gradient(
       135deg,
-      ${({ $variant }) =>
-        $variant === "admin"
-          ? "rgba(var(--project-secondary-rgb, 30, 64, 175), 0.18)"
-          : "rgba(var(--project-primary-rgb, 136, 19, 55), 0.16)"},
-      rgba(15, 23, 42, 0.7)
+      ${({ $variant }) => ($variant === "admin" ? "rgba(36, 214, 255, 0.035)" : "rgba(255, 61, 84, 0.045)")},
+      transparent 38%
     ),
-    var(--project-surface, #101722);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(12px);
+    rgba(13, 20, 32, 0.92);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.2);
 `;
 
 const SectionHeader = styled.div`
@@ -682,14 +684,14 @@ const StatLabel = styled.span`
 
 const Groups = styled.section`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 
-  @media (min-width: 1500px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  @media (max-width: 980px) {
+  @media (max-width: 720px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -698,22 +700,14 @@ const GroupSection = styled.section<{ $variant: "admin" | "broadcast"; $accent: 
   position: relative;
   min-width: 0;
   min-height: 0;
-  padding: clamp(20px, 2vw, 28px);
+  padding: 20px;
   overflow: hidden;
-  border: 1px solid ${({ $accent }) => $accent.line};
-  border-radius: 8px;
+  border: 1px solid #223249;
+  border-radius: 12px;
   background:
-    radial-gradient(circle at 10% 0%, ${({ $accent }) => $accent.glow}, transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 36%),
-    linear-gradient(
-      145deg,
-      ${({ $accent }) => $accent.glow},
-      rgba(10, 15, 24, 0.88) 54%
-    ),
-    var(--project-surface-alt, #1f293d);
-  box-shadow:
-    0 18px 42px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    radial-gradient(circle at 0% 0%, ${({ $accent }) => $accent.glow}, transparent 34%),
+    #0b121e;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -723,30 +717,16 @@ const GroupSection = styled.section<{ $variant: "admin" | "broadcast"; $accent: 
     content: "";
     position: absolute;
     inset: 0 0 auto;
-    height: 3px;
-    background: ${({ $accent }) =>
-      `linear-gradient(90deg, ${$accent.line}, transparent)`};
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    right: -48px;
-    top: -48px;
-    width: 128px;
-    height: 128px;
-    border: 1px solid ${({ $accent }) => $accent.line};
-    opacity: 0.18;
-    border-radius: 999px;
+    height: 2px;
+    background: ${({ $accent }) => $accent.line};
   }
 
   &:hover {
     border-color: ${({ $accent }) => $accent.line};
     box-shadow:
-      0 24px 52px rgba(0, 0, 0, 0.28),
-      0 0 36px ${({ $accent }) => $accent.glow},
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
+      0 14px 28px rgba(0, 0, 0, 0.28),
+      0 0 22px ${({ $accent }) => $accent.glow};
+    transform: translateY(-1px);
   }
 `;
 
@@ -754,28 +734,25 @@ const GroupHeader = styled.div`
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: start;
-  gap: 16px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 16px;
 `;
 
 const GroupBadge = styled.div<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border: 1px solid ${({ $accent }) => $accent.line};
-  border-radius: 8px;
+  border-radius: 9px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(2, 6, 23, 0.38)),
-    ${({ $accent }) => $accent.badge};
-  color: var(--project-text-primary, #ffffff);
-  font-size: 0.88rem;
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent),
+    ${({ $accent }) => $accent.glow};
+  color: ${({ $accent }) => $accent.line};
+  font-size: 0.78rem;
   font-weight: 900;
-  box-shadow:
-    inset 0 0 20px rgba(255, 255, 255, 0.04),
-    0 0 22px ${({ $accent }) => $accent.glow};
 `;
 
 const GroupCopy = styled.div`
@@ -785,16 +762,16 @@ const GroupCopy = styled.div`
 const GroupTitle = styled.h3`
   margin: 0;
   color: var(--project-text-primary, #ffffff);
-  font-size: clamp(1.18rem, 1.6vw, 1.42rem);
+  font-size: 1.05rem;
   line-height: 1.1;
 `;
 
 const GroupDescription = styled.p`
   max-width: 540px;
-  margin: 8px 0 0;
+  margin: 5px 0 0;
   color: var(--project-text-secondary, #94a3b8);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 0.82rem;
+  line-height: 1.45;
 `;
 
 const GroupCount = styled.div<{ $accent: GroupAccent }>`
@@ -804,7 +781,7 @@ const GroupCount = styled.div<{ $accent: GroupAccent }>`
   place-items: center;
   border: 1px solid ${({ $accent }) => $accent.line};
   border-radius: 999px;
-  background: rgba(2, 6, 23, 0.56);
+  background: rgba(2, 6, 23, 0.5);
   color: ${({ $accent }) => $accent.line};
   font-size: 0.78rem;
   font-weight: 900;
@@ -814,8 +791,8 @@ const GroupRoutes = styled.div`
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 7px;
 
   @media (max-width: 520px) {
     grid-template-columns: 1fr;
@@ -826,19 +803,16 @@ const chipStyles = `
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: 40px;
   width: 100%;
-  padding: 9px 14px 9px 11px;
-  border: 1px solid var(--chip-border);
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent),
-    rgba(2, 6, 23, 0.7);
-  color: var(--project-text-primary, #e0f2fe);
-  font-size: 0.9rem;
-  font-weight: 800;
+  padding: 8px 11px;
+  border: 1px solid #1e2d42;
+  border-radius: 7px;
+  background: rgba(15, 23, 36, 0.82);
+  color: #d7e2ef;
+  font-size: 0.84rem;
+  font-weight: 700;
   text-decoration: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, color 160ms ease;
 
   span {
@@ -851,7 +825,7 @@ const chipStyles = `
     border-color: var(--chip-hover-border);
     background: var(--chip-hover-bg);
     color: #ffffff;
-    transform: translateY(-1px);
+    transform: translateX(2px);
   }
 
   &:focus-visible {
@@ -876,9 +850,8 @@ const AnchorChip = styled.a<{ $variant: "admin" | "broadcast"; $accent: GroupAcc
 
 const ChipDot = styled.span<{ $variant: "admin" | "broadcast"; $accent: GroupAccent }>`
   flex: 0 0 auto;
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: ${({ $accent }) => $accent.line};
-  box-shadow: 0 0 14px ${({ $accent }) => $accent.line};
 `;

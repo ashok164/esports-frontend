@@ -329,7 +329,7 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
                   
                   <TeamLogoBox isDead={team.isDead} bgImage={team.logoUrl}>
                     {!team.logoUrl && <LogoFallbackText>{team.shortLabel}</LogoFallbackText>}
-                    {team.countryLogoUrl && <CountryFlag src={team.countryLogoUrl} alt="" />}
+                    {team.countryLogoUrl && <CountryFlag src={team.countryLogoUrl} alt="Country flag" />}
                     {team.isDead && <LogoDeadOverlayCross aria-label="Eliminated" />}
                   </TeamLogoBox>
                 </HeadStatusWrapper>

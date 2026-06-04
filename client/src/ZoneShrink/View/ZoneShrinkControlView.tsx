@@ -80,6 +80,21 @@ const ZoneShrinkControlView: React.FC = () => {
 
         <ControlCard>
           <TextBlock>
+            <strong>Sound volume: {Math.round(state.soundVolume * 100)}%</strong>
+            <span>The same level is used by the zone shrink sound in the broadcast window.</span>
+          </TextBlock>
+          <VolumeInput
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={state.soundVolume}
+            onChange={(event) => updateState({ ...state, soundVolume: Number(event.target.value) })}
+          />
+        </ControlCard>
+
+        <ControlCard>
+          <TextBlock>
             <strong>Sound</strong>
             <span>Plays `/ZoneShrinkSound/shrinkSound.mp3` when the overlay opens.</span>
           </TextBlock>
@@ -233,6 +248,12 @@ const Switch = styled.label`
     cursor: not-allowed;
     opacity: 0.55;
   }
+`;
+
+const VolumeInput = styled.input`
+  width: min(220px, 42vw);
+  accent-color: var(--project-primary, #ef4444);
+  cursor: pointer;
 `;
 
 const ButtonRow = styled.div`
