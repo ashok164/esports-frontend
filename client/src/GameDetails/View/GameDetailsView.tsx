@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import {
-  applyMappingTemplateToMatchApi,
+  createMatchTeamMappingsApi,
   createMappingTemplateApi,
   createGameDetailApi,
   deleteGameDetailApi,
@@ -48,6 +48,8 @@ type TeamOption = {
 type MappingRow = {
   roomTeamId: string;
   permanentTeamId: string;
+  teamName: string;
+  teamTag: string;
 };
 
 type MappingTemplate = {
@@ -62,6 +64,8 @@ const emptyMappingRows = (): MappingRow[] =>
   Array.from({ length: 12 }, (_, index) => ({
     roomTeamId: String(index + 1),
     permanentTeamId: "",
+    teamName: "",
+    teamTag: "",
   }));
 
 const mergeResultSwitches = (game: GameDetail, fallback?: GameDetail): GameDetail => ({
@@ -81,6 +85,8 @@ const normalizeMappingTemplate = (template: any): MappingTemplate => ({
     .map((mapping: any, index: number) => ({
       roomTeamId: String(mapping?.roomTeamId ?? mapping?.room_team_id ?? index + 1),
       permanentTeamId: String(mapping?.permanentTeamId ?? mapping?.permanent_team_id ?? ""),
+      teamName: String(mapping?.teamName ?? mapping?.team_name ?? ""),
+      teamTag: String(mapping?.teamTag ?? mapping?.team_tag ?? ""),
       slotNumber: Number(mapping?.slotNumber ?? mapping?.slot_number ?? index + 1),
     }))
     .filter((mapping: MappingRow) => mapping.roomTeamId && mapping.permanentTeamId),
@@ -215,7 +221,21 @@ const GameDetailsView: React.FC = () => {
     const template = mappingTemplates.find((item) => item.id === templateId);
     if (!template || !matchId.trim()) return;
 
-    await applyMappingTemplateToMatchApi(matchId.trim(), template.id);
+    const mappings = template.mappings.map((mapping) => {
+      const selectedTeam = teamOptions.find(
+        (team) => String(team.teamId) === String(mapping.permanentTeamId),
+      );
+
+      return {
+        matchId: matchId.trim(),
+        roomTeamId: mapping.roomTeamId,
+        permanentTeamId: mapping.permanentTeamId,
+        teamName: mapping.teamName || selectedTeam?.teamName || "",
+        teamTag: mapping.teamTag || selectedTeam?.teamTag || "",
+      };
+    });
+
+    await createMatchTeamMappingsApi(mappings);
   };
 
   const handleSubmitRows = async () => {
@@ -349,6 +369,8 @@ const GameDetailsView: React.FC = () => {
       {
         roomTeamId: String(rows.length + 1),
         permanentTeamId: "",
+        teamName: "",
+        teamTag: "",
       },
     ]);
   };
@@ -356,7 +378,7 @@ const GameDetailsView: React.FC = () => {
   const removeMappingRow = (index: number) => {
     setMappingRows((rows) =>
       rows.length === 1
-        ? [{ roomTeamId: "1", permanentTeamId: "" }]
+        ? [{ roomTeamId: "1", permanentTeamId: "", teamName: "", teamTag: "" }]
         : rows.filter((_, rowIndex) => rowIndex !== index),
     );
   };
@@ -372,6 +394,8 @@ const GameDetailsView: React.FC = () => {
       .map((row, index) => ({
         roomTeamId: row.roomTeamId.trim(),
         permanentTeamId: row.permanentTeamId.trim(),
+        teamName: row.teamName.trim(),
+        teamTag: row.teamTag.trim(),
         slotNumber: index + 1,
       }));
 
@@ -705,6 +729,7 @@ const GameDetailsView: React.FC = () => {
               <tr>
                 <th>Room Team ID</th>
                 <th>Permanent Team</th>
+                <th>Team Tag</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -720,7 +745,22 @@ const GameDetailsView: React.FC = () => {
                   <td>
                     <Select
                       value={row.permanentTeamId}
-                      onChange={(event) => updateMappingRow(index, "permanentTeamId", event.target.value)}
+                      onChange={(event) => {
+                        const permanentTeamId = event.target.value;
+                        const selectedTeam = teamOptions.find((team) => team.teamId === permanentTeamId);
+                        setMappingRows((rows) =>
+                          rows.map((mapping, rowIndex) =>
+                            rowIndex === index
+                              ? {
+                                  ...mapping,
+                                  permanentTeamId,
+                                  teamName: selectedTeam?.teamName || "",
+                                  teamTag: selectedTeam?.teamTag || "",
+                                }
+                              : mapping,
+                          ),
+                        );
+                      }}
                     >
                       <option value="">Select team</option>
                       {teamOptions.map((team) => (
@@ -729,6 +769,9 @@ const GameDetailsView: React.FC = () => {
                         </option>
                       ))}
                     </Select>
+                  </td>
+                  <td>
+                    <TeamTagValue>{row.teamTag || "-"}</TeamTagValue>
                   </td>
                   <td>
                     <ActionRow>
@@ -923,6 +966,18 @@ const Select = styled.select`
   color: var(--project-text-primary, #ffffff);
   padding: 0 10px;
   font: inherit;
+`;
+
+const TeamTagValue = styled.span`
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.48);
+  color: var(--project-accent, #bfff00);
+  font-weight: 900;
 `;
 
 const MappingToolbar = styled.div`

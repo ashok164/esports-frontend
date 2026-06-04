@@ -107,6 +107,7 @@ export const DELETE_GAME_DETAIL = (id: string | number) =>
 export const GET_MATCH_TEAM_MAPPINGS = (matchId: string | number) =>
   `/api/match-team-mappings/${matchId}`;
 export const GET_ALL_MATCH_TEAM_MAPPINGS = "/api/match-team-mappings";
+export const CREATE_MATCH_TEAM_MAPPINGS = "/api/match-team-mappings/create";
 export const REPLACE_MATCH_TEAM_MAPPINGS = (matchId: string | number) =>
   `/api/match-team-mappings/${matchId}`;
 export const DELETE_MATCH_TEAM_MAPPING = (

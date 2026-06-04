@@ -1,6 +1,7 @@
 import http from "../../AxiosFile/axios";
 import {
   APPLY_MATCH_TEAM_MAPPING_TEMPLATE,
+  CREATE_MATCH_TEAM_MAPPINGS,
   CREATE_MAPPING_TEMPLATE,
   CREATE_GAME_DETAIL,
   DELETE_GAME_DETAIL,
@@ -69,12 +70,27 @@ export const replaceMatchTeamMappingsApi = async (
   mappings: Array<{
     roomTeamId: string | number;
     permanentTeamId: string | number;
+    teamName?: string;
+    teamTag?: string;
     slotNumber?: number;
   }>,
 ) => {
   const response = await http.put(REPLACE_MATCH_TEAM_MAPPINGS(matchId), {
     mappings,
   });
+  return response?.data;
+};
+
+export const createMatchTeamMappingsApi = async (
+  mappings: Array<{
+    matchId: string | number;
+    roomTeamId: string | number;
+    permanentTeamId: string | number;
+    teamName?: string;
+    teamTag?: string;
+  }>,
+) => {
+  const response = await http.post(CREATE_MATCH_TEAM_MAPPINGS, { mappings });
   return response?.data;
 };
 
@@ -96,6 +112,8 @@ export type MappingTemplatePayload = {
   mappings: Array<{
     roomTeamId: string | number;
     permanentTeamId: string | number;
+    teamName?: string;
+    teamTag?: string;
     slotNumber?: number;
   }>;
 };
