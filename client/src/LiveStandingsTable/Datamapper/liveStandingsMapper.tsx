@@ -122,6 +122,7 @@ export const mergeHistoricalWithLiveStandings = (
     (previousTeamsState || []).map((team) => [String(team.id), team]),
   );
   const liveByKey = new Map<string, any>();
+  const matchedLiveTeams = new Set<any>();
 
   (liveTeams || []).forEach((team) => {
     getTeamIdentityKeys(team).forEach((key) => {
@@ -135,6 +136,7 @@ export const mergeHistoricalWithLiveStandings = (
     const liveTeam = getTeamIdentityKeys(historicalTeam)
       .map((key) => liveByKey.get(key))
       .find(Boolean);
+    if (liveTeam) matchedLiveTeams.add(liveTeam);
     const teamId = getPrimaryTeamId(historicalTeam, index + 1);
     const previousTeam = previousById.get(String(teamId));
     const liveKills = liveTeam ? getLiveKills(liveTeam) : 0;
@@ -177,7 +179,13 @@ export const mergeHistoricalWithLiveStandings = (
     };
   });
 
-  const sorted = merged
+  const unmatchedLiveTeams = (liveTeams || []).filter((team) => !matchedLiveTeams.has(team));
+  const liveOnlyRows = mapTeamData(unmatchedLiveTeams, previousTeamsState).map((team) => ({
+    ...team,
+    isPlaying: true,
+  }));
+
+  const sorted = [...merged, ...liveOnlyRows]
     .sort((a, b) => {
       const pointsDiff = toNumber(b.totalPoints) - toNumber(a.totalPoints);
       if (pointsDiff !== 0) return pointsDiff;

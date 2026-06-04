@@ -828,7 +828,7 @@ const TeamRowComponent = memo(function TeamRow({
 /* ================= MAIN COMPONENT ================= */
 export default function StandingsTable({
   teams = [],
-  maxRows = 18,
+  maxRows = 12,
 }: StandingsTableProps) {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
   console.log("Want to see api Call for realtime api? lol you cant track api");
