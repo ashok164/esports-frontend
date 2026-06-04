@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import useGameAssetGalleryController from "../Controller/useGameAssetGalleryController";
 
@@ -17,6 +18,7 @@ const AssetGalleryView = ({
   getUrl,
 }: AssetGalleryViewProps) => {
   const { error, isLoading, records } = useGameAssetGalleryController(getUrl);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <Page>
@@ -25,15 +27,20 @@ const AssetGalleryView = ({
           <h2>{title}</h2>
           <p>{note}</p>
         </div>
-        <Counter>
-          {records.length} {countLabel}
-        </Counter>
+        <HeaderActions>
+          <Counter>
+            {records.length} {countLabel}
+          </Counter>
+          <CollapseButton type="button" aria-expanded={isExpanded} onClick={() => setIsExpanded((current) => !current)}>
+            {isExpanded ? "Hide Data" : "Show Data"}
+          </CollapseButton>
+        </HeaderActions>
       </Header>
 
       {error && <Status>{error}</Status>}
       {isLoading && <Status>Loading assets...</Status>}
 
-      {!isLoading && records.length === 0 ? (
+      {isExpanded && (!isLoading && records.length === 0 ? (
         <EmptyState>No asset records found.</EmptyState>
       ) : (
         <Grid>
@@ -74,7 +81,7 @@ const AssetGalleryView = ({
             </Card>
           ))}
         </Grid>
-      )}
+      ))}
     </Page>
   );
 };
@@ -125,6 +132,24 @@ const Counter = styled.div`
   padding: 0.55rem 0.8rem;
   background: var(--project-surface, rgba(15, 23, 42, 0.82));
   color: var(--project-text-secondary, #cbd5e1);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+`;
+
+const CollapseButton = styled.button`
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--project-surface, rgba(15, 23, 42, 0.82));
+  color: var(--project-text-primary, #f8fafc);
+  cursor: pointer;
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;

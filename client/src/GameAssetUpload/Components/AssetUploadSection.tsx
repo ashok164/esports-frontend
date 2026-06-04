@@ -105,6 +105,7 @@ const AssetUploadSection = ({
   const [rows, setRows] = useState<AssetUploadRow[]>([emptyRow()]);
   const [formError, setFormError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
   const { deleteAsset, error, isSaving, saveAsset, saveAssets, successMessage, uploadProgress } =
     useGameAssetUploadController({ createUrl, updateUrl, deleteUrl });
@@ -313,14 +314,25 @@ const AssetUploadSection = ({
           <SectionTitle>{title}</SectionTitle>
           <SectionNote>{note}</SectionNote>
         </div>
-        <SectionMeta>{rowSummary}</SectionMeta>
+        <SectionTopActions>
+          <SectionMeta>{rowSummary}</SectionMeta>
+          <CollapseButton
+            type="button"
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded((current) => !current)}
+          >
+            {isExpanded ? "Hide Upload" : "Show Upload"}
+          </CollapseButton>
+        </SectionTopActions>
       </SectionTop>
 
-      {(formError || error || loadError) && <Status $tone="error">{formError || error || loadError}</Status>}
-      {successMessage && <Status>{successMessage}</Status>}
-      {isLoading && <Status>Loading uploaded list...</Status>}
+      {isExpanded && (
+        <>
+          {(formError || error || loadError) && <Status $tone="error">{formError || error || loadError}</Status>}
+          {successMessage && <Status>{successMessage}</Status>}
+          {isLoading && <Status>Loading uploaded list...</Status>}
 
-      <Form onSubmit={handleSubmit} noValidate>
+          <Form onSubmit={handleSubmit} noValidate>
         <DropZone
           $isDragOver={isDragOver}
           onDragOver={(event) => {
@@ -487,7 +499,9 @@ const AssetUploadSection = ({
             {isSaving ? `Uploading ${uploadProgress}%` : "Save Upload"}
           </SaveButton>
         </Actions>
-      </Form>
+          </Form>
+        </>
+      )}
 
       {pendingDeleteRow && (
         <DialogOverlay>
@@ -578,6 +592,24 @@ const SectionMeta = styled.div`
   padding: 0.35rem 0.55rem;
   font-size: 0.74rem;
   font-weight: 800;
+`;
+
+const SectionTopActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+`;
+
+const CollapseButton = styled.button`
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 0.35rem;
+  background: var(--project-background, #0f172a);
+  color: var(--project-text-primary, #f8fafc);
+  cursor: pointer;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
 `;
 
 const Status = styled.div<{ $tone?: "error" }>`

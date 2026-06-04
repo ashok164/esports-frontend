@@ -31,6 +31,7 @@ const TournamentAssetsView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isAssetListExpanded, setIsAssetListExpanded] = useState(false);
 
   const sortedAssets = useMemo(
     () => [...assets].sort((left, right) => getTournamentAssetId(left).localeCompare(getTournamentAssetId(right))),
@@ -211,11 +212,22 @@ const TournamentAssetsView: React.FC = () => {
           <Button type="submit" disabled={isSaving}>Upload</Button>
         </UploadPanel>
 
-        <AssetGrid>
-          {sortedAssets.length === 0 && !isLoading ? (
-            <EmptyState>No tournament assets uploaded yet.</EmptyState>
-          ) : (
-            sortedAssets.map((asset) => {
+        <ListHeader>
+          <div>
+            <ListTitle>Uploaded Tournament Assets</ListTitle>
+            <Muted>{sortedAssets.length} assets</Muted>
+          </div>
+          <Button type="button" $variant="ghost" aria-expanded={isAssetListExpanded} onClick={() => setIsAssetListExpanded((current) => !current)}>
+            {isAssetListExpanded ? "Hide Assets" : "Show Assets"}
+          </Button>
+        </ListHeader>
+
+        {isAssetListExpanded && (
+          <AssetGrid>
+            {sortedAssets.length === 0 && !isLoading ? (
+              <EmptyState>No tournament assets uploaded yet.</EmptyState>
+            ) : (
+              sortedAssets.map((asset) => {
               const isEditing = editingId === asset.id;
               const imageUrl = getTournamentAssetUrl(asset);
 
@@ -266,9 +278,10 @@ const TournamentAssetsView: React.FC = () => {
                   </Actions>
                 </AssetCard>
               );
-            })
-          )}
-        </AssetGrid>
+              })
+            )}
+          </AssetGrid>
+        )}
       </Container>
     </Page>
   );
@@ -403,6 +416,23 @@ const AssetGrid = styled.section`
   grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 0.85rem;
   min-width: 0;
+`;
+
+const ListHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.82);
+`;
+
+const ListTitle = styled.h2`
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
 `;
 
 const AssetCard = styled.article`

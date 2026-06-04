@@ -224,6 +224,7 @@ const PlayerUploadTable = ({
   tournamentAssetOptions = [],
 }: PlayerUploadTableProps) => {
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const [expandedSavedTeams, setExpandedSavedTeams] = useState<Record<string, boolean>>({});
 
   const {
     register,
@@ -278,6 +279,13 @@ const PlayerUploadTable = ({
 
   const onSubmit = (data: FormValues) => {
     createPlayerUploads(data);
+  };
+
+  const toggleSavedTeam = (teamKey: string) => {
+    setExpandedSavedTeams((current) => ({
+      ...current,
+      [teamKey]: !current[teamKey],
+    }));
   };
 
   return (
@@ -385,13 +393,31 @@ const PlayerUploadTable = ({
             <EmptyState>No player upload data found from API.</EmptyState>
           ) : (
             <SavedGrid>
-              {teamDivisions.map((team) => (
-                <SavedCard key={`${team.teamId}-${team.id}`}>
+              {teamDivisions.map((team) => {
+                const teamKey = `${team.teamId}-${team.id}`;
+                const isExpanded = !!expandedSavedTeams[teamKey];
+
+                return (
+                <SavedCard key={teamKey}>
                   <SavedCardHeader>
-                    <TeamTitle>{team.teamName || `Team ${team.teamId || "-"}`}</TeamTitle>
-                    <TeamBadge>ID: {team.teamId || "-"}</TeamBadge>
+                    <div>
+                      <TeamTitle>{team.teamName || `Team ${team.teamId || "-"}`}</TeamTitle>
+                      <SavedCardSummary>
+                        {team.players.length} {team.players.length === 1 ? "player" : "players"} uploaded
+                      </SavedCardSummary>
+                    </div>
+                    <SavedCardActions>
+                      <TeamBadge>ID: {team.teamId || "-"}</TeamBadge>
+                      <CollapseButton
+                        type="button"
+                        aria-expanded={isExpanded}
+                        onClick={() => toggleSavedTeam(teamKey)}
+                      >
+                        {isExpanded ? "Hide Data" : "Show Data"}
+                      </CollapseButton>
+                    </SavedCardActions>
                   </SavedCardHeader>
-                  {team.players.length ? (
+                  {isExpanded && (team.players.length ? (
                     <SavedPlayerGrid>
                       {team.players.map((player, playerIndex) => (
                         <PlayerTile key={`${team.teamId}-${player.uid || playerIndex}`}>
@@ -424,9 +450,10 @@ const PlayerUploadTable = ({
                     </SavedPlayerGrid>
                   ) : (
                     <NoPhotoText>No players saved</NoPhotoText>
-                  )}
+                  ))}
                 </SavedCard>
-              ))}
+                );
+              })}
             </SavedGrid>
           )}
         </ExistingPanel>
@@ -772,7 +799,11 @@ const SavedCardHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+
+  @media (max-width: 560px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 `;
 
 const TeamTitle = styled.div`
@@ -795,10 +826,27 @@ const TeamBadge = styled.div`
   font-weight: 800;
 `;
 
+const SavedCardSummary = styled.div`
+  margin-top: 0.3rem;
+  color: #8c9ba5;
+  font-size: 0.75rem;
+`;
+
+const SavedCardActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+`;
+
+const CollapseButton = styled(ActionButton)`
+  white-space: nowrap;
+`;
+
 const SavedPlayerGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   gap: 0.85rem;
+  margin-top: 1rem;
 `;
 
 const PlayerTile = styled.div`
@@ -868,6 +916,7 @@ const PlayerLink = styled.a`
 const NoPhotoText = styled.div`
   color: #8c9ba5;
   font-size: 0.8rem;
+  margin-top: 1rem;
 `;
 
 const EmptyState = styled.div`

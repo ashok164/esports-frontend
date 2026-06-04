@@ -27,6 +27,7 @@ const TournamentLogoView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isLogoListExpanded, setIsLogoListExpanded] = useState(false);
 
   const activeLogo = useMemo(() => logos.find((logo) => isTournamentLogoActive(logo)), [logos]);
   const sortedLogos = useMemo(
@@ -225,7 +226,17 @@ const TournamentLogoView: React.FC = () => {
           </Button>
         </UploadPanel>
 
-        <LogoGrid>
+        <ListHeader>
+          <div>
+            <ListTitle>Uploaded Tournament Logos</ListTitle>
+            <Muted>{sortedLogos.length} logos</Muted>
+          </div>
+          <IconButton type="button" $variant="ghost" aria-expanded={isLogoListExpanded} onClick={() => setIsLogoListExpanded((current) => !current)}>
+            {isLogoListExpanded ? "Hide Logos" : "Show Logos"}
+          </IconButton>
+        </ListHeader>
+
+        {isLogoListExpanded && <LogoGrid>
           {sortedLogos.length === 0 && !isLoading ? (
             <EmptyState>No tournament logos uploaded yet.</EmptyState>
           ) : (
@@ -296,7 +307,7 @@ const TournamentLogoView: React.FC = () => {
               );
             })
           )}
-        </LogoGrid>
+        </LogoGrid>}
       </Container>
     </Page>
   );
@@ -467,6 +478,23 @@ const LogoGrid = styled.section`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0.85rem;
+`;
+
+const ListHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.82);
+`;
+
+const ListTitle = styled.h2`
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
 `;
 
 const LogoCard = styled.article<{ $active: boolean }>`
