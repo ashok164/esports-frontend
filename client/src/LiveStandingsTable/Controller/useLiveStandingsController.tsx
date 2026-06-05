@@ -12,7 +12,17 @@ const WS_STALE_LIMIT_MS = 5000;
 const TEAM_IDENTITY_MATCHES_STORAGE_KEY = "team_identity_matches";
 
 const collectLiveRows = (result: any) => {
+  const overallRankingEnabled = Boolean(
+    result?.data?.settings?.overallRankingEnabled ??
+    result?.data?.settings?.overall_ranking_enabled ??
+    result?.settings?.overallRankingEnabled ??
+    result?.settings?.overall_ranking_enabled,
+  );
+
   const source =
+    (overallRankingEnabled
+      ? result?.data?.liveOverall ?? result?.liveOverall
+      : result?.data?.liveMatchStandings ?? result?.liveMatchStandings) ??
     result?.data?.liveStandings2 ??
     result?.liveStandings2 ??
     result?.data?.standings ??

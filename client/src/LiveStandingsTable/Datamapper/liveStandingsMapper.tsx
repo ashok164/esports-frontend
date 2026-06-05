@@ -141,9 +141,15 @@ export const mergeHistoricalWithLiveStandings = (
     const previousTeam = previousById.get(String(teamId));
     const liveKills = liveTeam ? getLiveKills(liveTeam) : 0;
     const livePlacementPoints = liveTeam ? getLivePlacementPoints(liveTeam) : 0;
-    const livePoints = liveKills + livePlacementPoints;
-    const historicalPoints = getHistoricalPoints(historicalTeam);
-    const totalPoints = historicalPoints + livePoints;
+    const livePoints = liveTeam
+      ? toNumber(firstValue(liveTeam?.live_points, liveTeam?.livePoints, liveKills + livePlacementPoints))
+      : 0;
+    const historicalPoints = liveTeam
+      ? toNumber(firstValue(liveTeam?.historical_points, liveTeam?.historicalPoints, getHistoricalPoints(historicalTeam)))
+      : getHistoricalPoints(historicalTeam);
+    const totalPoints = liveTeam
+      ? toNumber(firstValue(liveTeam?.total_points, liveTeam?.totalPoints, historicalPoints + livePoints))
+      : historicalPoints + livePoints;
     const mappedLiveTeam = liveTeam
       ? mapTeamData([liveTeam], previousTeamsState)[0]
       : null;
