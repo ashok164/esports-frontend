@@ -1,31 +1,15 @@
 import React, { useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
-import { getMatchTeamMappingsApi } from "../../GameDetails/Repository/remote";
 import { createResultApi, getResultByMatchIdApi, ResultRow } from "../../Result/repository/remote";
-
-type MappingRow = {
-  roomTeamId: string;
-  permanentTeamId: string;
-  teamName?: string;
-  teamTag?: string;
-  teamLogo?: string;
-  countryLogo?: string;
-};
 
 type PreviewRow = {
   roomTeamId: string;
   jsonTeamName: string;
-  mappedTeamId: string;
-  mappedTeamName: string;
-  teamTag: string;
-  teamLogo: string;
-  countryLogo: string;
   kills: number;
   placement: number;
   booyahCount: number;
   totalKills: number;
   final: boolean;
-  mapped: boolean;
 };
 
 const firstValue = (...values: any[]) =>
@@ -131,13 +115,6 @@ const getTotalKills = (team: any, kills: number, placement: number) =>
     ),
   );
 
-const formatLogo = (value: string) => {
-  const clean = toText(value);
-  if (!clean) return "";
-  if (/^https?:\/\//i.test(clean)) return clean;
-  return clean.startsWith("/uploads") ? clean : `/uploads/${clean.replace(/^uploads\//i, "")}`;
-};
-
 const normalizeSavedRows = (payload: any): ResultRow[] =>
   Array.isArray(payload?.data) ? payload.data : [];
 
@@ -154,7 +131,6 @@ const ResultJsonControlView: React.FC = () => {
   const counts = useMemo(
     () => ({
       teams: previewRows.length,
-      mapped: previewRows.filter((row) => row.mapped).length,
       booyah: previewRows.filter((row) => row.booyahCount > 0).length,
       final: previewRows.filter((row) => row.final).length,
     }),
@@ -183,14 +159,8 @@ const ResultJsonControlView: React.FC = () => {
         throw new Error("No standings/results array found in JSON.");
       }
 
-      const mappings = (await getMatchTeamMappingsApi(detectedMatchId)) as MappingRow[];
-      const mappingByRoomId = new Map(
-        mappings.map((mapping) => [normalizeTeamId(mapping.roomTeamId), mapping]),
-      );
-
       const nextRows = standings.map((team: any) => {
         const roomTeamId = getRoomTeamId(team);
-        const mapping = mappingByRoomId.get(roomTeamId);
         const kills = getKills(team);
         const placement = getPlacement(team);
         const booyahCount = toBoolean(
@@ -202,17 +172,11 @@ const ResultJsonControlView: React.FC = () => {
         return {
           roomTeamId,
           jsonTeamName: getTeamName(team),
-          mappedTeamId: toText(mapping?.permanentTeamId),
-          mappedTeamName: toText(mapping?.teamName),
-          teamTag: toText(mapping?.teamTag),
-          teamLogo: formatLogo(toText(mapping?.teamLogo)),
-          countryLogo: formatLogo(toText(mapping?.countryLogo)),
           kills,
           placement,
           booyahCount,
           totalKills: getTotalKills(team, kills, placement),
           final: toBoolean(firstValue(team.final, team.is_final, team.isFinal)),
-          mapped: Boolean(mapping),
         };
       });
 
@@ -230,13 +194,7 @@ const ResultJsonControlView: React.FC = () => {
         },
       });
       setPreviewRows(nextRows);
-
-      const mappedCount = nextRows.filter((row: PreviewRow) => row.mapped).length;
-      if (mappedCount !== nextRows.length) {
-        setStatus(`Parsed ${nextRows.length} teams. ${nextRows.length - mappedCount} teams are not mapped, so their JSON team_id will be saved directly.`);
-      } else {
-        setStatus(`Ready to save ${nextRows.length} mapped teams for match ${detectedMatchId}.`);
-      }
+      setStatus(`Ready to save ${nextRows.length} teams for match ${detectedMatchId}. Backend will resolve DB team identity.`);
     } catch (err: any) {
       setError(err?.message || "Could not parse JSON.");
       setStatus("Parse failed.");
@@ -338,13 +296,12 @@ const ResultJsonControlView: React.FC = () => {
           <PreviewPanel>
             <Stats>
               <Stat><strong>{counts.teams}</strong><span>JSON teams</span></Stat>
-              <Stat><strong>{counts.mapped}</strong><span>Mapped</span></Stat>
               <Stat><strong>{counts.booyah}</strong><span>Booyah</span></Stat>
               <Stat><strong>{counts.final}</strong><span>Final</span></Stat>
             </Stats>
 
             <PanelHeader>
-              <PanelTitle>Slot Mapping Preview</PanelTitle>
+              <PanelTitle>JSON Team Preview</PanelTitle>
               <GhostText>{previewRows.length ? `${previewRows.length} teams` : "No parsed teams"}</GhostText>
             </PanelHeader>
             <TableWrap>
@@ -353,8 +310,6 @@ const ResultJsonControlView: React.FC = () => {
                   <tr>
                     <th>Room</th>
                     <th>JSON Team</th>
-                    <th>Mapped Team</th>
-                    <th>Logo</th>
                     <th>Kills</th>
                     <th>Place</th>
                     <th>Booyah</th>
@@ -362,23 +317,12 @@ const ResultJsonControlView: React.FC = () => {
                 </thead>
                 <tbody>
                   {previewRows.length === 0 ? (
-                    <tr><EmptyCell colSpan={7}>Parse JSON to preview slot mapping.</EmptyCell></tr>
+                    <tr><EmptyCell colSpan={5}>Parse JSON to preview teams.</EmptyCell></tr>
                   ) : (
                     previewRows.map((row) => (
                       <tr key={`${row.roomTeamId}-${row.jsonTeamName}`}>
                         <td><Mono>{row.roomTeamId || "-"}</Mono></td>
                         <td>{row.jsonTeamName || "-"}</td>
-                        <td>
-                          <Pill $active={row.mapped}>
-                            {row.mapped ? `${row.mappedTeamName || "Team"} (${row.mappedTeamId})` : "Not mapped"}
-                          </Pill>
-                        </td>
-                        <td>
-                          <LogoPair>
-                            {row.teamLogo && <Logo src={row.teamLogo} alt="" />}
-                            {row.countryLogo && <Logo src={row.countryLogo} alt="" />}
-                          </LogoPair>
-                        </td>
                         <td>{row.kills}</td>
                         <td>{row.placement}</td>
                         <td><Pill $active={row.booyahCount > 0}>{row.booyahCount > 0 ? "Yes" : "No"}</Pill></td>

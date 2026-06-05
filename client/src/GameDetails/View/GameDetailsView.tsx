@@ -1,16 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import {
-  createMatchTeamMappingsApi,
-  createMappingTemplateApi,
   createGameDetailApi,
   deleteGameDetailApi,
-  deleteMappingTemplateApi,
   getGameDetailsApi,
-  getMappingTemplatesApi,
   updateGameDetailApi,
 } from "../Repository/remote";
-import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 import {
   GameDetail,
   getGameRecordId,
@@ -23,7 +18,6 @@ const emptyRow = (): GameDetail => ({
   roundName: "",
   phase: "",
   matchId: "",
-  mappingTemplateId: "",
   enabled: false,
   resultEnabled: false,
   todaysResultEnabled: false,
@@ -36,57 +30,11 @@ const isValidRow = (row: GameDetail) =>
   row.phase.trim() &&
   row.matchId.trim();
 
-type TeamOption = {
-  teamId: string;
-  teamName: string;
-  teamTag: string;
-};
-
-type MappingRow = {
-  roomTeamId: string;
-  permanentTeamId: string;
-  teamName: string;
-  teamTag: string;
-};
-
-type MappingTemplate = {
-  id: string;
-  _id?: string;
-  name: string;
-  mappings: Array<MappingRow & { slotNumber?: number }>;
-  updatedAt: string;
-};
-
-const emptyMappingRows = (): MappingRow[] =>
-  Array.from({ length: 12 }, (_, index) => ({
-    roomTeamId: String(index + 1),
-    permanentTeamId: "",
-    teamName: "",
-    teamTag: "",
-  }));
-
 const mergeResultSwitches = (game: GameDetail, fallback?: GameDetail): GameDetail => ({
   ...game,
-  mappingTemplateId: game.mappingTemplateId || "",
   resultEnabled: Boolean(game.resultEnabled || fallback?.resultEnabled),
   todaysResultEnabled: Boolean(game.todaysResultEnabled || fallback?.todaysResultEnabled),
   leagueStageResultEnabled: Boolean(game.leagueStageResultEnabled || fallback?.leagueStageResultEnabled),
-});
-
-const normalizeMappingTemplate = (template: any): MappingTemplate => ({
-  id: String(template?.id || template?._id || ""),
-  _id: template?._id,
-  name: String(template?.name || template?.mappingName || template?.mapping_name || "Saved mapping"),
-  updatedAt: String(template?.updatedAt || template?.updated_at || new Date().toISOString()),
-  mappings: (Array.isArray(template?.mappings) ? template.mappings : [])
-    .map((mapping: any, index: number) => ({
-      roomTeamId: String(mapping?.roomTeamId ?? mapping?.room_team_id ?? index + 1),
-      permanentTeamId: String(mapping?.permanentTeamId ?? mapping?.permanent_team_id ?? ""),
-      teamName: String(mapping?.teamName ?? mapping?.team_name ?? ""),
-      teamTag: String(mapping?.teamTag ?? mapping?.team_tag ?? ""),
-      slotNumber: Number(mapping?.slotNumber ?? mapping?.slot_number ?? index + 1),
-    }))
-    .filter((mapping: MappingRow) => mapping.roomTeamId && mapping.permanentTeamId),
 });
 
 const GameDetailsView: React.FC = () => {
@@ -97,12 +45,6 @@ const GameDetailsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mappingTemplateName, setMappingTemplateName] = useState("");
-  const [mappingTemplates, setMappingTemplates] = useState<MappingTemplate[]>([]);
-  const [mappingRows, setMappingRows] = useState<MappingRow[]>(emptyMappingRows);
-  const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
-  const [isMappingLoading, setIsMappingLoading] = useState(false);
-  const [isMappingSaving, setIsMappingSaving] = useState(false);
 
   const activeMatchIds = useMemo(
     () => games.filter((game) => game.enabled).map((game) => game.matchId).join(","),
@@ -159,44 +101,6 @@ const GameDetailsView: React.FC = () => {
     };
   }, [loadGames]);
 
-  const loadMappingTemplates = useCallback(async () => {
-    setIsMappingLoading(true);
-    setError(null);
-
-    try {
-      const response = await getMappingTemplatesApi();
-      const templates = (Array.isArray(response) ? response : []).map(normalizeMappingTemplate);
-      setMappingTemplates(templates);
-    } catch (err: any) {
-      setError(err?.message || "Could not load saved mapping templates.");
-    } finally {
-      setIsMappingLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMappingTemplates();
-  }, [loadMappingTemplates]);
-
-  useEffect(() => {
-    const loadTeams = async () => {
-      try {
-        const teams = await getTeamTableApi();
-        setTeamOptions(
-          (Array.isArray(teams) ? teams : []).map((team: any) => ({
-            teamId: String(team.team_id || team.teamId || ""),
-            teamName: String(team.team_name || team.teamName || ""),
-            teamTag: String(team.short_tag || team.teamTag || team.shortTag || ""),
-          })).filter((team: TeamOption) => team.teamId),
-        );
-      } catch (err: any) {
-        setError(err?.message || "Could not load tournament teams for mapping.");
-      }
-    };
-
-    loadTeams();
-  }, []);
-
   const updateDraftRow = (index: number, field: keyof GameDetail, value: string) => {
     setDraftRows((rows) =>
       rows.map((row, rowIndex) =>
@@ -209,27 +113,6 @@ const GameDetailsView: React.FC = () => {
     setDraftRows((rows) =>
       rows.length === 1 ? [emptyRow()] : rows.filter((_, rowIndex) => rowIndex !== index),
     );
-  };
-
-  const applyTemplateToMatch = async (matchId: string, templateId?: string) => {
-    const template = mappingTemplates.find((item) => item.id === templateId);
-    if (!template || !matchId.trim()) return;
-
-    const mappings = template.mappings.map((mapping) => {
-      const selectedTeam = teamOptions.find(
-        (team) => String(team.teamId) === String(mapping.permanentTeamId),
-      );
-
-      return {
-        matchId: matchId.trim(),
-        roomTeamId: mapping.roomTeamId,
-        permanentTeamId: mapping.permanentTeamId,
-        teamName: mapping.teamName || selectedTeam?.teamName || "",
-        teamTag: mapping.teamTag || selectedTeam?.teamTag || "",
-      };
-    });
-
-    await createMatchTeamMappingsApi(mappings);
   };
 
   const handleSubmitRows = async () => {
@@ -248,7 +131,6 @@ const GameDetailsView: React.FC = () => {
 
       for (const row of rowsToSave) {
         const result = await createGameDetailApi(row);
-        await applyTemplateToMatch(row.matchId, row.mappingTemplateId);
         savedRows.push(mergeResultSwitches(normalizeGameDetail(result?.data || result || row), row));
       }
 
@@ -286,7 +168,6 @@ const GameDetailsView: React.FC = () => {
       if (!isLocal) {
         await updateGameDetailApi(editingId, editingRow);
       }
-      await applyTemplateToMatch(editingRow.matchId, editingRow.mappingTemplateId);
 
       syncGames(
         games.map((game) =>
@@ -346,106 +227,6 @@ const GameDetailsView: React.FC = () => {
     }
   };
 
-  const updateMappingRow = (index: number, field: keyof MappingRow, value: string) => {
-    setMappingRows((rows) =>
-      rows.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, [field]: value } : row,
-      ),
-    );
-  };
-
-  const addMappingRow = () => {
-    setMappingRows((rows) => [
-      ...rows,
-      {
-        roomTeamId: String(rows.length + 1),
-        permanentTeamId: "",
-        teamName: "",
-        teamTag: "",
-      },
-    ]);
-  };
-
-  const removeMappingRow = (index: number) => {
-    setMappingRows((rows) =>
-      rows.length === 1
-        ? [{ roomTeamId: "1", permanentTeamId: "", teamName: "", teamTag: "" }]
-        : rows.filter((_, rowIndex) => rowIndex !== index),
-    );
-  };
-
-  const saveMappings = async () => {
-    if (!mappingTemplateName.trim()) {
-      setError("Enter a mapping name before saving.");
-      return;
-    }
-
-    const mappings = mappingRows
-      .filter((row) => row.roomTeamId.trim() && row.permanentTeamId.trim())
-      .map((row, index) => ({
-        roomTeamId: row.roomTeamId.trim(),
-        permanentTeamId: row.permanentTeamId.trim(),
-        teamName: row.teamName.trim(),
-        teamTag: row.teamTag.trim(),
-        slotNumber: index + 1,
-      }));
-
-    if (mappings.length === 0) {
-      setError("Map at least one room team before saving.");
-      return;
-    }
-
-    setIsMappingSaving(true);
-    setError(null);
-
-    try {
-      const payload = {
-        name: mappingTemplateName.trim(),
-        mappings,
-      };
-      const savedTemplate = await createMappingTemplateApi(payload);
-      const normalized = normalizeMappingTemplate(savedTemplate);
-      await loadMappingTemplates();
-      setDraftRows((rows) =>
-        rows.map((row) =>
-          row.mappingTemplateId
-            ? row
-            : { ...row, mappingTemplateId: normalized.id || row.mappingTemplateId },
-        ),
-      );
-      setMappingTemplateName("");
-      setMappingRows(emptyMappingRows());
-    } catch (err: any) {
-      setError(err?.message || "Could not save mapping template.");
-    } finally {
-      setIsMappingSaving(false);
-    }
-  };
-
-  const deleteMappingTemplate = async (template: MappingTemplate) => {
-    if (!window.confirm(`Delete mapping template "${template.name}"?`)) {
-      return;
-    }
-
-    setIsMappingSaving(true);
-    setError(null);
-
-    try {
-      await deleteMappingTemplateApi(template.id);
-      const clearTemplate = (row: GameDetail) =>
-        row.mappingTemplateId === template.id ? { ...row, mappingTemplateId: "" } : row;
-
-      syncGames(games.map(clearTemplate));
-      setDraftRows((rows) => rows.map(clearTemplate));
-      setEditingRow((row) => clearTemplate(row));
-      await loadMappingTemplates();
-    } catch (err: any) {
-      setError(err?.message || "Could not delete mapping template.");
-    } finally {
-      setIsMappingSaving(false);
-    }
-  };
-
   return (
     <Page>
       <GlobalGameDetailsStyles />
@@ -492,7 +273,6 @@ const GameDetailsView: React.FC = () => {
                 <th>Round Name</th>
                 <th>Phase</th>
                 <th>Match ID</th>
-                <th>Mapping</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -510,19 +290,6 @@ const GameDetailsView: React.FC = () => {
                   </td>
                   <td>
                     <Input value={row.matchId} onChange={(event) => updateDraftRow(index, "matchId", event.target.value)} />
-                  </td>
-                  <td>
-                    <Select
-                      value={row.mappingTemplateId || ""}
-                      onChange={(event) => updateDraftRow(index, "mappingTemplateId", event.target.value)}
-                    >
-                      <option value="">No mapping</option>
-                      {mappingTemplates.map((template) => (
-                        <option key={template.id} value={template.id}>
-                          {template.name} ({template.mappings.length})
-                        </option>
-                      ))}
-                    </Select>
                   </td>
                   <td>
                     <ActionRow>
@@ -560,14 +327,13 @@ const GameDetailsView: React.FC = () => {
                 <th>Round Name</th>
                 <th>Phase</th>
                 <th>Match ID</th>
-                <th>Mapping</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {games.length === 0 ? (
                 <tr>
-                  <EmptyCell colSpan={10}>No game details inserted yet.</EmptyCell>
+                  <EmptyCell colSpan={9}>No game details inserted yet.</EmptyCell>
                 </tr>
               ) : (
                 games.map((game) => {
@@ -629,23 +395,6 @@ const GameDetailsView: React.FC = () => {
                         )}
                       </td>
                       <td>
-                        {isEditing ? (
-                          <Select
-                            value={editingRow.mappingTemplateId || ""}
-                            onChange={(event) => setEditingRow((row) => ({ ...row, mappingTemplateId: event.target.value }))}
-                          >
-                            <option value="">No mapping</option>
-                            {mappingTemplates.map((template) => (
-                              <option key={template.id} value={template.id}>
-                                {template.name} ({template.mappings.length})
-                              </option>
-                            ))}
-                          </Select>
-                        ) : (
-                          mappingTemplates.find((template) => template.id === game.mappingTemplateId)?.name || "-"
-                        )}
-                      </td>
-                      <td>
                         <ActionRow>
                           {isEditing ? (
                             <>
@@ -676,106 +425,6 @@ const GameDetailsView: React.FC = () => {
           </Table>
         </Panel>
 
-        <Panel>
-          <PanelHeader>
-            <PanelTitle>Create reusable room mapping</PanelTitle>
-            <GhostText>{isMappingLoading ? "Loading mappings..." : `${mappingTemplates.length} saved mappings / ${teamOptions.length} tournament teams`}</GhostText>
-          </PanelHeader>
-
-          <MappingToolbar>
-            <Input
-              value={mappingTemplateName}
-              onChange={(event) => setMappingTemplateName(event.target.value)}
-              placeholder="Mapping name"
-            />
-            <Button type="button" onClick={loadMappingTemplates} disabled={isMappingLoading || isMappingSaving}>
-              Refresh
-            </Button>
-            <Button type="button" onClick={addMappingRow} disabled={isMappingSaving}>
-              Add Room
-            </Button>
-            <Button type="button" onClick={saveMappings} disabled={isMappingSaving}>
-              {isMappingSaving ? "Saving..." : "Save Mapping"}
-            </Button>
-          </MappingToolbar>
-
-          <SavedMappingList>
-            {mappingTemplates.map((template) => (
-              <SavedMappingItem key={template.id}>
-                <span>{template.name} ({template.mappings.length})</span>
-                <IconButton
-                  type="button"
-                  title="Delete saved mapping template"
-                  onClick={() => deleteMappingTemplate(template)}
-                  disabled={isMappingSaving}
-                >
-                  <TrashIcon />
-                </IconButton>
-              </SavedMappingItem>
-            ))}
-          </SavedMappingList>
-
-          <Table>
-            <thead>
-              <tr>
-                <th>Room Team ID</th>
-                <th>Permanent Team</th>
-                <th>Team Tag</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mappingRows.map((row, index) => (
-                <tr key={`${row.roomTeamId}-${index}`}>
-                  <td>
-                    <Input
-                      value={row.roomTeamId}
-                      onChange={(event) => updateMappingRow(index, "roomTeamId", event.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <Select
-                      value={row.permanentTeamId}
-                      onChange={(event) => {
-                        const permanentTeamId = event.target.value;
-                        const selectedTeam = teamOptions.find((team) => team.teamId === permanentTeamId);
-                        setMappingRows((rows) =>
-                          rows.map((mapping, rowIndex) =>
-                            rowIndex === index
-                              ? {
-                                  ...mapping,
-                                  permanentTeamId,
-                                  teamName: selectedTeam?.teamName || "",
-                                  teamTag: selectedTeam?.teamTag || "",
-                                }
-                              : mapping,
-                          ),
-                        );
-                      }}
-                    >
-                      <option value="">Select team</option>
-                      {teamOptions.map((team) => (
-                        <option key={team.teamId} value={team.teamId}>
-                          {team.teamId} - {team.teamName || team.teamTag || "Unnamed"}
-                        </option>
-                      ))}
-                    </Select>
-                  </td>
-                  <td>
-                    <TeamTagValue>{row.teamTag || "-"}</TeamTagValue>
-                  </td>
-                  <td>
-                    <ActionRow>
-                      <IconButton type="button" title="Delete mapping row" onClick={() => removeMappingRow(index)}>
-                        <TrashIcon />
-                      </IconButton>
-                    </ActionRow>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Panel>
       </Shell>
     </Page>
   );
@@ -945,64 +594,6 @@ const Input = styled.input`
   color: var(--project-text-primary, #ffffff);
   padding: 0 10px;
   font: inherit;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  min-height: 38px;
-  box-sizing: border-box;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 6px;
-  background: var(--project-background, #0f172a);
-  color: var(--project-text-primary, #ffffff);
-  padding: 0 10px;
-  font: inherit;
-`;
-
-const TeamTagValue = styled.span`
-  display: inline-flex;
-  min-height: 32px;
-  align-items: center;
-  padding: 0 10px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.48);
-  color: var(--project-accent, #bfff00);
-  font-weight: 900;
-`;
-
-const MappingToolbar = styled.div`
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto auto auto;
-  gap: 10px;
-  margin-bottom: 14px;
-
-  @media (max-width: 760px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SavedMappingList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-`;
-
-const SavedMappingItem = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  max-width: 100%;
-  padding: 6px 8px 6px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 8px;
-  background: rgba(2, 6, 23, 0.42);
-
-  span {
-    overflow-wrap: anywhere;
-  }
 `;
 
 const Toolbar = styled.div`

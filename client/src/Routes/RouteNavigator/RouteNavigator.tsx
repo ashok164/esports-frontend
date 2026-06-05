@@ -147,12 +147,6 @@ const routeGroups: RouteGroup[] = [
         type: "Admin",
       },
       {
-        title: "Match Mappings",
-        path: "/match-team-mappings",
-        note: "View and delete saved room-to-team match mappings.",
-        type: "Admin",
-      },
-      {
         title: "View Weapons",
         path: "/view-weapons",
         note: "Review uploaded weapon IDs, names, and images.",

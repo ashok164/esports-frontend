@@ -1,19 +1,8 @@
 import http from "../../AxiosFile/axios";
 import {
-  APPLY_MATCH_TEAM_MAPPING_TEMPLATE,
-  CREATE_MATCH_TEAM_MAPPINGS,
-  CREATE_MAPPING_TEMPLATE,
   CREATE_GAME_DETAIL,
   DELETE_GAME_DETAIL,
-  DELETE_MAPPING_TEMPLATE,
-  DELETE_MATCH_TEAM_MAPPING,
-  DELETE_MATCH_TEAM_MAPPINGS,
-  GET_ALL_MATCH_TEAM_MAPPINGS,
   GET_GAME_DETAILS,
-  GET_MAPPING_TEMPLATES,
-  GET_MATCH_TEAM_MAPPINGS,
-  REPLACE_MATCH_TEAM_MAPPINGS,
-  UPDATE_MAPPING_TEMPLATE,
   UPDATE_GAME_DETAIL,
 } from "../../Routes/ApiRoutes/apiRoutes";
 import { GameDetail } from "../gameDetailsState";
@@ -23,7 +12,6 @@ const toPayload = (game: GameDetail) => ({
   roundName: game.roundName,
   phase: game.phase,
   matchId: game.matchId,
-  mappingTemplateId: game.mappingTemplateId || null,
   enabled: Boolean(game.enabled),
   resultEnabled: Boolean(game.resultEnabled),
   todaysResultEnabled: Boolean(game.todaysResultEnabled),
@@ -55,101 +43,5 @@ export const updateGameDetailApi = async (id: string | number, game: GameDetail)
 
 export const deleteGameDetailApi = async (id: string | number) => {
   const response = await http.delete(DELETE_GAME_DETAIL(id));
-  return response?.data;
-};
-
-export const getMatchTeamMappingsApi = async (matchId: string | number) => {
-  const response = await http.get(GET_MATCH_TEAM_MAPPINGS(matchId));
-  return response?.data?.data || [];
-};
-
-export const getAllMatchTeamMappingsApi = async () => {
-  const response = await http.get(GET_ALL_MATCH_TEAM_MAPPINGS);
-  return response?.data?.data || [];
-};
-
-export const replaceMatchTeamMappingsApi = async (
-  matchId: string | number,
-  mappings: Array<{
-    roomTeamId: string | number;
-    permanentTeamId: string | number;
-    teamName?: string;
-    teamTag?: string;
-    slotNumber?: number;
-  }>,
-) => {
-  const response = await http.put(REPLACE_MATCH_TEAM_MAPPINGS(matchId), {
-    mappings,
-  });
-  return response?.data;
-};
-
-export const createMatchTeamMappingsApi = async (
-  mappings: Array<{
-    matchId: string | number;
-    roomTeamId: string | number;
-    permanentTeamId: string | number;
-    teamName?: string;
-    teamTag?: string;
-  }>,
-) => {
-  const response = await http.post(CREATE_MATCH_TEAM_MAPPINGS, { mappings });
-  return response?.data;
-};
-
-export const deleteMatchTeamMappingApi = async (
-  matchId: string | number,
-  roomTeamId: string | number,
-) => {
-  const response = await http.delete(DELETE_MATCH_TEAM_MAPPING(matchId, roomTeamId));
-  return response?.data;
-};
-
-export const deleteMatchTeamMappingsApi = async (matchId: string | number) => {
-  const response = await http.delete(DELETE_MATCH_TEAM_MAPPINGS(matchId));
-  return response?.data;
-};
-
-export type MappingTemplatePayload = {
-  name: string;
-  mappings: Array<{
-    roomTeamId: string | number;
-    permanentTeamId: string | number;
-    teamName?: string;
-    teamTag?: string;
-    slotNumber?: number;
-  }>;
-};
-
-export const getMappingTemplatesApi = async () => {
-  const response = await http.get(GET_MAPPING_TEMPLATES);
-  return response?.data?.data || response?.data?.templates || response?.data || [];
-};
-
-export const createMappingTemplateApi = async (template: MappingTemplatePayload) => {
-  const response = await http.post(CREATE_MAPPING_TEMPLATE, template);
-  return response?.data?.data || response?.data?.template || response?.data?.mappingTemplate || response?.data;
-};
-
-export const updateMappingTemplateApi = async (
-  id: string | number,
-  template: MappingTemplatePayload,
-) => {
-  const response = await http.put(UPDATE_MAPPING_TEMPLATE(id), template);
-  return response?.data?.data || response?.data;
-};
-
-export const deleteMappingTemplateApi = async (id: string | number) => {
-  const response = await http.delete(DELETE_MAPPING_TEMPLATE(id));
-  return response?.data;
-};
-
-export const applyMappingTemplateToMatchApi = async (
-  matchId: string | number,
-  mappingTemplateId: string | number,
-) => {
-  const response = await http.post(APPLY_MATCH_TEAM_MAPPING_TEMPLATE(matchId), {
-    mappingTemplateId,
-  });
   return response?.data;
 };

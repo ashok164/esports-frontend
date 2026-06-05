@@ -104,26 +104,6 @@ export const UPDATE_GAME_DETAIL = (id: string | number) =>
   `/api/game-details/update/${id}`;
 export const DELETE_GAME_DETAIL = (id: string | number) =>
   `/api/game-details/delete/${id}`;
-export const GET_MATCH_TEAM_MAPPINGS = (matchId: string | number) =>
-  `/api/match-team-mappings/${matchId}`;
-export const GET_ALL_MATCH_TEAM_MAPPINGS = "/api/match-team-mappings";
-export const CREATE_MATCH_TEAM_MAPPINGS = "/api/match-team-mappings/create";
-export const REPLACE_MATCH_TEAM_MAPPINGS = (matchId: string | number) =>
-  `/api/match-team-mappings/${matchId}`;
-export const DELETE_MATCH_TEAM_MAPPING = (
-  matchId: string | number,
-  roomTeamId: string | number,
-) => `/api/match-team-mappings/${matchId}/${roomTeamId}`;
-export const DELETE_MATCH_TEAM_MAPPINGS = (matchId: string | number) =>
-  `/api/match-team-mappings/${matchId}`;
-export const GET_MAPPING_TEMPLATES = "/api/mapping-templates";
-export const CREATE_MAPPING_TEMPLATE = "/api/mapping-templates/save";
-export const UPDATE_MAPPING_TEMPLATE = (id: string | number) =>
-  `/api/mapping-templates/${id}`;
-export const DELETE_MAPPING_TEMPLATE = (id: string | number) =>
-  `/api/mapping-templates/${id}`;
-export const APPLY_MATCH_TEAM_MAPPING_TEMPLATE = (matchId: string | number) =>
-  `/api/match-team-mappings/${matchId}/apply-template`;
 export const GET_CIRCLE_ANALYSIS = "/api/circle-analysis";
 export const UPDATE_CIRCLE_ANALYSIS = "/api/circle-analysis";
 export const FETCH_MATCH_RESULT_DATA = "/api/match_stats/match_data";

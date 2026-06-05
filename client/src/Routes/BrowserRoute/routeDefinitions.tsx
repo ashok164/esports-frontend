@@ -15,7 +15,6 @@ import LastTeamNotification from "../../LastFourTeams/View/LastTeamNotification"
 import LandingView from "../../Landing/view";
 import LiveStandingsView from "../../LiveStandingsTable/View";
 import LoginView, { RegisterView } from "../../Auth/View";
-import MatchTeamMappingsView from "../../MatchTeamMappings/View";
 import MatchNumber from "../../MatchNumber/View";
 import MvpPage from "../../Result/view/MvpPage";
 import PlayersModeView from "../../PlayersMode/View";
@@ -69,7 +68,6 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/game-asset-upload", element: <GameAssetUploadView />, isProtected: true },
   { path: "/tournament-assets", element: <TournamentAssetsView />, isProtected: true },
   { path: "/game-details", element: <GameDetailsView />, isProtected: true },
-  { path: "/match-team-mappings", element: <MatchTeamMappingsView />, isProtected: true },
   { path: "/result-json-control", element: <ResultJsonControlView />, isProtected: true },
   { path: "/result-viewer", element: <ResultViewerPage />, isProtected: true },
   { path: "/result-mvp", element: <MvpPage />, isProtected: true },

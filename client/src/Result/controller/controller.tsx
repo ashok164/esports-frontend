@@ -248,9 +248,9 @@ const useResultController = () => {
       setStatus(
         matchIdList.length > 1 || activeTab !== "result"
           ? `Saved ${savedCount} realtime rows, then calculated ${localRows.length} team totals from ${matchIdList.length} match IDs.` +
-              (skippedCount ? ` ${skippedCount} rows skipped because mapping was missing.` : "")
+              (skippedCount ? ` ${skippedCount} rows skipped because team identity was not found.` : "")
           : `Saved ${savedCount} realtime rows, then loaded ${localRows.length} saved result rows from ${matchIdList.join(",")}.` +
-              (skippedCount ? ` ${skippedCount} rows skipped because mapping was missing.` : ""),
+              (skippedCount ? ` ${skippedCount} rows skipped because team identity was not found.` : ""),
       );
     } catch (err: any) {
       setError(err?.message || "Failed to load result data");
