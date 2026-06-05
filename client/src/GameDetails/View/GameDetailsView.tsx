@@ -4,7 +4,9 @@ import {
   createGameDetailApi,
   deleteGameDetailApi,
   getGameDetailsApi,
+  getRealtimeSettingsApi,
   updateGameDetailApi,
+  updateRealtimeSettingsApi,
 } from "../Repository/remote";
 import {
   GameDetail,
@@ -45,6 +47,7 @@ const GameDetailsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [overallRankingEnabled, setOverallRankingEnabled] = useState(false);
 
   const activeMatchIds = useMemo(
     () => games.filter((game) => game.enabled).map((game) => game.matchId).join(","),
@@ -89,6 +92,18 @@ const GameDetailsView: React.FC = () => {
   useEffect(() => {
     loadGames();
   }, [loadGames]);
+
+  useEffect(() => {
+    getRealtimeSettingsApi()
+      .then((settings) => {
+        setOverallRankingEnabled(Boolean(
+          settings?.overallRankingEnabled ?? settings?.overall_ranking_enabled,
+        ));
+      })
+      .catch((err) => {
+        console.warn("Could not load realtime settings.", err);
+      });
+  }, []);
 
   useEffect(() => {
     const refreshOnFocus = () => loadGames();
@@ -208,6 +223,17 @@ const GameDetailsView: React.FC = () => {
     await toggleGameFlag(game, "enabled");
   };
 
+  const toggleOverallRanking = async () => {
+    const nextValue = !overallRankingEnabled;
+    setOverallRankingEnabled(nextValue);
+    try {
+      await updateRealtimeSettingsApi(nextValue);
+    } catch (err: any) {
+      setOverallRankingEnabled(!nextValue);
+      setError(err?.message || "Could not update overall ranking.");
+    }
+  };
+
   const toggleGameFlag = async (game: GameDetail, field: keyof Pick<GameDetail, "enabled" | "resultEnabled" | "todaysResultEnabled" | "leagueStageResultEnabled">) => {
     const recordId = getGameRecordId(game);
     const nextGame = { ...game, [field]: !game[field] };
@@ -239,6 +265,17 @@ const GameDetailsView: React.FC = () => {
           <ActivePanel>
             <ActiveLabel>Enabled websocket match ids</ActiveLabel>
             <ActiveValue>{activeMatchIds || "No match enabled"}</ActiveValue>
+            <SettingRow>
+              <ActiveLabel>Overall ranking</ActiveLabel>
+              <Switch title="Rank across all tournament teams">
+                <input
+                  type="checkbox"
+                  checked={overallRankingEnabled}
+                  onChange={toggleOverallRanking}
+                />
+                <span />
+              </Switch>
+            </SettingRow>
             <ActiveGrid>
               <div>
                 <ActiveLabel>Result</ActiveLabel>
@@ -523,6 +560,16 @@ const ActiveValue = styled.div`
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.9rem;
   overflow-wrap: anywhere;
+`;
+
+const SettingRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
 `;
 
 const ActiveGrid = styled.div`

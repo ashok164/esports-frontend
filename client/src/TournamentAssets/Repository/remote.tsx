@@ -21,6 +21,14 @@ export type TournamentAsset = {
   filename?: string;
   created_at?: string;
   updated_at?: string;
+  read_only?: boolean;
+  readOnly?: boolean;
+  is_shared?: boolean;
+  isShared?: boolean;
+  source_tournament_name?: string;
+  sourceTournamentName?: string;
+  source_tournament_slug?: string;
+  sourceTournamentSlug?: string;
 };
 
 export const getTournamentAssetId = (asset: TournamentAsset) => String(asset.asset_id || asset.assetId || "");
@@ -33,6 +41,12 @@ export const getTournamentAssetUrl = (asset?: TournamentAsset | null) =>
 
 export const isTournamentAssetActive = (asset?: TournamentAsset | null) =>
   asset?.active === true || asset?.active === 1 || asset?.active === "1" || asset?.active === "true";
+
+export const isTournamentAssetReadOnly = (asset?: TournamentAsset | null) =>
+  Boolean(asset?.read_only || asset?.readOnly || asset?.is_shared || asset?.isShared);
+
+export const getTournamentAssetSourceName = (asset?: TournamentAsset | null) =>
+  String(asset?.source_tournament_name || asset?.sourceTournamentName || "");
 
 const getRows = (data: any) => {
   const rows = data?.data || data?.assets || data?.items || data?.records || data || [];

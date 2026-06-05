@@ -3,6 +3,7 @@ import {
   CREATE_TEAM_TABLE,
   DELETE_TEAM_DETAILS,
   GET_TEAM_DETAILS,
+  UPDATE_TEAM_PLAYING,
   UPDATE_TEAM_DETAILS,
 } from "../../Routes/ApiRoutes/apiRoutes";
 
@@ -33,6 +34,14 @@ export const updateTeamTableApi = async (id: string | number, data: FormData) =>
     },
   });
 
+  return response;
+};
+
+export const updateTeamPlayingApi = async (
+  id: string | number,
+  isPlaying: boolean,
+) => {
+  const response = await http.patch(UPDATE_TEAM_PLAYING(id), { isPlaying });
   return response;
 };
 

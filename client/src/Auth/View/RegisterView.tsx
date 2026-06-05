@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { registerAdmin } from "../Repository/remote";
-import { isAuthenticated, saveAuthSession } from "../Repository/authStorage";
+import { isAuthenticated } from "../Repository/authStorage";
 import {
   AuthLink,
   AuthPage,
@@ -17,6 +17,7 @@ import {
   SignalCard,
   SignalGrid,
   SubmitButton,
+  SuccessBanner,
 } from "./authStyles";
 
 const RegisterView: React.FC = () => {
@@ -27,6 +28,7 @@ const RegisterView: React.FC = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   if (isAuthenticated()) {
     return <Navigate to="/routes" replace />;
@@ -35,6 +37,7 @@ const RegisterView: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    setMessage("");
 
     if (!name.trim() || !username.trim() || !email.trim() || !password.trim()) {
       setError("Fill all register fields.");
@@ -50,16 +53,11 @@ const RegisterView: React.FC = () => {
         email: email.trim(),
         password,
       });
-      const token = response.token || response.accessToken || response.data?.token || response.data?.accessToken;
-      const user = response.user || response.data?.user;
-
-      if (token) {
-        saveAuthSession(token, user);
-        navigate("/routes", { replace: true });
-        return;
-      }
-
-      navigate("/login", { replace: true });
+      setMessage(
+        response?.message ||
+          "Registration submitted. Wait for an admin to approve your account.",
+      );
+      window.setTimeout(() => navigate("/login", { replace: true }), 1800);
     } catch (registerError: any) {
       setError(registerError?.response?.data?.message || "Register failed. Please check the backend API.");
     } finally {
@@ -98,6 +96,7 @@ const RegisterView: React.FC = () => {
           </FormHeader>
 
           {error && <ErrorBanner>{error}</ErrorBanner>}
+          {message && <SuccessBanner>{message}</SuccessBanner>}
 
           <Field>
             <label htmlFor="register-name">Name</label>

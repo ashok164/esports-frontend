@@ -147,6 +147,16 @@ export const ErrorBanner = styled.div`
   font-weight: 700;
 `;
 
+export const SuccessBanner = styled.div`
+  padding: 12px;
+  border: 1px solid rgba(var(--project-success-rgb, 34, 197, 94), 0.42);
+  border-radius: 8px;
+  background: rgba(var(--project-success-rgb, 34, 197, 94), 0.12);
+  color: var(--project-success, #22c55e);
+  font-size: 0.9rem;
+  font-weight: 700;
+`;
+
 export const Field = styled.div`
   display: grid;
   gap: 8px;

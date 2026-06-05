@@ -3,6 +3,7 @@ import {
   createTeamTableApi,
   deleteTeamTableApi,
   getTeamTableApi,
+  updateTeamPlayingApi,
   updateTeamTableApi,
 } from "../Repositary/remote";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +14,8 @@ export interface TeamRecord {
   _id?: number | string;
   team_id?: string | number;
   teamId?: string | number;
+  permanent_team_id?: string | number;
+  permanentTeamId?: string | number;
   team_name?: string;
   teamName?: string;
   short_tag?: string;
@@ -24,6 +27,8 @@ export interface TeamRecord {
   countryLogo?: string;
   countryLogoId?: string | number;
   countryLogoPath?: string;
+  is_playing?: boolean;
+  isPlaying?: boolean;
 }
 
 const useTeamRecordController = () => {
@@ -53,6 +58,10 @@ const useTeamRecordController = () => {
     formData.append(
       "shortTag",
       teamRecord.tag || teamRecord.shortTag || teamRecord.short_tag || ""
+    );
+    formData.append(
+      "isPlaying",
+      String(Boolean(teamRecord.isPlaying ?? teamRecord.is_playing ?? false)),
     );
 
     const teamLogoFile = extractFile(teamRecord.teamLogo);
@@ -215,6 +224,23 @@ const useTeamRecordController = () => {
     }
   };
 
+  const handleTogglePlaying = async (
+    recordId: string | number,
+    isPlaying: boolean,
+  ) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateTeamPlayingApi(recordId, isPlaying);
+      await loadTeams();
+    } catch (err: any) {
+      setError(err?.message || "Failed to update playing team");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleOpenTeamLogos = (team?: TeamRecord) => {
     const recordId = team ? getRecordId(team) : "";
     navigate(recordId ? `/team-logo?team=${recordId}` : "/team-logo");
@@ -225,6 +251,7 @@ const useTeamRecordController = () => {
     updateTeamTable: handleUpdateTeam,
     reorderTeamTable: handleReorderTeams,
     deleteTeamTable: handleDeleteTeam,
+    togglePlayingTeam: handleTogglePlaying,
     openTeamLogos: handleOpenTeamLogos,
     refreshTeams: loadTeams,
     teams,

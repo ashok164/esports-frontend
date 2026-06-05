@@ -59,7 +59,7 @@ const firstValue = (...values: any[]) =>
 
 const getTeamIdentityKeys = (team: any) =>
   [
-    firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId),
+    firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId),
     firstValue(team?.short_tag, team?.team_tag, team?.teamTag, team?.tag),
     firstValue(team?.team_name, team?.teamName, team?.name),
   ]
@@ -67,7 +67,7 @@ const getTeamIdentityKeys = (team: any) =>
     .filter(Boolean);
 
 const getPrimaryTeamId = (team: any, fallback: string | number) =>
-  firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId, fallback);
+  firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId, fallback);
 
 const getHistoricalPoints = (team: any) =>
   toNumber(firstValue(team?.historical_points, team?.historicalPoints, team?.total_points, team?.totalPoints, team?.points, 0));
@@ -215,7 +215,7 @@ export const mapTeamData = (
 ): Team[] => {
   const mapped = (data || []).map((team, teamIndex) => {
     const rawPlayers = team?.player_stats || team?.players || [];
-    const permanentTeamId = firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId, team?.team_name, teamIndex);
+    const permanentTeamId = firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId, team?.team_name, teamIndex);
     const roomTeamId = firstValue(team?.room_team_id, team?.roomTeamId, null);
     const backendRank = toNumber(team?.rank, 0);
     const isOverallRow =

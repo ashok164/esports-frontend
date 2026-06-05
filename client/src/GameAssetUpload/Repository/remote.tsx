@@ -9,6 +9,10 @@ export type AssetUploadRow = {
   description?: string;
   existingImageUrl?: string;
   image?: any;
+  readOnly?: boolean;
+  isShared?: boolean;
+  sourceTournamentName?: string;
+  sourceTournamentSlug?: string;
 };
 
 export type UploadProgressHandler = (progress: number) => void;
@@ -20,6 +24,10 @@ export type AssetGalleryRecord = {
   name: string;
   imageUrl: string;
   description?: string;
+  readOnly?: boolean;
+  isShared?: boolean;
+  sourceTournamentName?: string;
+  sourceTournamentSlug?: string;
 };
 
 const toImageUrl = (path: string) => {
@@ -90,6 +98,10 @@ const normalizeAssetRecord = (record: any, index: number): AssetGalleryRecord =>
       "Unnamed",
     imageUrl: toImageUrl(image),
     description: record?.description || record?.note || "",
+    readOnly: Boolean(record?.read_only || record?.readOnly || record?.is_shared || record?.isShared),
+    isShared: Boolean(record?.is_shared || record?.isShared),
+    sourceTournamentName: String(record?.source_tournament_name || record?.sourceTournamentName || ""),
+    sourceTournamentSlug: String(record?.source_tournament_slug || record?.sourceTournamentSlug || ""),
   };
 };
 

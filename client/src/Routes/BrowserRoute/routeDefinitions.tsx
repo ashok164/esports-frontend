@@ -29,6 +29,7 @@ import TeamEliminatedView from "../../TeamEliminated/View";
 import TeamRecordTable from "../../TeamRecordTable/View";
 import { FullTeamBannerView, NotificationTeamBannerView } from "../../TeamBanner/View";
 import TopFraggersPage from "../../Result/view/TopFraggersPage";
+import TournamentManagerView, { TournamentRolesView } from "../../Tournaments/View";
 import TournamentAssetsView from "../../TournamentAssets/View";
 import TournamentLogoView, { TournamentLogoBroadcastView } from "../../TournamentLogo/View";
 import ViewTeamLogo from "../../TeamLogo/View";
@@ -46,6 +47,8 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/login", element: <LoginView /> },
   { path: "/register", element: <RegisterView /> },
   { path: "/routes", element: <RouteNavigator />, isProtected: true },
+  { path: "/tournaments", element: <TournamentManagerView />, isProtected: true },
+  { path: "/roles", element: <TournamentRolesView />, isProtected: true },
   { path: "/broadcast-theme", element: <BroadcastThemeView />, isProtected: true },
   { path: "/live-standings", element: <LiveStandingsView />, isBroadcast: true },
   { path: "/players-mode", element: <PlayersModeView />, isBroadcast: true },

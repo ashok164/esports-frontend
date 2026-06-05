@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { getAuthUser } from "../../Auth/Repository/authStorage";
 import {
   TournamentAsset,
   createTournamentAssetApi,
   deleteTournamentAssetApi,
   getTournamentAssetId,
   getTournamentAssetName,
+  getTournamentAssetSourceName,
   getTournamentAssetUrl,
   getTournamentAssetsApi,
   isTournamentAssetActive,
+  isTournamentAssetReadOnly,
   updateTournamentAssetApi,
 } from "../Repository/remote";
 
@@ -32,6 +35,8 @@ const TournamentAssetsView: React.FC = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isAssetListExpanded, setIsAssetListExpanded] = useState(false);
+  const authUser = getAuthUser();
+  const canDeleteAssets = ["admin", "super_admin"].includes(authUser?.role || "");
 
   const sortedAssets = useMemo(
     () => [...assets].sort((left, right) => getTournamentAssetId(left).localeCompare(getTournamentAssetId(right))),
@@ -111,6 +116,7 @@ const TournamentAssetsView: React.FC = () => {
   };
 
   const startEdit = (asset: TournamentAsset) => {
+    if (isTournamentAssetReadOnly(asset)) return;
     setEditingId(asset.id);
     setEditingAssetId(getTournamentAssetId(asset));
     setEditingName(getTournamentAssetName(asset));
@@ -129,6 +135,11 @@ const TournamentAssetsView: React.FC = () => {
   };
 
   const handleUpdate = async (asset: TournamentAsset) => {
+    if (isTournamentAssetReadOnly(asset)) {
+      setError("Shared pulled assets are read-only in this tournament.");
+      return;
+    }
+
     const validationError = validate(editingAssetId, editingName, false, editingFile);
     if (validationError) {
       setError(validationError);
@@ -154,6 +165,11 @@ const TournamentAssetsView: React.FC = () => {
   };
 
   const handleDelete = async (asset: TournamentAsset) => {
+    if (isTournamentAssetReadOnly(asset)) {
+      setError("Shared pulled assets cannot be deleted from this tournament.");
+      return;
+    }
+
     if (!window.confirm(`Delete ${getTournamentAssetName(asset)}?`)) return;
 
     setIsSaving(true);
@@ -230,6 +246,8 @@ const TournamentAssetsView: React.FC = () => {
               sortedAssets.map((asset) => {
               const isEditing = editingId === asset.id;
               const imageUrl = getTournamentAssetUrl(asset);
+              const isReadOnly = isTournamentAssetReadOnly(asset);
+              const sourceName = getTournamentAssetSourceName(asset);
 
               return (
                 <AssetCard key={asset.id}>
@@ -260,6 +278,7 @@ const TournamentAssetsView: React.FC = () => {
                           <Muted>No image link</Muted>
                         )}
                         <Badge $active={isTournamentAssetActive(asset)}>{isTournamentAssetActive(asset) ? "Active" : "Disabled"}</Badge>
+                        {isReadOnly && <ReadOnlyBadge>Shared{sourceName ? `: ${sourceName}` : ""}</ReadOnlyBadge>}
                       </>
                     )}
                   </CardBody>
@@ -271,8 +290,10 @@ const TournamentAssetsView: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <Button type="button" $variant="ghost" onClick={() => startEdit(asset)} disabled={isSaving}>Edit</Button>
-                        <Button type="button" $variant="danger" onClick={() => handleDelete(asset)} disabled={isSaving}>Delete</Button>
+                        <Button type="button" $variant="ghost" onClick={() => startEdit(asset)} disabled={isSaving || isReadOnly}>Edit</Button>
+                        {canDeleteAssets && (
+                          <Button type="button" $variant="danger" onClick={() => handleDelete(asset)} disabled={isSaving || isReadOnly}>Delete</Button>
+                        )}
                       </>
                     )}
                   </Actions>
@@ -515,6 +536,12 @@ const Badge = styled.span<{ $active: boolean }>`
   font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
+`;
+
+const ReadOnlyBadge = styled(Badge).attrs({ $active: false })`
+  border-color: var(--project-secondary, #38bdf8);
+  color: var(--project-secondary, #38bdf8);
+  background: rgba(56, 189, 248, 0.12);
 `;
 
 const Actions = styled.div`

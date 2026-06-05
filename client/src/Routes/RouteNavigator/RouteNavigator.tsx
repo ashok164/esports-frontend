@@ -1,7 +1,12 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
 import { clearAuthSession } from "../../Auth/Repository/authStorage";
+import {
+  getSelectedTournamentName,
+  getSelectedTournamentSlug,
+  getTournamentPath,
+} from "../../Tournaments/tournamentState";
 
 type RouteItem = {
   title: string;
@@ -128,6 +133,18 @@ const routeGroups: RouteGroup[] = [
       badge: "linear-gradient(145deg, rgba(245, 158, 11, 0.34), rgba(180, 83, 9, 0.25))",
     },
     routes: [
+      {
+        title: "Tournaments",
+        path: "/tournaments",
+        note: "Select, open, edit, and delete available tournaments.",
+        type: "Admin",
+      },
+      {
+        title: "Roles",
+        path: "/roles",
+        note: "Manage system roles and tournament access.",
+        type: "Admin",
+      },
       {
         title: "Game Asset Upload",
         path: "/game-asset-upload",
@@ -319,6 +336,9 @@ const broadcastGroups = routeGroups
 
 const RouteNavigator: React.FC = () => {
   const navigate = useNavigate();
+  const params = useParams();
+  const selectedTournamentSlug = params.tournamentSlug || getSelectedTournamentSlug();
+  const selectedTournamentName = getSelectedTournamentName() || selectedTournamentSlug;
 
   const handleLogout = () => {
     clearAuthSession();
@@ -343,10 +363,17 @@ const RouteNavigator: React.FC = () => {
 
         <Header>
           <TitleBlock>
+            <Breadcrumbs aria-label="Breadcrumb">
+              <BreadcrumbLink to="/tournaments">Tournaments</BreadcrumbLink>
+              <BreadcrumbSeparator>/</BreadcrumbSeparator>
+              <BreadcrumbCurrent>{selectedTournamentName}</BreadcrumbCurrent>
+              <BreadcrumbSeparator>/</BreadcrumbSeparator>
+              <BreadcrumbCurrent>Routes</BreadcrumbCurrent>
+            </Breadcrumbs>
             <Kicker>Tournament Control Deck</Kicker>
-            <Title>Route Arena</Title>
+            <Title>{selectedTournamentName}</Title>
             <Subtitle>
-              Jump between admin controls in this tab, or open broadcast overlays in clean production windows.
+              Route Arena for {selectedTournamentSlug}. Admin controls and broadcast overlays are isolated to this tournament.
             </Subtitle>
           </TitleBlock>
           <Stats>
@@ -383,7 +410,7 @@ const RouteNavigator: React.FC = () => {
                   {group.routes.map((route) => (
                     <RouteChip
                       key={route.path}
-                      to={route.path}
+                      to={route.path === "/tournaments" ? "/tournaments" : getTournamentPath(route.path, selectedTournamentSlug)}
                       title={route.note}
                       $variant="admin"
                       $accent={group.accent}
@@ -420,7 +447,7 @@ const RouteNavigator: React.FC = () => {
                   {group.routes.map((route) => (
                     <AnchorChip
                       key={route.path}
-                      href={route.path}
+                      href={getTournamentPath(route.path, selectedTournamentSlug)}
                       target="_blank"
                       rel="noreferrer"
                       title={route.note}
@@ -591,6 +618,36 @@ const Subtitle = styled.p`
   color: var(--project-text-secondary, #a8b3c7);
   font-size: clamp(1rem, 1.4vw, 1.12rem);
   line-height: 1.6;
+`;
+
+const Breadcrumbs = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--project-text-secondary, #94a3b8);
+  font-size: 0.86rem;
+  font-weight: 800;
+`;
+
+const BreadcrumbLink = styled(Link)`
+  color: var(--project-text-secondary, #94a3b8);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--project-secondary, #24d6ff);
+  }
+`;
+
+const BreadcrumbSeparator = styled.span`
+  color: rgba(145, 161, 184, 0.55);
+`;
+
+const BreadcrumbCurrent = styled.span`
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--project-text-primary, #f7fbff);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const Stats = styled.div`

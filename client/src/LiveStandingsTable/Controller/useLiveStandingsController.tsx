@@ -4,38 +4,12 @@ import { createStandingsSocket } from "../../GlobalWebsocket/remote";
 import {
   GAME_DETAILS_UPDATED_EVENT,
   getActiveGameDetails,
-  getLeagueStageResultGameDetails,
-  getResultGameDetails,
 } from "../../GameDetails/gameDetailsState";
 import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
-import { getResultsByMatchIdsApi } from "../../Result/repository/remote";
 
 const RECONNECT_DELAY_MS = 500;
 const WS_STALE_LIMIT_MS = 5000;
 const TEAM_IDENTITY_MATCHES_STORAGE_KEY = "team_identity_matches";
-
-const splitMatchIds = (matchIds: string) =>
-  matchIds
-    .split(",")
-    .map((matchId) => matchId.trim())
-    .filter(Boolean);
-
-const uniqueMatchIds = (matchIds: string[]) => Array.from(new Set(matchIds));
-
-const collectHistoricalRows = (payload: any) => {
-  const data = payload?.data || payload;
-  const rows =
-    payload?.overall ||
-    data?.overall ||
-    data?.overallLeaderboard ||
-    data?.totalResults ||
-    data?.total_results ||
-    data?.results ||
-    data?.standings ||
-    data;
-
-  return Array.isArray(rows) ? rows : [];
-};
 
 const collectLiveRows = (result: any) => {
   const source =
@@ -116,7 +90,7 @@ const minimizeTeam = (team: any) => {
       : [];
 
   return {
-    team_id: firstValue(team?.team_id, team?.permanent_team_id, team?.teamId, team?.permanentTeamId),
+    team_id: firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId),
     room_team_id: firstValue(team?.room_team_id, team?.roomTeamId, null),
     team_name: firstValue(team?.team_name, team?.teamName, team?.name),
     short_tag: firstValue(team?.short_tag, team?.teamTag, team?.tag),
@@ -165,37 +139,22 @@ const useLiveStandingsController = () => {
 
   /* ================= UPDATE ================= */
   const loadHistoricalRows = useCallback(async () => {
-    const resultIds = uniqueMatchIds([
-      ...splitMatchIds(getLeagueStageResultGameDetails().matchIds),
-      ...splitMatchIds(getResultGameDetails().matchIds),
-    ]);
-
-    const [teams, resultPayload] = await Promise.all([
-      getTeamTableApi(),
-      resultIds.length > 0 ? getResultsByMatchIdsApi(resultIds) : Promise.resolve(null),
-    ]);
+    const teams = await getTeamTableApi();
 
     const teamRows = Array.isArray(teams) ? teams : [];
-    const resultRows = collectHistoricalRows(resultPayload);
-    const resultByTeamId = new Map(
-      resultRows
-        .map((row: any) => [
-          String(row?.teamId ?? row?.team_id ?? row?.permanentTeamId ?? row?.permanent_team_id ?? ""),
-          row,
-        ] as const)
-        .filter(([teamId]) => teamId),
-    );
 
     historicalRowsRef.current = teamRows.map((team: any) => {
-      const teamId = String(team?.teamId ?? team?.team_id ?? "");
+      const teamId = String(
+        team?.permanentTeamId ?? team?.permanent_team_id ?? team?.teamId ?? team?.team_id ?? "",
+      );
       return {
         ...team,
-        ...(resultByTeamId.get(teamId) || {}),
         team_id: teamId,
         team_name: team?.team_name ?? team?.teamName,
         short_tag: team?.short_tag ?? team?.shortTag ?? team?.teamTag ?? team?.tag,
         team_logo: team?.team_logo ?? team?.teamLogo,
         country_logo: team?.country_logo ?? team?.countryLogo,
+        is_playing: Boolean(team?.is_playing ?? team?.isPlaying ?? false),
       };
     });
   }, []);
@@ -232,9 +191,24 @@ const useLiveStandingsController = () => {
     );
   }, [publishStandings]);
 
+  const publishSelectedTeamRows = useCallback(() => {
+    const selectedRows = historicalRowsRef.current.filter((team: any) =>
+      Boolean(team?.is_playing ?? team?.isPlaying),
+    );
+    const mappedData = mapTeamData(selectedRows.map(minimizeTeam), previousStandingsRef.current);
+    previousStandingsRef.current = mappedData;
+    publishStandings(mappedData.filter((team) => team.isPlaying));
+  }, [publishStandings]);
+
   /* ================= CONNECT ================= */
   const connect = useCallback(() => {
     if (!isMountedRef.current) return;
+
+    if (!String(matchId || "").trim()) {
+      socketRef.current?.close();
+      publishSelectedTeamRows();
+      return;
+    }
 
     const currentConnectionId = ++connectionIdRef.current;
 
@@ -282,7 +256,7 @@ const useLiveStandingsController = () => {
 
       reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
     };
-  }, [matchId, updateStandings]);
+  }, [matchId, publishSelectedTeamRows, updateStandings]);
 
   useEffect(() => {
     const handleGameDetailsChange = () => {
@@ -305,10 +279,10 @@ const useLiveStandingsController = () => {
   useEffect(() => {
     isMountedRef.current = true;
 
-    connect();
-
     loadHistoricalRows().catch((err) => {
       console.warn("Failed to load historical leaderboard rows.", err);
+    }).finally(() => {
+      connect();
     });
 
     const interval = setInterval(() => {

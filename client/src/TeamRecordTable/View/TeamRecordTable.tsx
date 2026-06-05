@@ -7,6 +7,7 @@ const TeamRecordTable = () => {
     updateTeamTable,
     reorderTeamTable,
     deleteTeamTable,
+    togglePlayingTeam,
     openTeamLogos,
     teams,
     countryLogos,
@@ -21,6 +22,7 @@ const TeamRecordTable = () => {
         updateTeamTable={updateTeamTable}
         reorderTeamTable={reorderTeamTable}
         deleteTeamTable={deleteTeamTable}
+        togglePlayingTeam={togglePlayingTeam}
         openTeamLogos={openTeamLogos}
         teams={teams}
         countryLogos={countryLogos}

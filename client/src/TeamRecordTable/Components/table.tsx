@@ -17,6 +17,7 @@ type TeamRow = {
   countryLogoPath?: string;
   existingTeamLogo?: string;
   existingCountryLogo?: string;
+  isPlaying?: boolean;
 };
 
 type TeamFormValues = {
@@ -28,6 +29,7 @@ type TeamFormTableProps = {
   updateTeamTable: (id: string | number, data: TeamRow) => Promise<void>;
   reorderTeamTable: (rows: TeamRow[]) => Promise<void>;
   deleteTeamTable: (id: string | number) => Promise<void>;
+  togglePlayingTeam: (id: string | number, isPlaying: boolean) => Promise<void>;
   openTeamLogos: (team?: TeamRecord) => void;
   teams?: TeamRecord[];
   countryLogos?: CountryLogo[];
@@ -47,6 +49,7 @@ const mapApiTeamToRow = (team: TeamRecord): TeamRow => ({
   countryLogoPath: "",
   existingTeamLogo: team.team_logo || team.teamLogo || "",
   existingCountryLogo: team.country_logo || team.countryLogo || "",
+  isPlaying: Boolean(team.is_playing ?? team.isPlaying ?? false),
 });
 
 const getFileName = (fileField: any) => {
@@ -65,6 +68,7 @@ const toTeamRecord = (row: TeamRow): TeamRecord => ({
   short_tag: row.tag,
   team_logo: row.existingTeamLogo,
   country_logo: row.existingCountryLogo,
+  is_playing: Boolean(row.isPlaying),
 });
 
 const getLogoUrl = (logo?: CountryLogo) => logo?.countryLogo || "";
@@ -364,6 +368,56 @@ const Muted = styled.span`
   white-space: nowrap;
 `;
 
+const Switch = styled.label`
+  position: relative;
+  display: inline-flex;
+  width: 2.65rem;
+  height: 1.45rem;
+  align-items: center;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  span {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background: #334155;
+    border: 1px solid var(--project-border, #475569);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  span::after {
+    content: "";
+    position: absolute;
+    top: 0.22rem;
+    left: 0.24rem;
+    width: 0.98rem;
+    height: 0.98rem;
+    border-radius: 999px;
+    background: #f8fafc;
+    transition: transform 0.15s ease;
+  }
+
+  input:checked + span {
+    background: var(--project-success, #16a34a);
+    border-color: var(--project-success, #22c55e);
+  }
+
+  input:checked + span::after {
+    transform: translateX(1.14rem);
+  }
+
+  input:disabled + span {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`;
+
 const TeamName = styled.button`
   display: block;
   width: 100%;
@@ -544,6 +598,7 @@ export default function TeamFormTable({
   updateTeamTable,
   reorderTeamTable,
   deleteTeamTable,
+  togglePlayingTeam,
   openTeamLogos,
   teams = [],
   countryLogos = [],
@@ -595,6 +650,7 @@ export default function TeamFormTable({
       countryLogoPath: "",
       existingTeamLogo: "",
       existingCountryLogo: "",
+      isPlaying: false,
     });
     setEditingRows((prev) => ({ ...prev, [fields.length]: true }));
   };
@@ -780,10 +836,11 @@ export default function TeamFormTable({
                     <tr>
                       <th style={{ width: "7%", textAlign: "center" }}>Drag</th>
                       <th style={{ width: "11%" }}>Team ID</th>
-                      <th style={{ width: "20%" }}>Team Name</th>
+                      <th style={{ width: "18%" }}>Team Name</th>
                       <th style={{ width: "8%" }}>Tag</th>
-                      <th style={{ width: "22%" }}>Team Logo</th>
-                      <th style={{ width: "22%" }}>Country Logo</th>
+                      <th style={{ width: "19%" }}>Team Logo</th>
+                      <th style={{ width: "19%" }}>Country Logo</th>
+                      <th style={{ width: "8%", textAlign: "center" }}>Playing</th>
                       <th style={{ width: "12%", textAlign: "right" }}>Actions</th>
                     </tr>
                   </TableHead>
@@ -940,6 +997,26 @@ export default function TeamFormTable({
                               <Muted>{selectedCountryLogo?.name || (selectedCountryLogoUrl ? "Selected" : "No flag")}</Muted>
                             </LogoPreview>
                           )}
+                        </TableCell>
+
+                        <TableCell data-label="Playing" style={{ textAlign: "center" }}>
+                          <Switch title={row.isPlaying ? "Playing team" : "Not playing"}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(row.isPlaying)}
+                              disabled={isSaving}
+                              onChange={async (event) => {
+                                const checked = event.target.checked;
+                                setValue(`teams.${index}.isPlaying`, checked, {
+                                  shouldDirty: true,
+                                });
+                                if (row.recordId) {
+                                  await togglePlayingTeam(row.recordId, checked);
+                                }
+                              }}
+                            />
+                            <span />
+                          </Switch>
                         </TableCell>
 
                         <TableCell data-label="Actions">

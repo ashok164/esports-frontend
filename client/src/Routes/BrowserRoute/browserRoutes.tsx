@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
 import {
   getBroadcastDisplaySettings,
@@ -11,14 +11,48 @@ import {
 } from "../../Theme/projectTheme";
 import { clearAuthSession, isAuthenticated, saveAuthUser } from "../../Auth/Repository/authStorage";
 import { getCurrentUser } from "../../Auth/Repository/remote";
+import {
+  getSelectedTournamentName,
+  getTournamentPath,
+  normalizeTournamentSlug,
+  setSelectedTournamentSlug,
+  TOURNAMENT_ROUTE_PREFIX,
+} from "../../Tournaments/tournamentState";
 import { appRouteDefinitions, broadcastRoutePaths } from "./routeDefinitions";
+
+const getRoutePathWithoutTournament = (pathname: string) => {
+  const match = pathname.match(/^\/tournaments\/[^/]+(\/.*)?$/);
+  return match ? match[1] || "/routes" : pathname;
+};
+
+const getRouteTournamentSlug = (pathname: string) => {
+  const match = pathname.match(/^\/tournaments\/([^/]+)/);
+  return match ? normalizeTournamentSlug(match[1]) : undefined;
+};
+
+const getRouteLabel = (pathname: string) => {
+  const scopedPathname = getRoutePathWithoutTournament(pathname);
+  const route = appRouteDefinitions.find((definition) => definition.path === scopedPathname);
+  if (scopedPathname === "/tournaments") return "Tournaments";
+  if (scopedPathname === "/routes") return "Routes";
+  return route?.path
+    .replace(/^\//, "")
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ") || "Tournament";
+};
+
+const withTournamentRoute = (path: string) =>
+  path === "/tournaments" ? "/tournaments/:tournamentSlug" : `/tournaments/:tournamentSlug${path}`;
 
 const ThemeRouteScope: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
 
   React.useEffect(() => {
-    const isBroadcastRoute = broadcastRoutePaths.includes(location.pathname);
-    const isLiveStandingsRoute = location.pathname === "/live-standings";
+    const scopedPathname = getRoutePathWithoutTournament(location.pathname);
+    const isBroadcastRoute = broadcastRoutePaths.includes(scopedPathname);
+    const isLiveStandingsRoute = scopedPathname === "/live-standings";
 
     document.body.dataset.broadcastRoute = String(isBroadcastRoute);
     document.body.dataset.liveStandingsRoute = String(isLiveStandingsRoute);
@@ -32,10 +66,26 @@ const ThemeRouteScope: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
+const TournamentSlugScope: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const params = useParams();
+
+  React.useEffect(() => {
+    if (params.tournamentSlug) {
+      setSelectedTournamentSlug(params.tournamentSlug);
+    }
+  }, [params.tournamentSlug]);
+
+  return children;
+};
+
 const AdminPageShell: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const showRoutesLink = location.pathname !== "/routes";
+  const scopedPathname = getRoutePathWithoutTournament(location.pathname);
+  const scopedTournamentSlug = getRouteTournamentSlug(location.pathname);
+  const tournamentName = getSelectedTournamentName() || scopedTournamentSlug || "";
+  const routeLabel = getRouteLabel(location.pathname);
+  const showRoutesLink = scopedPathname !== "/routes";
 
   const handleLogout = () => {
     clearAuthSession();
@@ -45,14 +95,29 @@ const AdminPageShell: React.FC<{ children: React.ReactElement }> = ({ children }
   return (
     <AdminShell>
       <AdminTopBar>
-        {showRoutesLink ? (
-          <AdminHomeLink to="/routes" title="Back to route navigator">
-            <AdminHomeMark aria-hidden="true">R</AdminHomeMark>
-            <span>Routes</span>
-          </AdminHomeLink>
-        ) : (
-          <AdminTopLabel>Tournament Control</AdminTopLabel>
-        )}
+        <AdminLeft>
+          {showRoutesLink ? (
+            <AdminHomeLink to={getTournamentPath("/routes", scopedTournamentSlug)} title="Back to route navigator">
+              <AdminHomeMark aria-hidden="true">R</AdminHomeMark>
+              <span>Routes</span>
+            </AdminHomeLink>
+          ) : (
+            <AdminTopLabel>Tournament Control</AdminTopLabel>
+          )}
+          <Breadcrumbs aria-label="Breadcrumb">
+            <BreadcrumbLink to="/tournaments">Tournaments</BreadcrumbLink>
+            {tournamentName && (
+              <>
+                <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                <BreadcrumbLink to={getTournamentPath("/routes", scopedTournamentSlug)}>
+                  {tournamentName}
+                </BreadcrumbLink>
+              </>
+            )}
+            <BreadcrumbSeparator>/</BreadcrumbSeparator>
+            <BreadcrumbCurrent>{routeLabel}</BreadcrumbCurrent>
+          </Breadcrumbs>
+        </AdminLeft>
         <AdminLogoutButton type="button" onClick={handleLogout}>
           Logout
         </AdminLogoutButton>
@@ -138,31 +203,45 @@ const App: React.FC = () => {
     <Router>
       <GlobalDisplayStyles />
       <Routes>
-        {appRouteDefinitions.map((route) => {
-          const usesBroadcastTheme =
-            route.path === "/broadcast-theme" ||
-            route.isBroadcast === true;
-          const routeElement = route.isProtected ? (
-            <ProtectedRoute withShell={route.path !== "/routes"}>{route.element}</ProtectedRoute>
-          ) : (
-            route.element
-          );
+        {appRouteDefinitions.flatMap((route) => {
+          const routeVariants =
+            route.path === "/" || route.path === "/login" || route.path === "/register"
+              ? [route]
+              : [route, { ...route, path: withTournamentRoute(route.path) }];
 
-          return (
-            <Route
-              key={route.path}
-              path={route.path}
-              element={
-                usesBroadcastTheme ? (
-                  <ProjectThemeProvider>
-                    <ThemeRouteScope>{routeElement}</ThemeRouteScope>
-                  </ProjectThemeProvider>
-                ) : (
-                  routeElement
-                )
-              }
-            />
-          );
+          return routeVariants.map((routeVariant) => {
+            const isTournamentScoped = routeVariant.path.startsWith(
+              `${TOURNAMENT_ROUTE_PREFIX}/:tournamentSlug`,
+            );
+            const usesBroadcastTheme =
+              route.path === "/broadcast-theme" || routeVariant.isBroadcast === true;
+            const innerElement = isTournamentScoped ? (
+              <TournamentSlugScope>{routeVariant.element}</TournamentSlugScope>
+            ) : (
+              routeVariant.element
+            );
+            const routeElement = routeVariant.isProtected ? (
+              <ProtectedRoute withShell={route.path !== "/routes"}>{innerElement}</ProtectedRoute>
+            ) : (
+              innerElement
+            );
+
+            return (
+              <Route
+                key={routeVariant.path}
+                path={routeVariant.path}
+                element={
+                  usesBroadcastTheme ? (
+                    <ProjectThemeProvider>
+                      <ThemeRouteScope>{routeElement}</ThemeRouteScope>
+                    </ProjectThemeProvider>
+                  ) : (
+                    routeElement
+                  )
+                }
+              />
+            );
+          });
         })}
       </Routes>
     </Router>
@@ -204,6 +283,19 @@ const AdminTopBar = styled.nav`
   backdrop-filter: blur(14px);
 `;
 
+const AdminLeft = styled.div`
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  @media (max-width: 820px) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+`;
+
 const AdminHomeLink = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -241,6 +333,41 @@ const AdminTopLabel = styled.div`
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
+`;
+
+const Breadcrumbs = styled.div`
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--project-text-secondary, #94a3b8);
+  font-size: 0.84rem;
+  font-weight: 800;
+`;
+
+const BreadcrumbLink = styled(Link)`
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--project-text-secondary, #94a3b8);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--project-secondary, #38bdf8);
+  }
+`;
+
+const BreadcrumbSeparator = styled.span`
+  color: rgba(148, 163, 184, 0.55);
+`;
+
+const BreadcrumbCurrent = styled.span`
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--project-text-primary, #ffffff);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AdminLogoutButton = styled.button`

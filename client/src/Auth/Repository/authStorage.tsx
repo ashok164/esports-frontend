@@ -7,6 +7,14 @@ export type AuthUser = {
   username?: string;
   email?: string;
   role?: string;
+  isActive?: boolean;
+  tournaments?: Array<{
+    id?: string | number;
+    name?: string;
+    slug?: string;
+    domain?: string;
+    role?: string;
+  }>;
 };
 
 export const getAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);

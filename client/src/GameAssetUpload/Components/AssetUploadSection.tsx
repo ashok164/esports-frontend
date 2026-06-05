@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { getAuthUser } from "../../Auth/Repository/authStorage";
 import { AssetGalleryRecord, AssetUploadRow } from "../Repository/remote";
 import useGameAssetGalleryController from "../Controller/useGameAssetGalleryController";
 import useGameAssetUploadController from "../Controller/useGameAssetUploadController";
@@ -42,6 +43,10 @@ const rowFromRecord = (record: AssetGalleryRecord): AssetUploadRow => ({
   description: record.description || "",
   existingImageUrl: record.imageUrl || "",
   image: null,
+  readOnly: Boolean(record.readOnly),
+  isShared: Boolean(record.isShared),
+  sourceTournamentName: record.sourceTournamentName || "",
+  sourceTournamentSlug: record.sourceTournamentSlug || "",
 });
 
 const DeleteIcon = () => (
@@ -107,6 +112,8 @@ const AssetUploadSection = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+  const authUser = getAuthUser();
+  const canDeleteAssets = ["admin", "super_admin"].includes(authUser?.role || "");
   const { deleteAsset, error, isSaving, saveAsset, saveAssets, successMessage, uploadProgress } =
     useGameAssetUploadController({ createUrl, updateUrl, deleteUrl });
   const {
@@ -206,6 +213,7 @@ const AssetUploadSection = ({
     const row = rows[index];
 
     if (row.operation === "update" && row.recordId) {
+      if (row.readOnly) return;
       await deleteAsset(row.recordId);
       await refreshRecords();
       return;
@@ -230,7 +238,7 @@ const AssetUploadSection = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const activeRows = rows.filter((row) => !isRowEmpty(row));
+    const activeRows = rows.filter((row) => !row.readOnly && !isRowEmpty(row));
     const invalidRows = activeRows.filter((row) => {
       if (row.operation === "update") return !row.recordId || !row.name.trim() || !row.code.trim();
       return !getFileName(row.image) || !row.name.trim() || !row.code.trim();
@@ -283,6 +291,11 @@ const AssetUploadSection = ({
 
     if (row.operation === "update" && !row.recordId) {
       setFormError("Update rows need a record ID before saving.");
+      return;
+    }
+
+    if (row.readOnly) {
+      setFormError("Shared pulled assets are read-only in this tournament.");
       return;
     }
 
@@ -383,7 +396,7 @@ const AssetUploadSection = ({
                 <FileInput
                   type="file"
                   accept="image/*"
-                  disabled={isSaving}
+                  disabled={isSaving || row.readOnly}
                   onChange={(event) => updateRow(index, { image: event.target.files })}
                 />
                 <FileName>{getFileName(row.image) || (row.existingImageUrl ? "Uploaded image" : "No image selected")}</FileName>
@@ -395,7 +408,7 @@ const AssetUploadSection = ({
                     <Label>Mode</Label>
                     <Select
                       value={row.operation || "create"}
-                      disabled={isSaving}
+                      disabled={isSaving || row.readOnly}
                       onChange={(event) =>
                         updateRow(index, {
                           operation: event.target.value as "create" | "update",
@@ -412,7 +425,7 @@ const AssetUploadSection = ({
                     <Input
                       value={row.recordId || ""}
                       placeholder="Only for update"
-                      disabled={isSaving || row.operation !== "update"}
+                      disabled={isSaving || row.operation !== "update" || row.readOnly}
                       onChange={(event) => updateRow(index, { recordId: event.target.value })}
                     />
                   </FieldGroup>
@@ -424,7 +437,7 @@ const AssetUploadSection = ({
                     <Input
                       value={row.name}
                       placeholder={nameLabel}
-                      disabled={isSaving}
+                      disabled={isSaving || row.readOnly}
                       onChange={(event) => updateRow(index, { name: event.target.value })}
                     />
                   </FieldGroup>
@@ -434,7 +447,7 @@ const AssetUploadSection = ({
                     <Input
                       value={row.code}
                       placeholder={codeLabel}
-                      disabled={isSaving}
+                      disabled={isSaving || row.readOnly}
                       onChange={(event) => updateRow(index, { code: event.target.value })}
                     />
                   </FieldGroup>
@@ -444,7 +457,7 @@ const AssetUploadSection = ({
                     <Input
                       value={row.description || ""}
                       placeholder="Optional"
-                      disabled={isSaving}
+                      disabled={isSaving || row.readOnly}
                       onChange={(event) => updateRow(index, { description: event.target.value })}
                     />
                   </FieldGroup>
@@ -455,6 +468,8 @@ const AssetUploadSection = ({
                 <StatusCell>
                   {successMessage
                     ? "Uploaded"
+                    : row.readOnly
+                      ? `Shared${row.sourceTournamentName ? `: ${row.sourceTournamentName}` : ""}`
                     : isSaving
                       ? "Uploading"
                       : getFileName(row.image) || row.existingImageUrl
@@ -466,22 +481,24 @@ const AssetUploadSection = ({
                     type="button"
                     $variant="success"
                     onClick={() => handleSaveRow(index)}
-                    disabled={isSaving}
+                    disabled={isSaving || row.readOnly}
                     title="Save row"
                     aria-label={`Save ${row.name || getFileName(row.image) || "asset"} row`}
                   >
                     <SaveIcon />
                   </IconButton>
-                  <IconButton
-                    type="button"
-                    $variant="danger"
-                    onClick={() => handleDeleteRow(index)}
-                    disabled={isSaving}
-                    title="Delete row"
-                    aria-label={`Delete ${row.name || getFileName(row.image) || "asset"} row`}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  {canDeleteAssets && (
+                    <IconButton
+                      type="button"
+                      $variant="danger"
+                      onClick={() => handleDeleteRow(index)}
+                      disabled={isSaving || row.readOnly}
+                      title="Delete row"
+                      aria-label={`Delete ${row.name || getFileName(row.image) || "asset"} row`}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  )}
                 </RowActions>
               </RowSide>
             </UploadRow>

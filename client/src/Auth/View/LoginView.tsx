@@ -12,7 +12,7 @@ const LoginView: React.FC = () => {
   const [error, setError] = useState("");
 
   if (isAuthenticated()) {
-    return <Navigate to="/routes" replace />;
+    return <Navigate to="/tournaments" replace />;
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -40,7 +40,7 @@ const LoginView: React.FC = () => {
       }
 
       saveAuthSession(token, user);
-      navigate("/routes", { replace: true });
+      navigate("/tournaments", { replace: true });
     } catch (loginError: any) {
       setError(loginError?.response?.data?.message || "Login failed. Check your credentials.");
     } finally {

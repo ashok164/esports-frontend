@@ -1,11 +1,18 @@
 import http from "../AxiosFile/axios";
 import * as ROUTES from "../Routes/ApiRoutes/apiRoutes";
+import { getSelectedTournamentSlug } from "../Tournaments/tournamentState";
+
+const getWebSocketBaseUrl = () => {
+  const apiBaseUrl = ROUTES.API_BASE_URL.replace(/\/+$/, "");
+  return apiBaseUrl.replace(/^https:/i, "wss:").replace(/^http:/i, "ws:");
+};
 
 /* ================= REALTIME REST ================= */
 
 export const fetchRealTimeData = async (matchId: string | number) => {
   try {
-    const response = await http.get(`${ROUTES.REAL_TIME_API}/${matchId}`);
+    const tournamentSlug = getSelectedTournamentSlug();
+    const response = await http.get(`/${tournamentSlug}${ROUTES.REAL_TIME_API}/${matchId}`);
 
     return response?.data ?? null;
   } catch (error: any) {
@@ -16,8 +23,8 @@ export const fetchRealTimeData = async (matchId: string | number) => {
 
 /* ================= WEBSOCKET (FIXED) ================= */
 export const createStandingsSocket = (matchId: string | number) => {
-  const WS_URL = `wss://api.freefireesportsnepal.com/ws/realtime/${matchId}`;
-  // const WS_URL = `ws://82.29.155.252:3000/ws/realtime/${matchId}`;
+  const tournamentSlug = getSelectedTournamentSlug();
+  const WS_URL = `${getWebSocketBaseUrl()}/${tournamentSlug}/ws/realtime/${matchId}`;
 
   console.log("WS CONNECT →", WS_URL);
 

@@ -3,6 +3,8 @@ import {
   CREATE_GAME_DETAIL,
   DELETE_GAME_DETAIL,
   GET_GAME_DETAILS,
+  GET_REALTIME_SETTINGS,
+  UPDATE_REALTIME_SETTINGS,
   UPDATE_GAME_DETAIL,
 } from "../../Routes/ApiRoutes/apiRoutes";
 import { GameDetail } from "../gameDetailsState";
@@ -44,4 +46,16 @@ export const updateGameDetailApi = async (id: string | number, game: GameDetail)
 export const deleteGameDetailApi = async (id: string | number) => {
   const response = await http.delete(DELETE_GAME_DETAIL(id));
   return response?.data;
+};
+
+export const getRealtimeSettingsApi = async () => {
+  const response = await http.get(GET_REALTIME_SETTINGS);
+  return response?.data?.data || response?.data || {};
+};
+
+export const updateRealtimeSettingsApi = async (overallRankingEnabled: boolean) => {
+  const response = await http.patch(UPDATE_REALTIME_SETTINGS, {
+    overallRankingEnabled,
+  });
+  return response?.data?.data || response?.data || {};
 };

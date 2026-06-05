@@ -1,12 +1,16 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-export const API_BASE_URL = "https://api.freefireesportsnepal.com";
-// export const API_BASE_URL = "http://localhost:3000";
+// export const API_BASE_URL = "https://api.freefireesportsnepal.com";
+export const API_BASE_URL = "http://127.0.0.1:3000";
 export const REAL_TIME_API = "/tablestandings";
+export const GET_REALTIME_SETTINGS = "/settings";
+export const UPDATE_REALTIME_SETTINGS = "/settings";
 export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";
 export const GET_TEAM_DETAILS = "/api/teams/all";
 export const UPDATE_TEAM_DETAILS = (id: string | number) =>
   `/api/teams/update/${id}`;
+export const UPDATE_TEAM_PLAYING = (id: string | number) =>
+  `/api/teams/${id}/playing`;
 export const DELETE_TEAM_DETAILS = (id: string | number) =>
   `/api/teams/delete/${id}`;
 export const GET_COUNTRY_LOGOS = "/api/teams/country-logos";
@@ -68,6 +72,14 @@ export const PATCH_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const LOGIN_ADMIN = "/api/auth/login";
 export const REGISTER_ADMIN = "/api/auth/register";
 export const GET_AUTH_ME = "/api/auth/me";
+export const GET_TOURNAMENTS = "/api/auth/tournaments";
+export const CREATE_TOURNAMENT = "/api/auth/tournaments";
+export const UPDATE_TOURNAMENT = (id: string | number) => `/api/auth/tournaments/${id}`;
+export const DELETE_TOURNAMENT = (id: string | number) => `/api/auth/tournaments/${id}`;
+export const GET_AUTH_USERS = "/api/auth/users";
+export const UPDATE_AUTH_USER = (id: string | number) => `/api/auth/users/${id}`;
+export const ASSIGN_USER_TOURNAMENT = (id: string | number) =>
+  `/api/auth/users/${id}/tournaments`;
 export const CREATE_WEAPON_UPLOAD = "/api/weapons/create";
 export const GET_WEAPON_UPLOADS = "/api/weapons/all";
 export const UPDATE_WEAPON_UPLOAD = (id: string | number) =>

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "../Routes/ApiRoutes/apiRoutes";
+import { getSelectedTournamentSlug } from "../Tournaments/tournamentState";
 
 const instance = axios.create({
   baseURL: API_BASE_URL,
@@ -14,6 +15,11 @@ instance.interceptors.request.use((config) => {
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  const tournamentSlug = getSelectedTournamentSlug();
+  if (tournamentSlug) {
+    config.headers["X-Tournament-Slug"] = tournamentSlug;
   }
 
   return config;

@@ -1,5 +1,12 @@
 import http from "../../AxiosFile/axios";
-import { GET_AUTH_ME, LOGIN_ADMIN, REGISTER_ADMIN } from "../../Routes/ApiRoutes/apiRoutes";
+import {
+  ASSIGN_USER_TOURNAMENT,
+  GET_AUTH_ME,
+  GET_AUTH_USERS,
+  LOGIN_ADMIN,
+  REGISTER_ADMIN,
+  UPDATE_AUTH_USER,
+} from "../../Routes/ApiRoutes/apiRoutes";
 import { AuthUser } from "./authStorage";
 
 export type LoginPayload = {
@@ -17,10 +24,14 @@ export type RegisterPayload = {
 export type LoginResponse = {
   token?: string;
   accessToken?: string;
+  message?: string;
+  pendingApproval?: boolean;
   user?: AuthUser;
   data?: {
     token?: string;
     accessToken?: string;
+    message?: string;
+    pendingApproval?: boolean;
     user?: AuthUser;
   };
 };
@@ -45,4 +56,26 @@ export const registerAdmin = async (payload: RegisterPayload) => {
 export const getCurrentUser = async () => {
   const response = await http.get(GET_AUTH_ME);
   return response.data as MeResponse;
+};
+
+export const getAuthUsers = async () => {
+  const response = await http.get(GET_AUTH_USERS);
+  const users = response?.data?.data || response?.data?.users || response?.data || [];
+  return Array.isArray(users) ? users as AuthUser[] : [];
+};
+
+export const updateAuthUser = async (
+  id: string | number,
+  payload: { role?: string; isActive?: boolean },
+) => {
+  const response = await http.patch(UPDATE_AUTH_USER(id), payload);
+  return (response?.data?.user || response?.data?.data || response?.data) as AuthUser;
+};
+
+export const assignUserTournament = async (
+  id: string | number,
+  payload: { tournamentSlug: string; role?: string },
+) => {
+  const response = await http.post(ASSIGN_USER_TOURNAMENT(id), payload);
+  return response?.data?.data || response?.data;
 };
