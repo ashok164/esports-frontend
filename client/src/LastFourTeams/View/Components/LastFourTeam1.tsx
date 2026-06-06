@@ -331,7 +331,10 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                     const isDead = playerStatus === "dead";
                     const isKnocked = playerStatus === "knocked";
                     const hasRecalled = playerStatus === "recalled";
-                    const isLow = playerStatus === "alive" && hpPercent > 0 && hpPercent < 30;
+                    const isLow =
+                      (playerStatus === "alive" || playerStatus === "recalled") &&
+                      hpPercent > 0 &&
+                      hpPercent < 30;
 
                     return (
                       <HPBlock
@@ -343,7 +346,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                       >
                         {!isDead && (
                           <HealthFill
-                            $percent={hasRecalled ? 100 : hpPercent}
+                            $percent={hpPercent}
                             $status={playerStatus}
                           />
                         )}

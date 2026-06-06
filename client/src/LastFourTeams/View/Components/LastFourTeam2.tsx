@@ -380,7 +380,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                 <VerticalLifelineDeck>
                   {structuredSquadSlots.map((player, index) => {
                     const isDead = player.status === "dead" && !player.hasRecalled;
-                    const isLow = !player.hasRecalled && player.hpPercent > 0 && player.hpPercent < 30;
+                    const isLow = player.hpPercent > 0 && player.hpPercent < 30;
 
                     return (
                       <HPBlock
@@ -391,7 +391,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                       >
                         {(!isDead || player.hasRecalled) && (
                           <ActiveVerticalFill
-                            $percent={player.hasRecalled ? 100 : player.hpPercent}
+                            $percent={player.hpPercent}
                             $isKnocked={player.isKnocked}
                             $hasRecalled={player.hasRecalled}
                           />

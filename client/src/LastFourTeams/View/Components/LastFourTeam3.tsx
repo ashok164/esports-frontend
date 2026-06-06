@@ -585,7 +585,6 @@ const EndgameTopHUD = ({ teams = [] }) => {
                           !player.hasRecalled;
 
                         const isLow =
-                          !player.hasRecalled &&
                           player.hpPercent >
                             0 &&
                           player.hpPercent <
@@ -606,11 +605,7 @@ const EndgameTopHUD = ({ teams = [] }) => {
                             {(!isDead ||
                               player.hasRecalled) && (
                               <HealthFill
-                                $percent={
-                                  player.hasRecalled
-                                    ? 100
-                                    : player.hpPercent
-                                }
+                                $percent={player.hpPercent}
                                 $isKnocked={
                                   player.isKnocked
                                 }
