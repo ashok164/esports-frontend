@@ -7,6 +7,7 @@ export const UPDATE_REALTIME_SETTINGS = "/settings";
 export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";
 export const GET_TEAM_DETAILS = "/api/teams/all";
+export const GET_TODAYS_PLAYING_TEAMS = "/api/teams/todays-playing";
 export const UPDATE_TEAM_DETAILS = (id: string | number) =>
   `/api/teams/update/${id}`;
 export const UPDATE_TEAM_PLAYING = (id: string | number) =>

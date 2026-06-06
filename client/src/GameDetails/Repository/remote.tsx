@@ -11,13 +11,20 @@ import { GameDetail } from "../gameDetailsState";
 
 const toPayload = (game: GameDetail) => ({
   gameNumber: game.gameNumber,
+  game_number: game.gameNumber,
   roundName: game.roundName,
+  round_name: game.roundName,
   phase: game.phase,
   matchId: game.matchId,
+  match_id: game.matchId,
   enabled: Boolean(game.enabled),
+  is_enabled: Boolean(game.enabled),
   resultEnabled: Boolean(game.resultEnabled),
+  result_enabled: Boolean(game.resultEnabled),
   todaysResultEnabled: Boolean(game.todaysResultEnabled),
+  todays_result_enabled: Boolean(game.todaysResultEnabled),
   leagueStageResultEnabled: Boolean(game.leagueStageResultEnabled),
+  league_stage_result_enabled: Boolean(game.leagueStageResultEnabled),
 });
 
 const unwrapGameDetails = (response: any) => {

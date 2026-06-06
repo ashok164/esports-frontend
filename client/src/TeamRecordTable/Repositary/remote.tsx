@@ -3,9 +3,40 @@ import {
   CREATE_TEAM_TABLE,
   DELETE_TEAM_DETAILS,
   GET_TEAM_DETAILS,
+  GET_TODAYS_PLAYING_TEAMS,
   UPDATE_TEAM_PLAYING,
   UPDATE_TEAM_DETAILS,
 } from "../../Routes/ApiRoutes/apiRoutes";
+
+export type TodaysPlayingTeam = {
+  id: string | number;
+  teamId: string | number;
+  name: string;
+  tag: string;
+  logo: string;
+  teamLogo: string;
+};
+
+const firstValue = (...values: any[]) =>
+  values.find((value) => value !== undefined && value !== null && String(value).trim() !== "") ?? "";
+
+const unwrapTeams = (response: any) => {
+  const data = response?.data;
+  return data?.data || data?.teams || data?.teamDetails || data || [];
+};
+
+const mapTodaysPlayingTeam = (team: any): TodaysPlayingTeam => {
+  const logo = String(firstValue(team?.teamLogo, team?.team_logo, team?.logo, team?.logoUrl));
+
+  return {
+    id: firstValue(team?.id, team?._id, team?.teamId, team?.team_id),
+    teamId: firstValue(team?.teamId, team?.team_id, team?.permanentTeamId, team?.permanent_team_id),
+    name: String(firstValue(team?.teamName, team?.team_name, team?.name)),
+    tag: String(firstValue(team?.shortTag, team?.short_tag, team?.teamTag, team?.team_tag, team?.tag)),
+    logo,
+    teamLogo: logo,
+  };
+};
 
 export const createTeamTableApi = async (data: FormData) => {
   try {
@@ -24,7 +55,19 @@ export const createTeamTableApi = async (data: FormData) => {
 
 export const getTeamTableApi = async () => {
   const response = await http.get(GET_TEAM_DETAILS);
-  return response?.data?.data || [];
+  return unwrapTeams(response);
+};
+
+export const getTodaysPlayingTeamsApi = async (): Promise<TodaysPlayingTeam[]> => {
+  const response = await http.get(GET_TODAYS_PLAYING_TEAMS, {
+    params: { _t: Date.now() },
+    headers: { "Cache-Control": "no-cache" },
+  });
+  const teams = unwrapTeams(response);
+
+  return Array.isArray(teams)
+    ? teams.map(mapTodaysPlayingTeam)
+    : [];
 };
 
 export const updateTeamTableApi = async (id: string | number, data: FormData) => {
