@@ -20,13 +20,16 @@ type LiveStandingsControllerOptions = {
   forceLiveMatchStandings?: boolean;
 };
 
-const collectLiveRows = (result: any, options: LiveStandingsControllerOptions = {}) => {
-  const overallRankingEnabled = Boolean(
+const getOverallRankingEnabled = (result: any) =>
+  Boolean(
     result?.data?.settings?.overallRankingEnabled ??
     result?.data?.settings?.overall_ranking_enabled ??
     result?.settings?.overallRankingEnabled ??
     result?.settings?.overall_ranking_enabled,
   );
+
+const collectLiveRows = (result: any, options: LiveStandingsControllerOptions = {}) => {
+  const overallRankingEnabled = getOverallRankingEnabled(result);
 
   const source =
     (!options.forceLiveMatchStandings && overallRankingEnabled
@@ -251,6 +254,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
   const updateStandings = useCallback((result: any) => {
     if (!result) return;
 
+    const overallRankingEnabled = getOverallRankingEnabled(result);
     const source = collectLiveRows(result, { forceLiveMatchStandings });
     const overallRows = collectOverallRows(result);
     const championSourceRows = overallRows.length > 0 ? overallRows : historicalRowsRef.current;
@@ -279,20 +283,22 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
 
     const liveRows = minimizeLiveRows(source);
 
-    const mappedData = historicalRowsRef.current.length > 0
+    const playingHistoricalRows = historicalRowsRef.current.filter((team: any) =>
+      Boolean(team?.is_playing ?? team?.isPlaying),
+    );
+
+    const shouldUseOverallRanking = overallRankingEnabled && !forceLiveMatchStandings;
+
+    const mappedData = shouldUseOverallRanking && historicalRowsRef.current.length > 0
       ? mergeHistoricalWithLiveStandings(
-          historicalRowsRef.current,
+          playingHistoricalRows,
           liveRows,
           previousStandingsRef.current,
         )
       : mapTeamData(liveRows, previousStandingsRef.current);
 
     previousStandingsRef.current = mappedData;
-    publishStandings(
-      historicalRowsRef.current.length > 0
-        ? mappedData.filter((team) => team.isPlaying)
-        : mappedData,
-    );
+    publishStandings(mappedData.filter((team) => team.isPlaying));
   }, [forceLiveMatchStandings, publishStandings]);
 
   const publishSelectedTeamRows = useCallback(() => {
