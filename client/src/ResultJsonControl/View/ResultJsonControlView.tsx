@@ -73,7 +73,14 @@ const getMatchIdFromPayload = (payload: any) =>
 
 const getStandingsFromPayload = (payload: any) => {
   if (Array.isArray(payload?.data?.standings)) return payload.data.standings;
+  if (Array.isArray(payload?.data?.liveMatchStandings)) return payload.data.liveMatchStandings;
+  if (Array.isArray(payload?.data?.liveStandings2)) return payload.data.liveStandings2;
+  if (Array.isArray(payload?.data?.team_stats)) return payload.data.team_stats;
+  if (Array.isArray(payload?.data?.results)) return payload.data.results;
   if (Array.isArray(payload?.standings)) return payload.standings;
+  if (Array.isArray(payload?.liveMatchStandings)) return payload.liveMatchStandings;
+  if (Array.isArray(payload?.liveStandings2)) return payload.liveStandings2;
+  if (Array.isArray(payload?.team_stats)) return payload.team_stats;
   if (Array.isArray(payload?.results)) return payload.results;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];

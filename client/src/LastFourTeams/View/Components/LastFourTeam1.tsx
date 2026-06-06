@@ -10,6 +10,7 @@ export type PlayerStatus = "alive" | "knocked" | "recalled" | "dead";
 
 export interface PlayerData {
   status: PlayerStatus;
+  hp?: number;
   hpPercent: number;
   isKnocked: boolean;
   hasRecalled: boolean;
@@ -237,8 +238,7 @@ const HPBlock = styled.div<{
 
 const HealthFill = styled.div<{
   $percent: number;
-  $isKnocked: boolean;
-  $hasRecalled: boolean;
+  $status: PlayerStatus;
 }>`
   position: absolute;
   bottom: 0;
@@ -246,8 +246,9 @@ const HealthFill = styled.div<{
   width: 100%;
   height: ${(props) => props.$percent}%;
   background: ${(props) => {
-    if (props.$hasRecalled) return Theme.aliveBlue;
-    if (props.$isKnocked) return Theme.knocked;
+    if (props.$status === "alive" && props.$percent <= 25) return Theme.knocked;
+    if (props.$status === "knocked") return Theme.knocked;
+    if (props.$status === "recalled") return Theme.aliveBlue;
     return Theme.aliveYellow;
   }};
   transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -272,8 +273,13 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
     return `${Math.round(numeric)} %`;
   };
 
+  const toNumber = (value: unknown) => {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : 0;
+  };
+
   const getPlayerHpPercent = (player: PlayerData) =>
-    Math.max(0, Math.min(100, Number(player.hpPercent ?? 0) || 0));
+    Math.max(0, Math.min(100, toNumber(player.hpPercent ?? player.hp ?? 100)));
 
   const getPlayerStatus = (player: PlayerData): PlayerStatus => {
     if (getPlayerHpPercent(player) <= 0) return "dead";
@@ -338,8 +344,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                         {!isDead && (
                           <HealthFill
                             $percent={hasRecalled ? 100 : hpPercent}
-                            $isKnocked={isKnocked}
-                            $hasRecalled={hasRecalled}
+                            $status={playerStatus}
                           />
                         )}
                       </HPBlock>
