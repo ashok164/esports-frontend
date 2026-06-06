@@ -42,7 +42,7 @@ const forceTeamEliminated = (team: any) => ({
 });
 
 const LiveStandingsView: React.FC = () => {
-  const { standings, loading } = useLiveStandingsController();
+  const { standings, championBannerUrl, championRushTeamKeys, loading } = useLiveStandingsController();
   const [testTeamId, setTestTeamId] = useState<string | number | null>(null);
   const [testEliminated, setTestEliminated] = useState(false);
   const isSingleEliminationTest =
@@ -86,7 +86,13 @@ const LiveStandingsView: React.FC = () => {
 
   if (loading) return null;
 
-  return <StandingsTable teams={displayStandings} />;
+  return (
+    <StandingsTable
+      teams={displayStandings}
+      championBannerUrl={championBannerUrl}
+      championRushTeamKeys={championRushTeamKeys}
+    />
+  );
 };
 
 export default LiveStandingsView;

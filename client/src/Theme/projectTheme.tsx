@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { createGlobalStyle } from "styled-components";
 import http from "../AxiosFile/axios";
-import { GET_PROJECT_COLOR_THEME } from "../Routes/ApiRoutes/apiRoutes";
+import { GET_BROADCAST_DISPLAY_SETTINGS, GET_PROJECT_COLOR_THEME } from "../Routes/ApiRoutes/apiRoutes";
 
 export type ProjectColorTheme = {
   useDefaultColors: boolean;
@@ -26,6 +26,8 @@ type ProjectThemeContextValue = {
 };
 
 export type BroadcastDisplaySettings = {
+  broadcastThemeEnabled: boolean;
+  championRushEnabled: boolean;
   showCountryFlags: boolean;
   showLiveStandingsPoints: boolean;
 };
@@ -33,6 +35,8 @@ export type BroadcastDisplaySettings = {
 export const BROADCAST_DISPLAY_SETTINGS_KEY = "broadcast_display_settings";
 export const BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT = "broadcast-display-settings-updated";
 export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
+  broadcastThemeEnabled: true,
+  championRushEnabled: true,
   showCountryFlags: true,
   showLiveStandingsPoints: true,
 };
@@ -269,6 +273,7 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
 export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<ProjectColorTheme>(DEFAULT_PROJECT_THEME);
   const [isLoading, setIsLoading] = useState(true);
+  const [broadcastSettings, setBroadcastSettings] = useState<BroadcastDisplaySettings>(getBroadcastDisplaySettings);
 
   useEffect(() => {
     let isMounted = true;
@@ -319,16 +324,19 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   useEffect(() => {
-    document.body.dataset.projectTheme = value.isCustomTheme ? "custom" : "default";
+    document.body.dataset.projectTheme = value.isCustomTheme && broadcastSettings.broadcastThemeEnabled ? "custom" : "default";
 
     return () => {
       delete document.body.dataset.projectTheme;
     };
-  }, [value.isCustomTheme]);
+  }, [value.isCustomTheme, broadcastSettings.broadcastThemeEnabled]);
 
   useEffect(() => {
     const applySettings = () => {
       const settings = getBroadcastDisplaySettings();
+      setBroadcastSettings(settings);
+      document.body.dataset.broadcastThemeEnabled = String(settings.broadcastThemeEnabled);
+      document.body.dataset.championRushEnabled = String(settings.championRushEnabled);
       document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
       document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
     };
@@ -338,6 +346,17 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     applySettings();
+    http
+      .get(GET_BROADCAST_DISPLAY_SETTINGS)
+      .then((response) => {
+        const nextSettings = {
+          ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
+          ...(response.data?.settings || response.data || {}),
+        };
+        setBroadcastDisplaySettings(nextSettings);
+        applySettings();
+      })
+      .catch(() => undefined);
     window.addEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, applySettings);
     window.addEventListener("storage", handleStorage);
 
@@ -349,7 +368,7 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   return (
     <ProjectThemeContext.Provider value={value}>
-      <ProjectThemeGlobalStyle $theme={theme} $custom={value.isCustomTheme} />
+      <ProjectThemeGlobalStyle $theme={theme} $custom={value.isCustomTheme && broadcastSettings.broadcastThemeEnabled} />
       {children}
     </ProjectThemeContext.Provider>
   );

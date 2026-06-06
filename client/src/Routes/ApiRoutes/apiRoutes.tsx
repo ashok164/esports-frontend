@@ -1,6 +1,6 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-export const API_BASE_URL = "https://api.freefireesportsnepal.com";
-// export const API_BASE_URL = "http://127.0.0.1:3000";
+// export const API_BASE_URL = "https://api.freefireesportsnepal.com";
+export const API_BASE_URL = "http://127.0.0.1:3000";
 export const REAL_TIME_API = "/tablestandings";
 export const GET_REALTIME_SETTINGS = "/settings";
 export const UPDATE_REALTIME_SETTINGS = "/settings";
@@ -69,6 +69,8 @@ export const GET_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const CREATE_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const UPDATE_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const PATCH_PROJECT_COLOR_THEME = "/api/theme/colors";
+export const GET_BROADCAST_DISPLAY_SETTINGS = "/api/broadcast-display-settings";
+export const UPDATE_BROADCAST_DISPLAY_SETTINGS = "/api/broadcast-display-settings";
 export const LOGIN_ADMIN = "/api/auth/login";
 export const REGISTER_ADMIN = "/api/auth/register";
 export const GET_AUTH_ME = "/api/auth/me";

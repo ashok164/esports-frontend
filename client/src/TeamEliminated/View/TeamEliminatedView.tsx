@@ -4,7 +4,9 @@ import useLiveStandingsController from "../../LiveStandingsTable/Controller/useL
 import { useProjectTheme } from "../../Theme";
 
 const TeamEliminatedView = () => {
-  const { standings, loading } = useLiveStandingsController();
+  const { standings, loading } = useLiveStandingsController({
+    forceLiveMatchStandings: true,
+  });
   const { isLoading: isThemeLoading } = useProjectTheme();
   const [activeEliminatedTeam, setActiveEliminatedTeam] = useState(null);
 

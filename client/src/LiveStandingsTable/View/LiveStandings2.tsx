@@ -51,6 +51,8 @@ interface Team {
 interface StandingsTableProps {
   teams?: Team[];
   maxRows?: number;
+  championBannerUrl?: string;
+  championRushTeamKeys?: string[];
 }
 
 /* ================= THEME & DESIGN SYSTEM ================= */
@@ -155,7 +157,7 @@ const Frame = styled.div`
   background: linear-gradient(180deg, ${Theme.panel}, ${Theme.panel2});
   border: 1px solid ${Theme.border};
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
 `;
 
 /* ================= HUD TABLE HEADER ================= */
@@ -199,12 +201,25 @@ const HeaderCell = styled.div<{ $center?: boolean }>`
 const RowsContainer = styled.div`
   position: relative;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
 `;
 
 const RowSlot = styled(motion.div)<{ $height: number }>`
   position: relative;
   height: ${(p) => p.$height}px;
+`;
+
+const ChampionBanner = styled.img`
+  position: absolute;
+  left: -82px;
+  top: 50%;
+  width: 72px;
+  max-height: calc(100% + 18px);
+  object-fit: contain;
+  transform: translateY(-50%);
+  z-index: 40;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.65));
 `;
 
 interface LiveRowProps {
@@ -612,6 +627,21 @@ const isTeamDead = (t: Team) =>
   (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
+const normalizeChampionKey = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+const getChampionKeys = (team: Team) =>
+  [team.id, team.teamTag, team.shortName, team.tag, team.name].map(normalizeChampionKey).filter(Boolean);
+const hideBrokenImage = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.style.display = "none";
+};
+
+const hideBrokenImageFrame = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  const frame = event.currentTarget.parentElement;
+  if (frame) frame.style.display = "none";
+  hideBrokenImage(event);
+};
 
 const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
   const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
@@ -651,6 +681,9 @@ const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
 // ================= OPTIMIZED MEMOIZED TEAM ROW =================
 interface TeamRowData {
   teams: Team[];
+  championBannerUrl?: string;
+  championRushEnabled: boolean;
+  championRushTeamKeySet: Set<string>;
 }
 
 interface TeamRowProps extends TeamRowData {
@@ -666,6 +699,9 @@ const TeamRowComponent = memo(function TeamRow({
   rowHeight,
   style,
   teams,
+  championBannerUrl,
+  championRushEnabled,
+  championRushTeamKeySet,
   showFlags,
   showPoints,
 }: TeamRowProps) {
@@ -709,9 +745,16 @@ const TeamRowComponent = memo(function TeamRow({
   }, [isDead]);
 
   const rank = team.rank ?? team.rankingScore ?? index + 1;
+  const showChampionBanner =
+    championRushEnabled &&
+    Boolean(championBannerUrl) &&
+    getChampionKeys(team).some((key) => championRushTeamKeySet.has(key));
 
   return (
     <div style={style}>
+      {showChampionBanner && (
+        <ChampionBanner src={championBannerUrl} alt="Champion banner" onError={hideBrokenImage} />
+      )}
       <LiveRow
         $dead={isDead}
         $odd={index % 2 === 1}
@@ -761,7 +804,7 @@ const TeamRowComponent = memo(function TeamRow({
                 >
                   <SkullIndicator>☠</SkullIndicator>
                   {player?.playerPic ? (
-                    <PlayerPortrait src={player.playerPic} alt="" />
+                    <PlayerPortrait src={player.playerPic} alt="" onError={hideBrokenImage} />
                   ) : (
                     <div style={{ color: "#222", fontSize: "14px" }}>☠</div>
                   )}
@@ -781,7 +824,7 @@ const TeamRowComponent = memo(function TeamRow({
             <CellWrap>
               {team.countryUrl && (
                 <CountryBox>
-                  <Img src={team.countryUrl} alt="Country flag" />
+                  <Img src={team.countryUrl} alt="Country flag" onError={hideBrokenImageFrame} />
                 </CountryBox>
               )}
             </CellWrap>
@@ -790,7 +833,7 @@ const TeamRowComponent = memo(function TeamRow({
           {team.logoUrl ? (
             <LogoCellWrap $showFlags={showFlags}>
               <LogoBox>
-                <Logo src={team.logoUrl} alt="Team logo" />
+                <Logo src={team.logoUrl} alt="Team logo" onError={hideBrokenImageFrame} />
               </LogoBox>
             </LogoCellWrap>
           ) : (
@@ -829,6 +872,8 @@ const TeamRowComponent = memo(function TeamRow({
 export default function StandingsTable({
   teams = [],
   maxRows = 12,
+  championBannerUrl = "",
+  championRushTeamKeys = [],
 }: StandingsTableProps) {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
   console.log("Want to see api Call for realtime api? lol you cant track api");
@@ -869,6 +914,11 @@ export default function StandingsTable({
 
   const showFlags = displaySettings.showCountryFlags;
   const showPoints = displaySettings.showLiveStandingsPoints;
+  const championRushEnabled = displaySettings.championRushEnabled;
+  const championRushTeamKeySet = useMemo(
+    () => new Set(championRushTeamKeys.map(normalizeChampionKey).filter(Boolean)),
+    [championRushTeamKeys],
+  );
 
   useEffect(() => {
     const currentDeadIds = new Set(
@@ -1022,6 +1072,9 @@ export default function StandingsTable({
                   index={index}
                   rowHeight={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
                   teams={sortedTeams}
+                  championBannerUrl={championBannerUrl}
+                  championRushEnabled={championRushEnabled}
+                  championRushTeamKeySet={championRushTeamKeySet}
                   showFlags={showFlags}
                   showPoints={showPoints}
                   style={{

@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import http from "../../AxiosFile/axios";
 import {
+  GET_BROADCAST_DISPLAY_SETTINGS,
   CREATE_PROJECT_COLOR_THEME,
   GET_PROJECT_COLOR_THEME,
   PATCH_PROJECT_COLOR_THEME,
+  UPDATE_BROADCAST_DISPLAY_SETTINGS,
 } from "../../Routes/ApiRoutes/apiRoutes";
 import {
   DEFAULT_PROJECT_THEME,
@@ -63,6 +65,11 @@ const BroadcastThemeView: React.FC = () => {
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
+  const [openPanels, setOpenPanels] = useState({
+    display: true,
+    colors: true,
+    payload: true,
+  });
 
   const invalidFields = useMemo(
     () => colorFields.filter((field) => !isHexColor(theme[field.key])).map((field) => field.label),
@@ -71,6 +78,7 @@ const BroadcastThemeView: React.FC = () => {
   
   const canSave = invalidFields.length === 0 && !isSaving;
   const jsonPreview = useMemo(() => JSON.stringify(theme, null, 2), [theme]);
+  const displayPayloadPreview = useMemo(() => JSON.stringify({ settings: displaySettings }, null, 2), [displaySettings]);
 
   useEffect(() => {
     let isMounted = true;
@@ -92,6 +100,27 @@ const BroadcastThemeView: React.FC = () => {
           setIsLoading(false);
         }
       });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    http
+      .get(GET_BROADCAST_DISPLAY_SETTINGS)
+      .then((response) => {
+        if (!isMounted) return;
+        const nextSettings = {
+          ...getBroadcastDisplaySettings(),
+          ...(response.data?.settings || response.data || {}),
+        };
+        setDisplaySettings(nextSettings);
+        setBroadcastDisplaySettings(nextSettings);
+      })
+      .catch(() => undefined);
 
     return () => {
       isMounted = false;
@@ -138,10 +167,21 @@ const BroadcastThemeView: React.FC = () => {
     setStatus("Form reset to default colors.");
   };
 
-  const updateDisplaySetting = (key: keyof typeof displaySettings, checked: boolean) => {
+  const updateDisplaySetting = async (key: keyof typeof displaySettings, checked: boolean) => {
     const nextSettings = { ...displaySettings, [key]: checked };
     setDisplaySettings(nextSettings);
     setBroadcastDisplaySettings(nextSettings);
+
+    try {
+      await http.patch(UPDATE_BROADCAST_DISPLAY_SETTINGS, { settings: nextSettings });
+      setStatus("Broadcast settings updated.");
+    } catch {
+      setStatus("Broadcast settings saved locally. Add the backend route to sync it.");
+    }
+  };
+
+  const togglePanel = (key: keyof typeof openPanels) => {
+    setOpenPanels((current) => ({ ...current, [key]: !current[key] }));
   };
 
   return (
@@ -156,17 +196,18 @@ const BroadcastThemeView: React.FC = () => {
             </Subtitle>
           </TitleBlock>
 
-          <DefaultToggle>
-            <input
+          <SwitchToggle>
+            <SwitchInput
               type="checkbox"
               checked={!!theme.useDefaultColors}
               onChange={(event) => updateDefaultMode(event.target.checked)}
             />
-            <span>
+            <SwitchTrack aria-hidden="true" />
+            <ToggleCopy>
               <strong>Use default colors</strong>
               <small>Checked means current project colors stay unchanged.</small>
-            </span>
-          </DefaultToggle>
+            </ToggleCopy>
+          </SwitchToggle>
         </Header>
 
         {(status || error || isLoading) && (
@@ -176,44 +217,78 @@ const BroadcastThemeView: React.FC = () => {
         )}
 
         <DisplaySettings data-theme-surface="panel">
-          <PanelHeader>
-            <PanelTitle>Broadcast Display Switches</PanelTitle>
-            <PanelNote>Saved in this browser and applied to open broadcast windows.</PanelNote>
+          <PanelHeader onClick={() => togglePanel("display")} role="button" tabIndex={0}>
+            <PanelHeading>
+              <PanelArrow $open={openPanels.display} aria-hidden="true">&gt;</PanelArrow>
+              <PanelTitle>Broadcast Display Switches</PanelTitle>
+            </PanelHeading>
+            <PanelNote>Saved locally and synced through the broadcast settings API.</PanelNote>
           </PanelHeader>
-          <ToggleGrid>
-            <DefaultToggle>
-              <input
-                type="checkbox"
-                checked={displaySettings.showCountryFlags}
-                onChange={(event) => updateDisplaySetting("showCountryFlags", event.target.checked)}
-              />
-              <span>
-                <strong>Show country flags</strong>
-                <small>Controls flags across results, live standings, and broadcast overlays.</small>
-              </span>
-            </DefaultToggle>
-            <DefaultToggle>
-              <input
-                type="checkbox"
-                checked={displaySettings.showLiveStandingsPoints}
-                onChange={(event) => updateDisplaySetting("showLiveStandingsPoints", event.target.checked)}
-              />
-              <span>
-                <strong>Show live standings points</strong>
-                <small>Hides the points column only in the live standings overlay.</small>
-              </span>
-            </DefaultToggle>
-          </ToggleGrid>
+          {openPanels.display && (
+            <ToggleGrid>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.broadcastThemeEnabled}
+                  onChange={(event) => updateDisplaySetting("broadcastThemeEnabled", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Broadcast theme</strong>
+                  <small>Turns custom project colors on or off for broadcast/admin surfaces.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.championRushEnabled}
+                  onChange={(event) => updateDisplaySetting("championRushEnabled", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Champion Rush</strong>
+                  <small>Writes a body flag for overlays that need Champion Rush on/off.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.showCountryFlags}
+                  onChange={(event) => updateDisplaySetting("showCountryFlags", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Show country flags</strong>
+                  <small>Controls flags across results, live standings, and broadcast overlays.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.showLiveStandingsPoints}
+                  onChange={(event) => updateDisplaySetting("showLiveStandingsPoints", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Show live standings points</strong>
+                  <small>Hides the points column only in the live standings overlay.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+            </ToggleGrid>
+          )}
         </DisplaySettings>
 
         <ContentGrid>
           <FormPanel data-theme-surface="panel">
-            <PanelHeader>
-              <PanelTitle>Color Fields</PanelTitle>
+            <PanelHeader onClick={() => togglePanel("colors")} role="button" tabIndex={0}>
+              <PanelHeading>
+                <PanelArrow $open={openPanels.colors} aria-hidden="true">&gt;</PanelArrow>
+                <PanelTitle>Color Fields</PanelTitle>
+              </PanelHeading>
               <PanelNote>All color values must be hex, like #ef4444.</PanelNote>
             </PanelHeader>
 
-            <FieldGrid>
+            {openPanels.colors && <FieldGrid>
               {colorFields.map((field) => {
                 const rawValue = theme[field.key];
                 const isValid = isHexColor(rawValue);
@@ -242,9 +317,9 @@ const BroadcastThemeView: React.FC = () => {
                   </ColorFieldCard>
                 );
               })}
-            </FieldGrid>
+            </FieldGrid>}
 
-            <Actions>
+            {openPanels.colors && <Actions>
               <SecondaryButton type="button" onClick={resetToDefaults} disabled={isSaving}>
                 Reset Default
               </SecondaryButton>
@@ -256,15 +331,20 @@ const BroadcastThemeView: React.FC = () => {
                   Update
                 </PrimaryButton>
               </ActionGroup>
-            </Actions>
+            </Actions>}
           </FormPanel>
 
           <PreviewPanel data-theme-surface="panel">
-            <PanelHeader>
-              <PanelTitle>JSON Payload</PanelTitle>
-              <PanelNote>Send this from create/update.</PanelNote>
+            <PanelHeader onClick={() => togglePanel("payload")} role="button" tabIndex={0}>
+              <PanelHeading>
+                <PanelArrow $open={openPanels.payload} aria-hidden="true">&gt;</PanelArrow>
+                <PanelTitle>API Payload</PanelTitle>
+              </PanelHeading>
+              <PanelNote>Theme plus broadcast settings payloads.</PanelNote>
             </PanelHeader>
-            <JsonPreview>{jsonPreview}</JsonPreview>
+            {openPanels.payload && (
+              <JsonPreview>{`PATCH /api/theme/colors\n${jsonPreview}\n\nPATCH /api/broadcast-display-settings\n${displayPayloadPreview}`}</JsonPreview>
+            )}
           </PreviewPanel>
         </ContentGrid>
       </Shell>
@@ -328,7 +408,7 @@ const Subtitle = styled.p`
   line-height: 1.5;
 `;
 
-const DefaultToggle = styled.label`
+const SwitchToggle = styled.label`
   display: flex;
   align-items: center;
   gap: 12px;
@@ -339,20 +419,57 @@ const DefaultToggle = styled.label`
   background: var(--project-surface, #111827);
   cursor: pointer;
 
-  input {
-    width: 22px;
-    height: 22px;
-    accent-color: var(--project-primary, #ef4444);
-  }
-
-  span {
-    display: grid;
-    gap: 3px;
-  }
-
   small {
     color: var(--project-text-secondary, #94a3b8);
     line-height: 1.35;
+  }
+`;
+
+const ToggleCopy = styled.span`
+  display: grid;
+  gap: 3px;
+`;
+
+const SwitchInput = styled.input`
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+
+  &:checked + span::after {
+    transform: translateX(22px);
+  }
+
+  &:checked + span {
+    background: var(--project-primary, #ef4444);
+    border-color: var(--project-primary, #ef4444);
+  }
+
+  &:focus-visible + span {
+    outline: 2px solid var(--project-accent, #bfff00);
+    outline-offset: 3px;
+  }
+`;
+
+const SwitchTrack = styled.span`
+  position: relative;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 26px;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 999px;
+  background: var(--project-surface-alt, #1f293d);
+  transition: background 160ms ease, border-color 160ms ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--project-text-primary, #ffffff);
+    transition: transform 160ms ease;
   }
 `;
 
@@ -416,6 +533,26 @@ const PanelHeader = styled.div`
   align-items: flex-end;
   gap: 16px;
   margin-bottom: 16px;
+  cursor: pointer;
+  user-select: none;
+`;
+
+const PanelHeading = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+`;
+
+const PanelArrow = styled.span<{ $open: boolean }>`
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--project-accent, #bfff00);
+  font-size: 1.8rem;
+  line-height: 1;
+  transform: rotate(${({ $open }) => ($open ? "90deg" : "0deg")});
+  transition: transform 160ms ease;
 `;
 
 const PanelTitle = styled.h2`

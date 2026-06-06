@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { mapTeamData, mergeHistoricalWithLiveStandings, Team } from "../Datamapper/liveStandingsMapper";
 import { createStandingsSocket } from "../../GlobalWebsocket/remote";
 import {
+  DEFAULT_BROADCAST_DISPLAY_SETTINGS,
+  setBroadcastDisplaySettings,
+} from "../../Theme/projectTheme";
+import {
   GAME_DETAILS_UPDATED_EVENT,
   getActiveGameDetails,
 } from "../../GameDetails/gameDetailsState";
@@ -10,8 +14,13 @@ import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 const RECONNECT_DELAY_MS = 500;
 const WS_STALE_LIMIT_MS = 5000;
 const TEAM_IDENTITY_MATCHES_STORAGE_KEY = "team_identity_matches";
+const CHAMPION_RUSH_TARGET_SCORE = 90;
 
-const collectLiveRows = (result: any) => {
+type LiveStandingsControllerOptions = {
+  forceLiveMatchStandings?: boolean;
+};
+
+const collectLiveRows = (result: any, options: LiveStandingsControllerOptions = {}) => {
   const overallRankingEnabled = Boolean(
     result?.data?.settings?.overallRankingEnabled ??
     result?.data?.settings?.overall_ranking_enabled ??
@@ -20,7 +29,7 @@ const collectLiveRows = (result: any) => {
   );
 
   const source =
-    (overallRankingEnabled
+    (!options.forceLiveMatchStandings && overallRankingEnabled
       ? result?.data?.liveOverall ?? result?.liveOverall
       : result?.data?.liveMatchStandings ?? result?.liveMatchStandings) ??
     result?.data?.liveStandings2 ??
@@ -42,6 +51,28 @@ const collectTeamIdentityMatches = (result: any) => {
 
   return Array.isArray(source) ? source : [];
 };
+
+const collectOverallRows = (result: any) => {
+  const source =
+    result?.data?.liveOverall ??
+    result?.liveOverall ??
+    result?.data?.overallStandings ??
+    result?.overallStandings ??
+    [];
+
+  return Array.isArray(source) ? source : [];
+};
+
+const collectChampionBanner = (result: any) =>
+  firstValue(
+    result?.data?.champion_banner,
+    result?.champion_banner,
+    result?.data?.championBanner,
+    result?.championBanner,
+  );
+
+const collectBroadcastSettings = (result: any) =>
+  result?.data?.settings ?? result?.settings ?? null;
 
 const storeTeamIdentityMatches = (matchId: string, matches: any[]) => {
   if (!matches.length || typeof window === "undefined") return;
@@ -80,6 +111,45 @@ const storeTeamIdentityMatches = (matchId: string, matches: any[]) => {
 const firstValue = (...values: any[]) =>
   values.find((value) => value !== undefined && value !== null) ?? "";
 
+const normalizeKey = (value: any) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const getTeamKeys = (team: any) =>
+  [
+    firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId, team?.id),
+    firstValue(team?.room_team_id, team?.roomTeamId),
+    firstValue(team?.short_tag, team?.team_tag, team?.teamTag, team?.tag),
+    firstValue(team?.team_name, team?.teamName, team?.name),
+  ]
+    .map(normalizeKey)
+    .filter(Boolean);
+
+const getOverallScore = (team: any) => {
+  const value = firstValue(
+    team?.total_score,
+    team?.totalScore,
+    team?.overall_score,
+    team?.overallScore,
+    team?.total_points,
+    team?.totalPoints,
+  );
+  const score = Number(value);
+  return Number.isFinite(score) ? score : 0;
+};
+
+const collectChampionRushTeamKeys = (overallRows: any[]) => {
+  const keys = new Set<string>();
+
+  overallRows.forEach((team) => {
+    if (getOverallScore(team) !== CHAMPION_RUSH_TARGET_SCORE) return;
+    getTeamKeys(team).forEach((key) => keys.add(key));
+  });
+
+  return Array.from(keys);
+};
+
 const minimizePlayer = (player: any) => ({
   account_id: firstValue(player?.account_id, player?.player_uid, player?.playerUid),
   nickname: firstValue(player?.nickname, player?.player_name, player?.playerName, player?.name),
@@ -106,6 +176,7 @@ const minimizeTeam = (team: any) => {
     short_tag: firstValue(team?.short_tag, team?.teamTag, team?.tag),
     team_logo: firstValue(team?.team_logo, team?.teamLogo),
     country_logo: firstValue(team?.country_logo, team?.countryLogo),
+    total_score: firstValue(team?.total_score, team?.totalScore),
     full_team_banner: firstValue(team?.full_team_banner, team?.fullTeamBanner),
     notification_team_banner: firstValue(
       team?.notification_team_banner,
@@ -128,8 +199,11 @@ const minimizeTeam = (team: any) => {
 
 const minimizeLiveRows = (rows: any[]) => rows.map(minimizeTeam);
 
-const useLiveStandingsController = () => {
+const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}) => {
+  const forceLiveMatchStandings = Boolean(options.forceLiveMatchStandings);
   const [standings, setStandings] = useState<Team[]>([]);
+  const [championBannerUrl, setChampionBannerUrl] = useState("");
+  const [championRushTeamKeys, setChampionRushTeamKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -177,7 +251,27 @@ const useLiveStandingsController = () => {
   const updateStandings = useCallback((result: any) => {
     if (!result) return;
 
-    const source = collectLiveRows(result);
+    const source = collectLiveRows(result, { forceLiveMatchStandings });
+    const overallRows = collectOverallRows(result);
+    const championSourceRows = overallRows.length > 0 ? overallRows : historicalRowsRef.current;
+    setChampionRushTeamKeys(collectChampionRushTeamKeys(championSourceRows));
+
+    const nextChampionBanner = collectChampionBanner(result);
+    if (nextChampionBanner) setChampionBannerUrl(String(nextChampionBanner));
+
+    const nextSettings = collectBroadcastSettings(result);
+    if (nextSettings) {
+      setBroadcastDisplaySettings({
+        ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
+        broadcastThemeEnabled: Boolean(nextSettings.broadcastThemeEnabled ?? nextSettings.broadcast_theme_enabled ?? true),
+        championRushEnabled: Boolean(nextSettings.championRushEnabled ?? nextSettings.champion_rush_enabled ?? true),
+        showCountryFlags: Boolean(nextSettings.showCountryFlags ?? nextSettings.show_country_flags ?? true),
+        showLiveStandingsPoints: Boolean(
+          nextSettings.showLiveStandingsPoints ?? nextSettings.show_live_standings_points ?? true,
+        ),
+      });
+    }
+
     const correctionMatchId = String(result?.data?.matchId ?? result?.matchId ?? matchId ?? "");
     storeTeamIdentityMatches(correctionMatchId, collectTeamIdentityMatches(result));
 
@@ -199,7 +293,7 @@ const useLiveStandingsController = () => {
         ? mappedData.filter((team) => team.isPlaying)
         : mappedData,
     );
-  }, [publishStandings]);
+  }, [forceLiveMatchStandings, publishStandings]);
 
   const publishSelectedTeamRows = useCallback(() => {
     const selectedRows = historicalRowsRef.current.filter((team: any) =>
@@ -334,6 +428,8 @@ const useLiveStandingsController = () => {
 
   return {
     standings,
+    championBannerUrl,
+    championRushTeamKeys,
     loading,
     refresh,
     matchNumber,
