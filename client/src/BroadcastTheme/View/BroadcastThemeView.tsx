@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import http from "../../AxiosFile/axios";
 import {
+  BROADCAST_DISPLAY_SETTINGS,
   GET_BROADCAST_DISPLAY_SETTINGS,
   CREATE_PROJECT_COLOR_THEME,
   GET_PROJECT_COLOR_THEME,
   PATCH_PROJECT_COLOR_THEME,
   UPDATE_BROADCAST_DISPLAY_SETTINGS,
 } from "../../Routes/ApiRoutes/apiRoutes";
+import { getSelectedTournamentSlug } from "../../Tournaments/tournamentState";
 import {
   DEFAULT_PROJECT_THEME,
   getBroadcastDisplaySettings,
@@ -108,9 +110,10 @@ const BroadcastThemeView: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true;
+    const selectedTournamentSlug = getSelectedTournamentSlug();
 
     http
-      .get(GET_BROADCAST_DISPLAY_SETTINGS)
+      .get(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || GET_BROADCAST_DISPLAY_SETTINGS)
       .then((response) => {
         if (!isMounted) return;
         const nextSettings = {
@@ -169,11 +172,12 @@ const BroadcastThemeView: React.FC = () => {
 
   const updateDisplaySetting = async (key: keyof typeof displaySettings, checked: boolean) => {
     const nextSettings = { ...displaySettings, [key]: checked };
+    const selectedTournamentSlug = getSelectedTournamentSlug();
     setDisplaySettings(nextSettings);
     setBroadcastDisplaySettings(nextSettings);
 
     try {
-      await http.patch(UPDATE_BROADCAST_DISPLAY_SETTINGS, { settings: nextSettings });
+      await http.patch(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || UPDATE_BROADCAST_DISPLAY_SETTINGS, { settings: nextSettings });
       setStatus("Broadcast settings updated.");
     } catch {
       setStatus("Broadcast settings saved locally. Add the backend route to sync it.");

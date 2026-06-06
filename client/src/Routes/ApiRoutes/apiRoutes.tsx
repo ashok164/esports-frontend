@@ -69,8 +69,12 @@ export const GET_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const CREATE_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const UPDATE_PROJECT_COLOR_THEME = "/api/theme/colors";
 export const PATCH_PROJECT_COLOR_THEME = "/api/theme/colors";
-export const GET_BROADCAST_DISPLAY_SETTINGS = "/api/broadcast-display-settings";
-export const UPDATE_BROADCAST_DISPLAY_SETTINGS = "/api/broadcast-display-settings";
+export const BROADCAST_DISPLAY_SETTINGS = (tournamentSlug?: string | null) =>
+  tournamentSlug
+    ? `/${encodeURIComponent(tournamentSlug)}/api/broadcast-display-settings`
+    : "/api/broadcast-display-settings";
+export const GET_BROADCAST_DISPLAY_SETTINGS = BROADCAST_DISPLAY_SETTINGS();
+export const UPDATE_BROADCAST_DISPLAY_SETTINGS = BROADCAST_DISPLAY_SETTINGS();
 export const LOGIN_ADMIN = "/api/auth/login";
 export const REGISTER_ADMIN = "/api/auth/register";
 export const GET_AUTH_ME = "/api/auth/me";

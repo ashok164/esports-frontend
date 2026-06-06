@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { createGlobalStyle } from "styled-components";
 import http from "../AxiosFile/axios";
-import { GET_BROADCAST_DISPLAY_SETTINGS, GET_PROJECT_COLOR_THEME } from "../Routes/ApiRoutes/apiRoutes";
+import { BROADCAST_DISPLAY_SETTINGS, GET_BROADCAST_DISPLAY_SETTINGS, GET_PROJECT_COLOR_THEME } from "../Routes/ApiRoutes/apiRoutes";
+import { getSelectedTournamentSlug } from "../Tournaments/tournamentState";
 
 export type ProjectColorTheme = {
   useDefaultColors: boolean;
@@ -346,8 +347,9 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     applySettings();
+    const selectedTournamentSlug = getSelectedTournamentSlug();
     http
-      .get(GET_BROADCAST_DISPLAY_SETTINGS)
+      .get(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || GET_BROADCAST_DISPLAY_SETTINGS)
       .then((response) => {
         const nextSettings = {
           ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
