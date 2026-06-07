@@ -1,6 +1,6 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-export const API_BASE_URL = "https://api.freefireesportsnepal.com";
-// export const API_BASE_URL = "http://127.0.0.1:3000";
+// export const API_BASE_URL = "https://api.freefireesportsnepal.com";
+export const API_BASE_URL = "http://127.0.0.1:3000";
 export const REAL_TIME_API = "/tablestandings";
 export const GET_REALTIME_SETTINGS = "/settings";
 export const UPDATE_REALTIME_SETTINGS = "/settings";
@@ -8,6 +8,10 @@ export const TEAMS = "/teams";
 export const CREATE_TEAM_TABLE = "/api/teams/create";
 export const GET_TEAM_DETAILS = "/api/teams/all";
 export const GET_TODAYS_PLAYING_TEAMS = "/api/teams/todays-playing";
+export const GET_BROADCAST_TEAM_ROSTER = (tournamentSlug?: string | null) =>
+  tournamentSlug
+    ? `/${encodeURIComponent(tournamentSlug)}/api/broadcast/team-roster`
+    : "/api/broadcast/team-roster";
 export const UPDATE_TEAM_DETAILS = (id: string | number) =>
   `/api/teams/update/${id}`;
 export const UPDATE_TEAM_PLAYING = (id: string | number) =>

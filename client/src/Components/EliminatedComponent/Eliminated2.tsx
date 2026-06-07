@@ -96,7 +96,7 @@ const RankBadge = styled.div`
   top: 20px;
   left: 60px;
   background-color: var(--project-accent, #bfff00);
-  color: var(--project-background, #000);
+  color: var(--project-text-inverse, #000);
   padding: 6px 24px;
   font-size: 24px;
   font-weight: 900;
@@ -137,16 +137,16 @@ const PurpleGeometry = styled.div`
 
 const PlayersContainer = styled.div`
   position: absolute;
-  bottom: 45px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: flex-end;
-  gap: -10px;
-  width: 480px;
-  height: 220px;
+  width: 520px;
+  height: 240px;
   z-index: 2;
+  overflow: hidden;
 
   animation: ${riseUp} 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
   animation-delay: 0.3s;
@@ -154,11 +154,22 @@ const PlayersContainer = styled.div`
 `;
 
 const PlayerPhoto = styled.img`
-  width: 125px;
-  height: auto;
+  align-self: end;
+  justify-self: center;
+  width: 150px;
+  height: 220px;
   object-fit: contain;
+  object-position: center bottom;
   filter: grayscale(100%) brightness(0.9) contrast(1.1);
   transition: filter 0.3s ease, transform 0.3s ease;
+  margin-inline: -18px;
+
+  &:nth-child(2),
+  &:nth-child(3) {
+    width: 162px;
+    height: 235px;
+    z-index: 3;
+  }
 
   &:hover {
     filter: grayscale(20%) brightness(1);
@@ -219,7 +230,7 @@ const EliminatedText = styled.h1`
   margin: 0;
   font-size: 38px;
   font-weight: 900;
-  color: var(--project-background, #3b0082);
+  color: var(--project-text-inverse, #050505);
   text-transform: uppercase;
   font-style: italic;
   letter-spacing: 1px;

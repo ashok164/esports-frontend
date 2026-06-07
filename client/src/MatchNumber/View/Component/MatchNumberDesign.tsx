@@ -41,7 +41,7 @@ const PlaceholderLogo = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--project-background, #000);
+  color: var(--project-text-inverse, #000);
   font-size: 11px;
   font-weight: bold;
   text-align: center;

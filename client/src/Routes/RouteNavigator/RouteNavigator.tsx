@@ -282,6 +282,12 @@ const routeGroups: RouteGroup[] = [
         type: "Broadcast",
       },
       {
+        title: "Team Roster",
+        path: "/team-roster",
+        note: "Six playing team rosters per page with player photos, team logos, and batch switching.",
+        type: "Broadcast",
+      },
+      {
         title: "Team Eliminated",
         path: "/team-eliminated",
         note: "Team eliminated broadcast overlay.",

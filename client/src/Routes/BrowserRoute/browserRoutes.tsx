@@ -185,6 +185,8 @@ const App: React.FC = () => {
       const settings = getBroadcastDisplaySettings();
       document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
       document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
+      document.body.dataset.showRosterTeamLogos = String(settings.showRosterTeamLogos);
+      document.body.dataset.rosterPageSwitch = String(settings.rosterPageSwitch);
     };
     const handleStorage = (event: StorageEvent) => {
       if (event.key === BROADCAST_DISPLAY_SETTINGS_KEY) applyDisplaySettings();
@@ -323,7 +325,7 @@ const AdminHomeMark = styled.span`
   height: 24px;
   border-radius: 6px;
   background: var(--project-secondary, #38bdf8);
-  color: var(--project-background, #0b0f19);
+  color: var(--project-text-inverse, #0b0f19);
   font-size: 0.82rem;
 `;
 

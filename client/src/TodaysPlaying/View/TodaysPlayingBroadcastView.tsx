@@ -238,7 +238,7 @@ const BottomBand = styled.div`
     var(--project-accent, #bfff00),
     rgba(var(--project-accent-rgb, 191, 255, 0), 0.9)
   );
-  color: var(--project-background, #070b13);
+  color: var(--project-text-inverse, #070b13);
   border-bottom: 2px solid rgba(0, 0, 0, 0.28);
 
   &::after {

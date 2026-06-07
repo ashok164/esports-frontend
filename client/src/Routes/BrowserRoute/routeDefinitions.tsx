@@ -26,6 +26,7 @@ import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
 import ResultViewerPage from "../../Result/view/ResultViewerPage";
 import RouteNavigator from "../RouteNavigator";
 import TeamEliminatedView from "../../TeamEliminated/View";
+import TeamRosterBroadcastView from "../../TeamRoster/View/TeamRosterBroadcastView";
 import TeamRecordTable from "../../TeamRecordTable/View";
 import { FullTeamBannerView, NotificationTeamBannerView } from "../../TeamBanner/View";
 import TopFraggersPage from "../../Result/view/TopFraggersPage";
@@ -59,6 +60,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/zone-shrink", element: <ZoneShrinkBroadcastView />, isBroadcast: true },
   { path: "/circle-analysis", element: <CircleAnalysis />, isBroadcast: true },
   { path: "/todays-playing", element: <TodaysPlayingBroadcastView />, isBroadcast: true },
+  { path: "/team-roster", element: <TeamRosterBroadcastView />, isBroadcast: true },
   { path: "/zone-shrink-control", element: <ZoneShrinkControlView />, isProtected: true },
   { path: "/circle-analysis-control", element: <CircleAnalysisAdmin />, isProtected: true },
   { path: "/team-record", element: <TeamRecordTable />, isProtected: true },

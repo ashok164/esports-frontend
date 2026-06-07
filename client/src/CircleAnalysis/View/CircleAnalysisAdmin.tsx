@@ -337,7 +337,7 @@ const SaveButton = styled.button`
   border-radius: 8px;
   padding: 0 16px;
   background: var(--project-secondary, #22c55e);
-  color: var(--project-background, #020617);
+  color: var(--project-text-inverse, #020617);
   font-weight: 900;
   cursor: pointer;
 

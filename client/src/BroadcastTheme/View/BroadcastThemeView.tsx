@@ -27,11 +27,12 @@ const colorFields: ColorField[] = [
   { key: "primary", label: "Primary", description: "Main action, brand, and broadcast accent." },
   { key: "secondary", label: "Secondary", description: "Supporting accent for admin controls." },
   { key: "accent", label: "Accent", description: "Focus rings, highlights, and important markers." },
-  { key: "background", label: "Background", description: "Full page background." },
-  { key: "surface", label: "Surface", description: "Cards, panels, and main containers." },
-  { key: "surfaceAlt", label: "Surface Alt", description: "Table headers and nested panels." },
-  { key: "textPrimary", label: "Text Primary", description: "Main readable text." },
-  { key: "textSecondary", label: "Text Secondary", description: "Muted text and helper copy." },
+  { key: "background", label: "Background", description: "Page/backdrop only. Does not control text." },
+  { key: "surface", label: "Surface", description: "Cards and panels only. Does not control text." },
+  { key: "surfaceAlt", label: "Surface Alt", description: "Table headers and nested panels only." },
+  { key: "textPrimary", label: "Text Primary", description: "Main readable text across admin and overlays." },
+  { key: "textSecondary", label: "Text Secondary", description: "Muted/helper text across admin and overlays." },
+  { key: "textInverse", label: "Text Inverse", description: "Dark text on bright bars, including roster player names." },
   { key: "border", label: "Border", description: "Input, card, and table borders." },
   { key: "success", label: "Success", description: "Success state color." },
   { key: "warning", label: "Warning", description: "Warning state color." },
@@ -78,7 +79,7 @@ const BroadcastThemeView: React.FC = () => {
     [theme]
   );
   
-  const canSave = invalidFields.length === 0 && !isSaving;
+  const canSave = (!!theme.useDefaultColors || invalidFields.length === 0) && !isSaving;
   const jsonPreview = useMemo(() => JSON.stringify(theme, null, 2), [theme]);
   const displayPayloadPreview = useMemo(() => JSON.stringify({ settings: displaySettings }, null, 2), [displaySettings]);
 
@@ -276,6 +277,30 @@ const BroadcastThemeView: React.FC = () => {
                 <ToggleCopy>
                   <strong>Show live standings points</strong>
                   <small>Hides the points column only in the live standings overlay.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.showRosterTeamLogos}
+                  onChange={(event) => updateDisplaySetting("showRosterTeamLogos", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Roster team logos</strong>
+                  <small>Shows or hides team logos in front of team names on the roster overlay.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.rosterPageSwitch}
+                  onChange={(event) => updateDisplaySetting("rosterPageSwitch", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Switch roster page</strong>
+                  <small>Toggle this once to open the next six-team roster batch on broadcast.</small>
                 </ToggleCopy>
               </SwitchToggle>
             </ToggleGrid>

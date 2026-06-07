@@ -14,6 +14,7 @@ export type ProjectColorTheme = {
   surfaceAlt: string;
   textPrimary: string;
   textSecondary: string;
+  textInverse: string;
   border: string;
   success: string;
   warning: string;
@@ -31,6 +32,8 @@ export type BroadcastDisplaySettings = {
   championRushEnabled: boolean;
   showCountryFlags: boolean;
   showLiveStandingsPoints: boolean;
+  showRosterTeamLogos: boolean;
+  rosterPageSwitch: boolean;
 };
 
 export const BROADCAST_DISPLAY_SETTINGS_KEY = "broadcast_display_settings";
@@ -40,6 +43,8 @@ export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
   championRushEnabled: true,
   showCountryFlags: true,
   showLiveStandingsPoints: true,
+  showRosterTeamLogos: true,
+  rosterPageSwitch: false,
 };
 
 export const getBroadcastDisplaySettings = (): BroadcastDisplaySettings => {
@@ -68,6 +73,7 @@ export const DEFAULT_PROJECT_THEME: ProjectColorTheme = {
   surfaceAlt: "#1f293d",
   textPrimary: "#ffffff",
   textSecondary: "#94a3b8",
+  textInverse: "#050505",
   border: "#334155",
   success: "#22c55e",
   warning: "#f59e0b",
@@ -114,6 +120,7 @@ const sanitizeTheme = (payload: Partial<ProjectColorTheme> | null | undefined): 
     "surfaceAlt",
     "textPrimary",
     "textSecondary",
+    "textInverse",
     "border",
     "success",
     "warning",
@@ -140,6 +147,7 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
     --project-surface-alt: ${({ $theme }) => $theme.surfaceAlt};
     --project-text-primary: ${({ $theme }) => $theme.textPrimary};
     --project-text-secondary: ${({ $theme }) => $theme.textSecondary};
+    --project-text-inverse: ${({ $theme }) => $theme.textInverse};
     --project-border: ${({ $theme }) => $theme.border};
     --project-success: ${({ $theme }) => $theme.success};
     --project-warning: ${({ $theme }) => $theme.warning};
@@ -181,8 +189,12 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
       border-color: var(--project-border);
     }
 
-    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(h1, h2, h3, h4, h5, h6, p, span, label, strong, small, td, th, button, a) {
-      color: inherit;
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(h1, h2, h3, h4, h5, h6, label, strong, td, th, button) {
+      color: var(--project-text-primary);
+    }
+
+    body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(p, small) {
+      color: var(--project-text-secondary);
     }
 
     body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(button, input, select, textarea) {
@@ -251,12 +263,12 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
 
     body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(.theme-secondary, [data-theme-fill="secondary"]) {
       background: var(--project-secondary) !important;
-      color: var(--project-background) !important;
+      color: var(--project-text-inverse) !important;
     }
 
     body[data-project-theme="custom"]:not([data-live-standings-route="true"]) :is(.theme-accent, [data-theme-fill="accent"]) {
       background: var(--project-accent) !important;
-      color: var(--project-background) !important;
+      color: var(--project-text-inverse) !important;
     }
 
     body[data-project-theme="custom"][data-broadcast-route="true"],
@@ -340,6 +352,8 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
       document.body.dataset.championRushEnabled = String(settings.championRushEnabled);
       document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
       document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
+      document.body.dataset.showRosterTeamLogos = String(settings.showRosterTeamLogos);
+      document.body.dataset.rosterPageSwitch = String(settings.rosterPageSwitch);
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -388,6 +402,7 @@ export const PROJECT_THEME_API_RESPONSE_EXAMPLE: ProjectColorTheme = {
   surfaceAlt: "#1f293d",
   textPrimary: "#ffffff",
   textSecondary: "#94a3b8",
+  textInverse: "#050505",
   border: "#334155",
   success: "#22c55e",
   warning: "#f59e0b",

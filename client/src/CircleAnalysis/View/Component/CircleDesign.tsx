@@ -54,7 +54,7 @@ const TimelineHeaderGrid = styled(GridBase)`
 
 const CircleHeader = styled.div`
   background: var(--project-accent, #bfff00);
-  color: var(--project-background, #000);
+  color: var(--project-text-inverse, #000);
   text-align: center;
   font-weight: 900;
   font-style: italic;

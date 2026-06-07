@@ -151,16 +151,16 @@ const RedEliminatedGeometry = styled.div`
 
 const PlayersContainer = styled.div`
   position: absolute;
-  bottom: 45px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: flex-end;
-  gap: -10px;
-  width: 480px;
-  height: 220px;
+  width: 520px;
+  height: 240px;
   z-index: 2;
+  overflow: hidden;
 
   animation: ${riseUp} 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
   animation-delay: 0.3s;
@@ -168,11 +168,22 @@ const PlayersContainer = styled.div`
 `;
 
 const PlayerPhoto = styled.img`
-  width: 125px;
-  height: auto;
+  align-self: end;
+  justify-self: center;
+  width: 150px;
+  height: 220px;
   object-fit: contain;
+  object-position: center bottom;
   filter: grayscale(100%) brightness(0.7) contrast(1.2);
   transition: filter 0.3s ease, transform 0.3s ease;
+  margin-inline: -18px;
+
+  &:nth-child(2),
+  &:nth-child(3) {
+    width: 162px;
+    height: 235px;
+    z-index: 3;
+  }
 
   &:hover {
     filter: grayscale(30%) brightness(1);
