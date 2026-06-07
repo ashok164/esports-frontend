@@ -27,6 +27,13 @@ const unwrapTeams = (response: any) => {
   return data?.data || data?.teams || data?.teamDetails || data || [];
 };
 
+const withTournamentSlug = (path: string) => {
+  const tournamentSlug = getSelectedTournamentSlug();
+  return tournamentSlug
+    ? `/${encodeURIComponent(tournamentSlug)}${path}`
+    : path;
+};
+
 const mapTodaysPlayingTeam = (team: any): TodaysPlayingTeam => {
   const logo = String(firstValue(team?.teamLogo, team?.team_logo, team?.logo, team?.logoUrl));
   const countryLogo = String(firstValue(team?.countryLogo, team?.country_logo, team?.flag, team?.countryUrl));
@@ -58,16 +65,12 @@ export const createTeamTableApi = async (data: FormData) => {
 };
 
 export const getTeamTableApi = async () => {
-  const response = await http.get(GET_TEAM_DETAILS);
+  const response = await http.get(withTournamentSlug(GET_TEAM_DETAILS));
   return unwrapTeams(response);
 };
 
 export const getTodaysPlayingTeamsApi = async (): Promise<TodaysPlayingTeam[]> => {
-  const tournamentSlug = getSelectedTournamentSlug();
-  const url = tournamentSlug
-    ? `/${encodeURIComponent(tournamentSlug)}${GET_TODAYS_PLAYING_TEAMS}`
-    : GET_TODAYS_PLAYING_TEAMS;
-  const response = await http.get(url, {
+  const response = await http.get(withTournamentSlug(GET_TODAYS_PLAYING_TEAMS), {
     params: { _t: Date.now() },
     headers: { "Cache-Control": "no-cache" },
   });
