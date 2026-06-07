@@ -7,6 +7,7 @@ import {
   UPDATE_TEAM_PLAYING,
   UPDATE_TEAM_DETAILS,
 } from "../../Routes/ApiRoutes/apiRoutes";
+import { getSelectedTournamentSlug } from "../../Tournaments/tournamentState";
 
 export type TodaysPlayingTeam = {
   id: string | number;
@@ -15,6 +16,7 @@ export type TodaysPlayingTeam = {
   tag: string;
   logo: string;
   teamLogo: string;
+  countryLogo: string;
 };
 
 const firstValue = (...values: any[]) =>
@@ -27,6 +29,7 @@ const unwrapTeams = (response: any) => {
 
 const mapTodaysPlayingTeam = (team: any): TodaysPlayingTeam => {
   const logo = String(firstValue(team?.teamLogo, team?.team_logo, team?.logo, team?.logoUrl));
+  const countryLogo = String(firstValue(team?.countryLogo, team?.country_logo, team?.flag, team?.countryUrl));
 
   return {
     id: firstValue(team?.id, team?._id, team?.teamId, team?.team_id),
@@ -35,6 +38,7 @@ const mapTodaysPlayingTeam = (team: any): TodaysPlayingTeam => {
     tag: String(firstValue(team?.shortTag, team?.short_tag, team?.teamTag, team?.team_tag, team?.tag)),
     logo,
     teamLogo: logo,
+    countryLogo,
   };
 };
 
@@ -59,7 +63,11 @@ export const getTeamTableApi = async () => {
 };
 
 export const getTodaysPlayingTeamsApi = async (): Promise<TodaysPlayingTeam[]> => {
-  const response = await http.get(GET_TODAYS_PLAYING_TEAMS, {
+  const tournamentSlug = getSelectedTournamentSlug();
+  const url = tournamentSlug
+    ? `/${encodeURIComponent(tournamentSlug)}${GET_TODAYS_PLAYING_TEAMS}`
+    : GET_TODAYS_PLAYING_TEAMS;
+  const response = await http.get(url, {
     params: { _t: Date.now() },
     headers: { "Cache-Control": "no-cache" },
   });

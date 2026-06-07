@@ -276,6 +276,12 @@ const routeGroups: RouteGroup[] = [
         type: "Broadcast",
       },
       {
+        title: "Today's Playing",
+        path: "/todays-playing",
+        note: "Broadcast grid for today's selected teams with logos, tags, and country flags.",
+        type: "Broadcast",
+      },
+      {
         title: "Team Eliminated",
         path: "/team-eliminated",
         note: "Team eliminated broadcast overlay.",

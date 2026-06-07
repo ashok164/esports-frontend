@@ -32,6 +32,7 @@ import TopFraggersPage from "../../Result/view/TopFraggersPage";
 import TournamentManagerView, { TournamentRolesView } from "../../Tournaments/View";
 import TournamentAssetsView from "../../TournamentAssets/View";
 import TournamentLogoView, { TournamentLogoBroadcastView } from "../../TournamentLogo/View";
+import TodaysPlayingBroadcastView from "../../TodaysPlaying/View";
 import ViewTeamLogo from "../../TeamLogo/View";
 import ZoneShrinkControlView, { ZoneShrinkBroadcastView } from "../../ZoneShrink/View";
 
@@ -57,6 +58,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/match-number", element: <MatchNumber />, isBroadcast: true },
   { path: "/zone-shrink", element: <ZoneShrinkBroadcastView />, isBroadcast: true },
   { path: "/circle-analysis", element: <CircleAnalysis />, isBroadcast: true },
+  { path: "/todays-playing", element: <TodaysPlayingBroadcastView />, isBroadcast: true },
   { path: "/zone-shrink-control", element: <ZoneShrinkControlView />, isProtected: true },
   { path: "/circle-analysis-control", element: <CircleAnalysisAdmin />, isProtected: true },
   { path: "/team-record", element: <TeamRecordTable />, isProtected: true },
