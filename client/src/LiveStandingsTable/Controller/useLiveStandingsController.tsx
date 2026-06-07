@@ -154,6 +154,7 @@ const collectChampionRushTeamKeys = (overallRows: any[]) => {
 };
 
 const minimizePlayer = (player: any) => ({
+  ...player,
   account_id: firstValue(player?.account_id, player?.player_uid, player?.playerUid),
   nickname: firstValue(player?.nickname, player?.player_name, player?.playerName, player?.name),
   player_state: firstValue(player?.player_state, player?.playerState, 0),
@@ -163,6 +164,20 @@ const minimizePlayer = (player: any) => ({
     total_hp: firstValue(player?.hp_info?.total_hp, player?.hpInfo?.totalHp, 200),
   },
   player_image: firstValue(player?.player_image, player?.player_pic, player?.playerPic),
+  camera_link: firstValue(player?.camera_link, player?.cameraLink, ""),
+  kills: firstValue(player?.kills, player?.kill, player?.kill_count, player?.killCount, 0),
+  damage: firstValue(player?.damage, player?.damage_dealt, player?.damageDealt, 0),
+  assists: firstValue(player?.assists, player?.assist, player?.assist_count, player?.assistCount, 0),
+  knockdowns: firstValue(player?.knockdowns, player?.knock_downs, player?.knockDowns, player?.knocks, 0),
+  survival_time: firstValue(player?.survival_time, player?.survivalTime, player?.survival, 0),
+  character: firstValue(player?.character, player?.characterInfo, null),
+  active_skill: firstValue(player?.active_skill, player?.activeSkill, null),
+  passive_skills: firstValue(player?.passive_skills, player?.passiveSkills, []),
+  weapon_used: firstValue(player?.weapon_used, player?.weaponUsed, player?.weapon, null),
+  weapon_usages: firstValue(player?.weapon_usages, player?.weaponUsages, player?.weapons, []),
+  weapon: firstValue(player?.weapon, player?.weapon_used, player?.weaponUsed, null),
+  pet: firstValue(player?.pet, player?.petSkill, player?.pet_skill, null),
+  equipment_loadouts: firstValue(player?.equipment_loadouts, player?.equipmentLoadouts, player?.loadouts, []),
 });
 
 const minimizeTeam = (team: any) => {

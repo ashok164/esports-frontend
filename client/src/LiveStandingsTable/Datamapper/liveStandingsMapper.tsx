@@ -12,6 +12,20 @@ export interface Player {
   hasRecalled: boolean; // <-- Added persistent death tracker
   deadTime: number;
   playerPic?: string;
+  cameraLink?: string;
+  kills?: number;
+  damage?: number;
+  assists?: number;
+  knockdowns?: number;
+  survivalTime?: number;
+  character?: any;
+  activeSkill?: any;
+  passiveSkills?: any[];
+  weaponUsed?: any;
+  weapon?: any;
+  weapons?: any[];
+  pet?: any;
+  equipmentLoadouts?: any[];
 }
 
 export interface Team {
@@ -296,6 +310,7 @@ export const mapTeamData = (
       }
 
       return {
+        ...p,
         id: p?.account_id,
         name: p?.nickname || "Unknown",
         hp,
@@ -307,6 +322,26 @@ export const mapTeamData = (
         hasRecalled, // <-- Retained in state payload
         deadTime: p?.be_killed_time,
         playerPic: p?.player_image || undefined,
+        cameraLink: firstValue(p?.camera_link, p?.cameraLink, ""),
+        kills: toNumber(firstValue(p?.kills, p?.kill, p?.kill_count, p?.killCount, 0)),
+        damage: toNumber(firstValue(p?.damage, p?.damage_dealt, p?.damageDealt, 0)),
+        assists: toNumber(firstValue(p?.assists, p?.assist, p?.assist_count, p?.assistCount, 0)),
+        knockdowns: toNumber(firstValue(p?.knockdowns, p?.knock_downs, p?.knockDowns, p?.knocks, 0)),
+        survivalTime: toNumber(firstValue(p?.survival_time, p?.survivalTime, p?.survival, 0)),
+        character: firstValue(p?.character, p?.characterInfo, null),
+        activeSkill: firstValue(p?.active_skill, p?.activeSkill, null),
+        passiveSkills: Array.isArray(firstValue(p?.passive_skills, p?.passiveSkills, []))
+          ? firstValue(p?.passive_skills, p?.passiveSkills, [])
+          : [],
+        weaponUsed: firstValue(p?.weapon_used, p?.weaponUsed, p?.weapon, null),
+        weapon: firstValue(p?.weapon, p?.weapon_used, p?.weaponUsed, null),
+        weapons: Array.isArray(firstValue(p?.weapon_usages, p?.weaponUsages, p?.weapons, []))
+          ? firstValue(p?.weapon_usages, p?.weaponUsages, p?.weapons, [])
+          : [],
+        pet: firstValue(p?.pet, p?.petSkill, p?.pet_skill, null),
+        equipmentLoadouts: Array.isArray(firstValue(p?.equipment_loadouts, p?.equipmentLoadouts, p?.loadouts, []))
+          ? firstValue(p?.equipment_loadouts, p?.equipmentLoadouts, p?.loadouts, [])
+          : [],
       };
     });
 

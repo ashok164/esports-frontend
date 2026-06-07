@@ -54,11 +54,27 @@ export const decompressTeam = (compressedTeam) => ({
 });
 
 export const decompressPlayer = (compressedPlayer) => ({
+  ...compressedPlayer,
   id: compressedPlayer.id,
   playerName: compressedPlayer.nm,
+  name: compressedPlayer.nm,
   hpPercent: compressedPlayer.hp,
   status: mapPlayerStatus(compressedPlayer.st),
   playerPic: compressedPlayer.pic,
+  cameraLink: compressedPlayer.cam,
+  kills: compressedPlayer.k,
+  damage: compressedPlayer.dmg,
+  assists: compressedPlayer.as,
+  knockdowns: compressedPlayer.kd,
+  survivalTime: compressedPlayer.sv,
+  character: compressedPlayer.ch,
+  activeSkill: compressedPlayer.acts,
+  passiveSkills: compressedPlayer.ps || [],
+  weaponUsed: compressedPlayer.wu,
+  weapon: compressedPlayer.wp || compressedPlayer.wu,
+  weapons: compressedPlayer.ws || [],
+  pet: compressedPlayer.pet,
+  equipmentLoadouts: compressedPlayer.eq || [],
 });
 
 const mapPlayerStatus = (statusCode) => {
