@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TeamNotificationCard from "../../Components/EliminatedComponent/Eliminated";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
@@ -9,6 +9,7 @@ const TeamEliminatedView = () => {
   });
   const { isLoading: isThemeLoading } = useProjectTheme();
   const [activeEliminatedTeam, setActiveEliminatedTeam] = useState(null);
+  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
 
   const shownEliminations = useRef(new Set());
   const previousEliminatedIds = useRef(new Set());
@@ -163,15 +164,30 @@ const TeamEliminatedView = () => {
     };
   }, []);
 
-  const aliveTeamsCount = Array.isArray(standings)
-    ? standings.filter(
-        (team) =>
-          Number(team?.playersAlive ?? 0) > 0 &&
-          !team?.isEliminated,
-      ).length
-    : 0;
+  const aliveTeamsCount = useMemo(
+    () =>
+      Array.isArray(standings)
+        ? standings.filter(
+            (team) =>
+              Number(team?.playersAlive ?? 0) > 0 &&
+              !team?.isEliminated,
+          ).length
+        : 0,
+    [standings],
+  );
 
-  if (isThemeLoading || !activeEliminatedTeam || aliveTeamsCount === 4) return null;
+  useEffect(() => {
+    if (aliveTeamsCount === 4) {
+      setIsFinalPhaseLocked(true);
+      return;
+    }
+
+    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
+      setIsFinalPhaseLocked(false);
+    }
+  }, [aliveTeamsCount]);
+
+  if (isThemeLoading || !activeEliminatedTeam || isFinalPhaseLocked) return null;
 
   return (
     <>

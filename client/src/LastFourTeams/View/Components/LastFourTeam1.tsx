@@ -259,12 +259,12 @@ const HealthFill = styled.div<{
    ========================================================================== */
 
 const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
-  // Show this HUD only when exactly four teams are still alive.
+  // Once the match reaches the last-four phase, keep showing the survivors as they drop from 4 to 1.
   const activeTeams = [...teams]
     .filter(team => team.playersAlive > 0 && !team.is_eliminated && !team.isEliminated)
     .sort((a, b) => a.rank - b.rank);
 
-  const activeTopFour = activeTeams.length === 4 ? activeTeams : [];
+  const activeTopFour = activeTeams.length > 0 && activeTeams.length <= 4 ? activeTeams : [];
 
   // Helper function to format the Win Rate string matching image reference spacing
   const formatWinRate = (val: string | number | undefined) => {

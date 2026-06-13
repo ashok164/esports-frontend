@@ -878,6 +878,7 @@ export default function StandingsTable({
 }: StandingsTableProps) {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
   console.log("Want to see api Call for realtime api? lol you cant track api");
+  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousDeadIdsRef = useRef<Set<string>>(new Set());
   const hasDeadBaselineRef = useRef(false);
@@ -909,6 +910,17 @@ export default function StandingsTable({
       ).length,
     [teams],
   );
+
+  useEffect(() => {
+    if (aliveTeamsCount === 4) {
+      setIsFinalPhaseLocked(true);
+      return;
+    }
+
+    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
+      setIsFinalPhaseLocked(false);
+    }
+  }, [aliveTeamsCount]);
 
   useEffect(() => {
     const syncDisplaySettings = () => setDisplaySettings(getBroadcastDisplaySettings());
@@ -1020,7 +1032,7 @@ export default function StandingsTable({
     }
   }, [sortedTeams]);
 
-  if (aliveTeamsCount === 4) {
+  if (isFinalPhaseLocked) {
     return null;
   }
 
