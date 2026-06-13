@@ -5,6 +5,7 @@ import {
   getLeagueStageResultGameDetails,
   getResultGameDetails,
 } from "../../GameDetails/gameDetailsState";
+import useSyncGameDetails from "../../GameDetails/useSyncGameDetails";
 import { getResultByMatchIdApi } from "../repository/remote";
 
 export type PlayerResultMode = "mvp" | "booyah-team" | "top-fraggers";
@@ -622,6 +623,7 @@ const pageCopy = {
 };
 
 const ResultPlayerTable: React.FC<PlayerResultTableProps> = ({ mode }) => {
+  useSyncGameDetails();
   const [matchId, setMatchId] = useState(() =>
     mode === "top-fraggers" ? getEnabledLeagueMatchIds().join(",") : getEnabledResultMatchId(),
   );

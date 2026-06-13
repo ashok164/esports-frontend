@@ -6,6 +6,7 @@ import {
   getResultGameDetails,
   getTodaysResultGameDetails,
 } from "../../GameDetails/gameDetailsState";
+import useSyncGameDetails from "../../GameDetails/useSyncGameDetails";
 import {
   getResultByMatchIdApi,
   getResultsByMatchIdsApi,
@@ -162,6 +163,7 @@ const downloadResultCsv = (rows: ResultRow[], filename: string) => {
 };
 
 const ResultBroadcastView: React.FC<ResultBroadcastViewProps> = ({ initialTab = "result" }) => {
+  useSyncGameDetails();
   const [activeTab, setActiveTab] = useState<ResultTab>(initialTab);
   const [resultMatchIds, setResultMatchIds] = useState(splitMatchIds(getResultGameDetails().matchIds));
   const [todayMatchIds, setTodayMatchIds] = useState(getTodaysMatchIds());

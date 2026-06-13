@@ -3,6 +3,7 @@ import {
   GAME_DETAILS_UPDATED_EVENT,
   getActiveGameDetails,
 } from "../../GameDetails/gameDetailsState";
+import useSyncGameDetails from "../../GameDetails/useSyncGameDetails";
 import { useProjectTheme } from "../../Theme";
 import {
   getTournamentLogosApi,
@@ -12,6 +13,7 @@ import {
 import MatchOverlay from "./Component/MatchNumberDesign";
 
 const MatchNumber = () => {
+  useSyncGameDetails();
   const [activeDetails, setActiveDetails] = React.useState(getActiveGameDetails);
   const [activeLogoUrl, setActiveLogoUrl] = React.useState("");
   const { isLoading: isThemeLoading } = useProjectTheme();

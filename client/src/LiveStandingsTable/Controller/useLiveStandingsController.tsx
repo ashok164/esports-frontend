@@ -9,6 +9,7 @@ import {
   GAME_DETAILS_UPDATED_EVENT,
   getActiveGameDetails,
 } from "../../GameDetails/gameDetailsState";
+import useSyncGameDetails from "../../GameDetails/useSyncGameDetails";
 import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 
 const RECONNECT_DELAY_MS = 500;
@@ -218,6 +219,7 @@ const minimizeTeam = (team: any) => {
 const minimizeLiveRows = (rows: any[]) => rows.map(minimizeTeam);
 
 const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}) => {
+  useSyncGameDetails();
   const forceLiveMatchStandings = Boolean(options.forceLiveMatchStandings);
   const [standings, setStandings] = useState<Team[]>([]);
   const [championBannerUrl, setChampionBannerUrl] = useState("");
