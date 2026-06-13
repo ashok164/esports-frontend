@@ -84,7 +84,18 @@ const LiveStandingsView: React.FC = () => {
     });
   }, [isSingleEliminationTest, standings, testEliminated, testTeamId]);
 
-  if (loading) return null;
+  const aliveTeamsCount = useMemo(
+    () =>
+      displayStandings.filter(
+        (team) =>
+          Number(team?.playersAlive ?? 0) > 0 &&
+          !team?.isEliminated &&
+          !team?.is_eliminated,
+      ).length,
+    [displayStandings],
+  );
+
+  if (loading || aliveTeamsCount === 4) return null;
 
   return (
     <StandingsTable

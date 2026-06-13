@@ -44,6 +44,7 @@ interface Team {
   rankingScore?: number;
   totalPoints?: number;
   isEliminated?: boolean;
+  is_eliminated?: boolean;
   isPlaying?: boolean;
   players?: Player[];
 }
@@ -898,6 +899,17 @@ export default function StandingsTable({
       }));
   }, [teams, maxRows]);
 
+  const aliveTeamsCount = useMemo(
+    () =>
+      teams.filter(
+        (team) =>
+          Number(team?.playersAlive ?? 0) > 0 &&
+          !team?.isEliminated &&
+          !team?.is_eliminated,
+      ).length,
+    [teams],
+  );
+
   useEffect(() => {
     const syncDisplaySettings = () => setDisplaySettings(getBroadcastDisplaySettings());
     const handleStorage = (event: StorageEvent) => {
@@ -1007,6 +1019,10 @@ export default function StandingsTable({
       });
     }
   }, [sortedTeams]);
+
+  if (aliveTeamsCount === 4) {
+    return null;
+  }
 
   if (sortedTeams.length === 0) {
     return (

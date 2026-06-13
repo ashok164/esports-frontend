@@ -163,7 +163,16 @@ const TeamEliminatedView = () => {
     };
   }, []);
 
-  if (isThemeLoading || !activeEliminatedTeam) return null;
+  const aliveTeamsCount = Array.isArray(standings)
+    ? standings.filter(
+        (team) =>
+          Number(team?.playersAlive ?? 0) > 0 &&
+          !team?.isEliminated &&
+          !("is_eliminated" in (team ?? {}) && team.is_eliminated),
+      ).length
+    : 0;
+
+  if (isThemeLoading || !activeEliminatedTeam || aliveTeamsCount === 4) return null;
 
   return (
     <>
