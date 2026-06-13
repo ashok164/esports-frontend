@@ -168,7 +168,7 @@ const TeamEliminatedView = () => {
         (team) =>
           Number(team?.playersAlive ?? 0) > 0 &&
           !team?.isEliminated &&
-          !("is_eliminated" in (team ?? {}) && team.is_eliminated),
+          !Boolean((team as { is_eliminated?: boolean } | null)?.is_eliminated),
       ).length
     : 0;
 
