@@ -45,7 +45,6 @@ const LiveStandingsView: React.FC = () => {
   const { standings, championBannerUrl, championRushTeamKeys, loading } = useLiveStandingsController();
   const [testTeamId, setTestTeamId] = useState<string | number | null>(null);
   const [testEliminated, setTestEliminated] = useState(false);
-  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
   const isSingleEliminationTest =
     new URLSearchParams(window.location.search).has(
       SINGLE_ELIMINATION_TEST_PARAM,
@@ -95,18 +94,10 @@ const LiveStandingsView: React.FC = () => {
     [displayStandings],
   );
 
-  useEffect(() => {
-    if (aliveTeamsCount === 4) {
-      setIsFinalPhaseLocked(true);
-      return;
-    }
+  const shouldHideStandingsTable =
+    aliveTeamsCount > 0 && aliveTeamsCount <= 4;
 
-    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
-      setIsFinalPhaseLocked(false);
-    }
-  }, [aliveTeamsCount]);
-
-  if (loading || isFinalPhaseLocked) return null;
+  if (loading || shouldHideStandingsTable) return null;
 
   return (
     <StandingsTable

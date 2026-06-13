@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import EndgameTopFourHUD from "./Components/LastFourTeam1";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
@@ -8,7 +8,6 @@ const LastTeamNotification = () => {
     forceLiveMatchStandings: true,
   });
   const { isLoading: isThemeLoading } = useProjectTheme();
-  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
 
   const aliveTeamsCount = useMemo(
     () =>
@@ -21,18 +20,10 @@ const LastTeamNotification = () => {
     [standings],
   );
 
-  useEffect(() => {
-    if (aliveTeamsCount === 4) {
-      setIsFinalPhaseLocked(true);
-      return;
-    }
+  const shouldShowFinalTeamsOverlay =
+    aliveTeamsCount > 0 && aliveTeamsCount <= 4;
 
-    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
-      setIsFinalPhaseLocked(false);
-    }
-  }, [aliveTeamsCount]);
-
-  if (loading || isThemeLoading || !isFinalPhaseLocked) return null;
+  if (loading || isThemeLoading || !shouldShowFinalTeamsOverlay) return null;
   return (
     <>
       <EndgameTopFourHUD teams={standings} />
