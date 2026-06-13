@@ -87,13 +87,20 @@ const bannerArrival = keyframes`
    ========================================================================== */
 
 const ScreenContainer = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   width: 100vw;
   height: 100vh;
+  padding-top: 16px;
+  box-sizing: border-box;
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 9999;
 `;
 
 const CardWrapper = styled.div`
@@ -101,7 +108,7 @@ const CardWrapper = styled.div`
   width: 600px;
   height: 350px;
   font-family: "Arial Black", Gadget, sans-serif;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
 `;
 
