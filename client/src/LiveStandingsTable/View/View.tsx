@@ -89,8 +89,7 @@ const LiveStandingsView: React.FC = () => {
       displayStandings.filter(
         (team) =>
           Number(team?.playersAlive ?? 0) > 0 &&
-          !team?.isEliminated &&
-          !team?.is_eliminated,
+          !team?.isEliminated,
       ).length,
     [displayStandings],
   );

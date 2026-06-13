@@ -167,8 +167,7 @@ const TeamEliminatedView = () => {
     ? standings.filter(
         (team) =>
           Number(team?.playersAlive ?? 0) > 0 &&
-          !team?.isEliminated &&
-          !Boolean((team as { is_eliminated?: boolean } | null)?.is_eliminated),
+          !team?.isEliminated,
       ).length
     : 0;
 
