@@ -22,6 +22,14 @@ export type TodaysPlayingTeam = {
 const firstValue = (...values: any[]) =>
   values.find((value) => value !== undefined && value !== null && String(value).trim() !== "") ?? "";
 
+const TEAM_TABLE_CACHE_TTL_MS = 15000;
+
+type TeamTableCacheEntry = {
+  data: any[] | null;
+  expiresAt: number;
+  promise: Promise<any[]> | null;
+};
+
 const unwrapTeams = (response: any) => {
   const data = response?.data;
   return data?.data || data?.teams || data?.teamDetails || data || [];
@@ -32,6 +40,22 @@ const withTournamentSlug = (path: string) => {
   return tournamentSlug
     ? `/${encodeURIComponent(tournamentSlug)}${path}`
     : path;
+};
+
+const teamTableCache = new Map<string, TeamTableCacheEntry>();
+
+const getTeamTableCacheKey = () => {
+  const tournamentSlug = getSelectedTournamentSlug();
+  return tournamentSlug ? String(tournamentSlug).trim().toLowerCase() : "__default__";
+};
+
+const invalidateTeamTableCache = (cacheKey?: string) => {
+  if (cacheKey) {
+    teamTableCache.delete(cacheKey);
+    return;
+  }
+
+  teamTableCache.clear();
 };
 
 const mapTodaysPlayingTeam = (team: any): TodaysPlayingTeam => {
@@ -57,6 +81,7 @@ export const createTeamTableApi = async (data: FormData) => {
       },
     });
 
+    invalidateTeamTableCache();
     return apiCall;
   } catch (err) {
     console.log("API ERROR:", err);
@@ -64,9 +89,51 @@ export const createTeamTableApi = async (data: FormData) => {
   }
 };
 
-export const getTeamTableApi = async () => {
-  const response = await http.get(withTournamentSlug(GET_TEAM_DETAILS));
-  return unwrapTeams(response);
+export const getTeamTableApi = async (options: { forceFresh?: boolean } = {}) => {
+  const cacheKey = getTeamTableCacheKey();
+  const now = Date.now();
+  const cached = teamTableCache.get(cacheKey);
+
+  if (!options.forceFresh && cached?.data && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  if (!options.forceFresh && cached?.promise) {
+    return cached.promise;
+  }
+
+  const promise = http
+    .get(withTournamentSlug(GET_TEAM_DETAILS), {
+      params: options.forceFresh ? { _t: now } : undefined,
+      headers: options.forceFresh ? { "Cache-Control": "no-cache" } : undefined,
+    })
+    .then((response) => {
+      const teams = unwrapTeams(response);
+      const data = Array.isArray(teams) ? teams : [];
+
+      teamTableCache.set(cacheKey, {
+        data,
+        expiresAt: Date.now() + TEAM_TABLE_CACHE_TTL_MS,
+        promise: null,
+      });
+
+      return data;
+    })
+    .catch((error) => {
+      const current = teamTableCache.get(cacheKey);
+      if (current?.promise === promise) {
+        teamTableCache.delete(cacheKey);
+      }
+      throw error;
+    });
+
+  teamTableCache.set(cacheKey, {
+    data: cached?.data || null,
+    expiresAt: cached?.expiresAt || 0,
+    promise,
+  });
+
+  return promise;
 };
 
 export const getTodaysPlayingTeamsApi = async (): Promise<TodaysPlayingTeam[]> => {
@@ -88,6 +155,7 @@ export const updateTeamTableApi = async (id: string | number, data: FormData) =>
     },
   });
 
+  invalidateTeamTableCache();
   return response;
 };
 
@@ -96,10 +164,12 @@ export const updateTeamPlayingApi = async (
   isPlaying: boolean,
 ) => {
   const response = await http.patch(UPDATE_TEAM_PLAYING(id), { isPlaying });
+  invalidateTeamTableCache();
   return response;
 };
 
 export const deleteTeamTableApi = async (id: string | number) => {
   const response = await http.delete(DELETE_TEAM_DETAILS(id));
+  invalidateTeamTableCache();
   return response;
 };

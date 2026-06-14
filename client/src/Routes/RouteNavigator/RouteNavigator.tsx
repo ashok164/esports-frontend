@@ -213,7 +213,7 @@ const routeGroups: RouteGroup[] = [
       {
         title: "Result Viewer",
         path: "/result-viewer",
-        note: "View saved result rows by match ID.",
+        note: "View saved result rows by match ID and remove stale saved match data.",
         type: "Admin",
       },
       {

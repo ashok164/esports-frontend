@@ -143,6 +143,7 @@ export const GET_RESULT_TOP_FRAGGERS = (matchId: string | number) =>
 export const GET_RESULT_BOOYAH = (matchId: string | number) =>
   `/api/results/booyah/${matchId}`;
 export const GET_RESULTS_BY_MATCH_IDS = "/api/results/by-match-ids";
+export const GET_RESULT_INVENTORY = "/api/results/inventory/all";
 export const UPDATE_RESULT = (id: string | number) =>
   `/api/results/update/${id}`;
 export const DELETE_RESULT = (id: string | number) =>

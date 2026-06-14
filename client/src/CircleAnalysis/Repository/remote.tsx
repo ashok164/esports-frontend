@@ -1,9 +1,9 @@
 import http from "../../AxiosFile/axios";
 import {
   GET_CIRCLE_ANALYSIS,
-  GET_TEAM_DETAILS,
   UPDATE_CIRCLE_ANALYSIS,
 } from "../../Routes/ApiRoutes/apiRoutes";
+import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 import {
   CircleAnalysisResponse,
   CircleAnalysisTeam,
@@ -107,8 +107,7 @@ const writeStoredResponse = (payload: CircleAnalysisResponse) => {
 };
 
 export const getCircleAnalysisTeamsApi = async () => {
-  const response = await http.get(GET_TEAM_DETAILS);
-  const teams = response?.data?.data;
+  const teams = await getTeamTableApi();
   return Array.isArray(teams) ? [...teams].sort(compareTeamId).slice(0, 12) : [];
 };
 

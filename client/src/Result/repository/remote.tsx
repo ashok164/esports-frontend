@@ -6,6 +6,7 @@ import {
   FETCH_MATCH_RESULT_DATA,
   GET_RESULT_BOOYAH,
   GET_RESULT_BY_MATCH_ID,
+  GET_RESULT_INVENTORY,
   GET_RESULT_MVP,
   GET_RESULT_TEAM_STATS,
   GET_RESULT_TOP_FRAGGERS,
@@ -29,6 +30,28 @@ export type ResultRow = {
   booyahCount: string | number;
   totalKills: string | number;
   [key: string]: any;
+};
+
+export type ResultInventoryRow = {
+  matchId: string;
+  resultRowCount: number;
+  playerRowCount: number;
+  totalScore: number;
+  teamCount: number;
+  lastUpdated?: string | null;
+  hasGameDetail: boolean;
+  stale: boolean;
+  gameDetail?: {
+    gameDetailId?: string | number;
+    matchId: string;
+    gameNumber?: string;
+    roundName?: string;
+    phase?: string;
+    enabled?: boolean;
+    resultEnabled?: boolean;
+    todaysResultEnabled?: boolean;
+    leagueStageResultEnabled?: boolean;
+  } | null;
 };
 
 const DEFAULT_MATCH_STATS_SIGN = "c00ca1f055c6ab2876cc41e6771f79d2";
@@ -76,6 +99,14 @@ export const getResultBooyahApi = async (matchId: string | number) => {
 
 export const getResultsByMatchIdsApi = async (matchIds: Array<string | number>) => {
   const response = await http.post(GET_RESULTS_BY_MATCH_IDS, { matchIds });
+  return response?.data;
+};
+
+export const getResultInventoryApi = async () => {
+  const response = await http.get(GET_RESULT_INVENTORY, {
+    params: { _t: Date.now() },
+    headers: { "Cache-Control": "no-cache" },
+  });
   return response?.data;
 };
 
