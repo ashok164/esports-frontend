@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
+import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import {
   GAME_DETAILS_UPDATED_EVENT,
   getLeagueStageResultGameDetails,
@@ -695,6 +696,33 @@ const ResultPlayerTable: React.FC<PlayerResultTableProps> = ({ mode }) => {
     };
   }, [mode]);
 
+  useEffect(() => {
+    if (visibleRows.length === 0) return;
+
+    const urls: string[] = [];
+
+    visibleRows.forEach((row) => {
+      if (row.playerPic) urls.push(row.playerPic);
+      if (row.teamLogo) urls.push(row.teamLogo);
+      if (row.countryLogo) urls.push(row.countryLogo);
+      if (row.character.image) urls.push(row.character.image);
+      if (row.activeSkill.image) urls.push(row.activeSkill.image);
+      if (row.petSkill.image) urls.push(row.petSkill.image);
+      row.passiveSkills.forEach((skill) => {
+        if (skill.image) urls.push(skill.image);
+      });
+      row.equipmentLoadouts.forEach((loadout) => {
+        if (loadout.image) urls.push(loadout.image);
+      });
+      row.weapons.forEach((weapon) => {
+        if (weapon.image) urls.push(weapon.image);
+      });
+      if (row.role.image) urls.push(row.role.image);
+    });
+
+    warmImageUrls(urls).catch(() => undefined);
+  }, [visibleRows]);
+
   return (
     <Page>
       <GlobalStyles />
@@ -1078,9 +1106,14 @@ const Muted = styled.span`
   font-size: 0.78rem;
 `;
 
-const Thumb = styled.img`
+const Thumb = styled.img.attrs({
+  loading: "lazy",
+  decoding: "async",
+  fetchPriority: "low",
+})`
   width: 44px;
   height: 44px;
+  display: block;
   border-radius: 6px;
   object-fit: contain;
   background: rgba(255, 255, 255, 0.08);
@@ -1154,11 +1187,17 @@ const GalleryPlayer = styled.div`
   margin-bottom: 12px;
 `;
 
-const HeroImage = styled.img`
+const HeroImage = styled.img.attrs({
+  loading: "lazy",
+  decoding: "async",
+  fetchPriority: "auto",
+})`
   width: 64px;
   height: 64px;
+  display: block;
   border-radius: 8px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center bottom;
   background: rgba(255, 255, 255, 0.08);
 `;
 

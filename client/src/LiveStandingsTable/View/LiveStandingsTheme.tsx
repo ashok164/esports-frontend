@@ -266,9 +266,10 @@ const PlayerPortrait = styled.img.attrs({
 })`
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  filter: grayscale(1) brightness(0.34) contrast(1.16);
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0.66;
 `;
 
 const SkullIndicator = styled.div`

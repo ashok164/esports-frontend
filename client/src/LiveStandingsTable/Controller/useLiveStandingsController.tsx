@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import { mapTeamData, mergeHistoricalWithLiveStandings, Team } from "../Datamapper/liveStandingsMapper";
 import { createStandingsSocket } from "../../GlobalWebsocket/remote";
 import {
@@ -448,6 +449,23 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
         connect();
       });
   }, [connect, loadHistoricalRows]);
+
+  useEffect(() => {
+    if (!Array.isArray(standings) || standings.length === 0) return;
+
+    const urls: string[] = [];
+
+    standings.forEach((team) => {
+      if (team.logoUrl) urls.push(team.logoUrl);
+      if (team.countryUrl) urls.push(team.countryUrl);
+
+      team.players.forEach((player) => {
+        if (player.playerPic) urls.push(player.playerPic);
+      });
+    });
+
+    warmImageUrls(urls).catch(() => undefined);
+  }, [standings]);
 
   return {
     standings,

@@ -174,28 +174,26 @@ const PlayersContainer = styled.div`
   opacity: 0;
 `;
 
-const PlayerPhoto = styled.img`
+const PlayerPhoto = styled.img.attrs({
+  loading: "eager",
+  decoding: "async",
+  fetchPriority: "high",
+})`
   align-self: end;
   justify-self: center;
   width: 150px;
   height: 220px;
+  display: block;
   object-fit: contain;
   object-position: center bottom;
-  filter: grayscale(100%) brightness(0.7) contrast(1.2);
-  transition: filter 0.3s ease, transform 0.3s ease;
   margin-inline: -18px;
+  opacity: 0.9;
 
   &:nth-child(2),
   &:nth-child(3) {
     width: 162px;
     height: 235px;
     z-index: 3;
-  }
-
-  &:hover {
-    filter: grayscale(30%) brightness(1);
-    transform: scale(1.05) translateY(-5px);
-    z-index: 5;
   }
 `;
 
@@ -227,18 +225,28 @@ const LogoBlock = styled.div`
   z-index: 4;
 `;
 
-const CountryFlag = styled.img`
+const CountryFlag = styled.img.attrs({
+  loading: "eager",
+  decoding: "async",
+  fetchPriority: "low",
+})`
   width: 20px;
   height: 12px;
+  display: block;
   align-self: flex-start;
   margin-bottom: 8px;
   transform: skewX(12deg);
   object-fit: cover;
 `;
 
-const TeamLogo = styled.img`
+const TeamLogo = styled.img.attrs({
+  loading: "eager",
+  decoding: "async",
+  fetchPriority: "low",
+})`
   width: 55px;
   height: 55px;
+  display: block;
   object-fit: contain;
   transform: skewX(12deg);
 `;

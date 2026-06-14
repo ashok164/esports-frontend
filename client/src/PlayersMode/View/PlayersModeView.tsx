@@ -200,9 +200,14 @@ const LogoWrap = styled.div`
   overflow: hidden;
 `;
 
-const TeamLogo = styled.img`
+const TeamLogo = styled.img.attrs({
+  loading: "lazy",
+  decoding: "async",
+  fetchPriority: "low",
+})`
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: contain;
 `;
 
@@ -274,10 +279,16 @@ const PlayerImageWrap = styled.div`
   background: #111827;
 `;
 
-const PlayerImage = styled.img`
+const PlayerImage = styled.img.attrs({
+  loading: "lazy",
+  decoding: "async",
+  fetchPriority: "auto",
+})`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
 `;
 
 const PlayerPlaceholder = styled.div`

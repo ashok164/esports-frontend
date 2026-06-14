@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
+import { isImageWarm, warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import {
   BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
   DEFAULT_BROADCAST_DISPLAY_SETTINGS,
@@ -16,6 +17,19 @@ const REFRESH_MS = 15000;
 const SETTINGS_REFRESH_MS = 1500;
 const TEAMS_PER_PAGE = 6;
 const PLAYERS_PER_TEAM = 5;
+const collectRosterUrls = (teams: RosterTeam[]) => {
+  const urls = new Set<string>();
+
+  teams.forEach((team) => {
+    if (team.teamLogo) urls.add(team.teamLogo);
+    if (team.countryLogo) urls.add(team.countryLogo);
+    team.players.slice(0, PLAYERS_PER_TEAM).forEach((player) => {
+      if (player.playerPic) urls.add(player.playerPic);
+    });
+  });
+
+  return Array.from(urls);
+};
 
 const chunkTeams = (teams: RosterTeam[]) => {
   const pages: RosterTeam[][] = [];
@@ -29,6 +43,7 @@ const TeamRosterBroadcastView: React.FC = () => {
   const { isLoading: isThemeLoading } = useProjectTheme();
   const [teams, setTeams] = useState<RosterTeam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPageReady, setIsPageReady] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [settings, setSettings] = useState(getBroadcastDisplaySettings);
 
@@ -98,7 +113,43 @@ const TeamRosterBroadcastView: React.FC = () => {
     }
   }, [pageIndex, pages.length]);
 
-  if (isThemeLoading || isLoading) return null;
+  useEffect(() => {
+    let cancelled = false;
+
+    const preparePage = async () => {
+      const nextTeams = pages[pageIndex % pages.length] || [];
+      const nextUrls = collectRosterUrls(nextTeams);
+
+      if (nextUrls.length > 0 && nextUrls.every(isImageWarm)) {
+        setIsPageReady(true);
+        return;
+      }
+
+      setIsPageReady(false);
+      await warmImageUrls(nextUrls);
+      if (!cancelled) {
+        setIsPageReady(true);
+      }
+    };
+
+    preparePage().catch(() => {
+      if (!cancelled) {
+        setIsPageReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pageIndex, pages]);
+
+  useEffect(() => {
+    if (teams.length === 0) return;
+
+    warmImageUrls(collectRosterUrls(teams)).catch(() => undefined);
+  }, [teams]);
+
+  if (isThemeLoading || isLoading || !isPageReady) return null;
 
   return (
     <Page>
@@ -288,9 +339,9 @@ const PlayerCutout = styled.div<{ $index: number }>`
   img {
     width: 100%;
     height: 105%;
+    display: block;
     object-fit: contain;
     object-position: center bottom;
-    filter: drop-shadow(0 8px 7px rgba(0, 0, 0, 0.28));
   }
 `;
 
@@ -321,11 +372,15 @@ const TeamLogoSlot = styled.div`
   background: var(--project-surface, #050505);
 `;
 
-const TeamLogo = styled.img`
+const TeamLogo = styled.img.attrs({
+  loading: "eager",
+  decoding: "async",
+  fetchPriority: "low",
+})`
   width: 70%;
   height: 76%;
+  display: block;
   object-fit: contain;
-  filter: drop-shadow(0 8px 9px rgba(0, 0, 0, 0.52));
 `;
 
 const LogoFallback = styled.div`
@@ -359,10 +414,15 @@ const TeamName = styled.h2`
   white-space: nowrap;
 `;
 
-const CountryLogo = styled.img`
+const CountryLogo = styled.img.attrs({
+  loading: "eager",
+  decoding: "async",
+  fetchPriority: "low",
+})`
   justify-self: center;
   width: 62%;
   height: 58%;
+  display: block;
   object-fit: cover;
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
@@ -399,9 +459,14 @@ const PlayerCell = styled.div<{ $index: number }>`
   }
 `;
 
-const PlayerPhoto = styled.img`
+const PlayerPhoto = styled.img.attrs({
+  loading: "eager",
+  decoding: "async",
+  fetchPriority: "high",
+})`
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: contain;
   object-position: center bottom;
 `;

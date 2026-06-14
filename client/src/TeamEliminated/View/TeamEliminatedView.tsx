@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import TeamNotificationCard from "../../Components/EliminatedComponent/Eliminated";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
@@ -82,6 +83,30 @@ const TeamEliminatedView = () => {
     };
   };
 
+  const warmTeamAssets = (team) => {
+    const urls = [];
+
+    if (team?.logoUrl) urls.push(team.logoUrl);
+    if (team?.countryFlag) urls.push(team.countryFlag);
+    if (team?.countryUrl) urls.push(team.countryUrl);
+
+    if (Array.isArray(team?.players)) {
+      team.players.forEach((player) => {
+        const src =
+          player?.playerPic ||
+          player?.avatarUrl ||
+          player?.photoUrl ||
+          player?.player_image ||
+          player?.player_pic ||
+          "";
+
+        if (src) urls.push(src);
+      });
+    }
+
+    warmImageUrls(urls).catch(() => undefined);
+  };
+
   const showNextQueuedElimination = () => {
     if (isShowingElimination.current) return;
 
@@ -155,6 +180,14 @@ const TeamEliminatedView = () => {
 
     queueEliminatedTeams(newEliminations, standings);
   }, [standings, loading, isThemeLoading]);
+
+  useEffect(() => {
+    if (!Array.isArray(standings) || standings.length === 0) return;
+
+    standings.forEach((team) => {
+      warmTeamAssets(team);
+    });
+  }, [standings]);
 
   useEffect(() => {
     return () => {
