@@ -25,6 +25,7 @@ import ResultJsonControlView from "../../ResultJsonControl/View";
 import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
 import ResultViewerPage from "../../Result/view/ResultViewerPage";
 import RouteNavigator from "../RouteNavigator";
+import { SpectatorAdminView, SpectatorBroadcastView } from "../../Spectator/View";
 import TeamEliminatedView from "../../TeamEliminated/View";
 import TeamRosterBroadcastView from "../../TeamRoster/View/TeamRosterBroadcastView";
 import TeamRecordTable from "../../TeamRecordTable/View";
@@ -61,8 +62,10 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/circle-analysis", element: <CircleAnalysis />, isBroadcast: true },
   { path: "/todays-playing", element: <TodaysPlayingBroadcastView />, isBroadcast: true },
   { path: "/team-roster", element: <TeamRosterBroadcastView />, isBroadcast: true },
+  { path: "/spectator/:spectId", element: <SpectatorBroadcastView />, isBroadcast: true },
   { path: "/zone-shrink-control", element: <ZoneShrinkControlView />, isProtected: true },
   { path: "/circle-analysis-control", element: <CircleAnalysisAdmin />, isProtected: true },
+  { path: "/spectator-admin", element: <SpectatorAdminView />, isProtected: true },
   { path: "/team-record", element: <TeamRecordTable />, isProtected: true },
   { path: "/country-logo", element: <CountryLogoView />, isProtected: true },
   { path: "/team-logo", element: <ViewTeamLogo />, isProtected: true },

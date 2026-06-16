@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
 import { clearAuthSession } from "../../Auth/Repository/authStorage";
+import { getSpectatorGroupsApi, SpectatorGroup } from "../../Spectator/Repository/remote";
 import {
   getSelectedTournamentName,
   getSelectedTournamentSlug,
@@ -288,6 +289,18 @@ const routeGroups: RouteGroup[] = [
         type: "Broadcast",
       },
       {
+        title: "Spectator Admin",
+        path: "/spectator-admin",
+        note: "Create spect groups and open dedicated camera routes.",
+        type: "Admin",
+      },
+      {
+        title: "Spectator Route",
+        path: "/spectator/15833567071",
+        note: "Single spectator camera route powered by Socket.IO rooms.",
+        type: "Broadcast",
+      },
+      {
         title: "Team Eliminated",
         path: "/team-eliminated",
         note: "Team eliminated broadcast overlay.",
@@ -351,6 +364,33 @@ const RouteNavigator: React.FC = () => {
   const params = useParams();
   const selectedTournamentSlug = params.tournamentSlug || getSelectedTournamentSlug();
   const selectedTournamentName = getSelectedTournamentName() || selectedTournamentSlug;
+  const [spectatorGroups, setSpectatorGroups] = React.useState<SpectatorGroup[]>([]);
+  const spectatorRouteCount = spectatorGroups.reduce((count, group) => count + group.spectIds.length, 0);
+  const playerCamGroup = spectatorRouteCount
+    ? {
+        title: "Player Cam Features",
+        description: "Dedicated spectator camera routes for each saved spect ID.",
+        accent: {
+          line: "#7cfc98",
+          glow: "rgba(124, 252, 152, 0.18)",
+          badge: "linear-gradient(145deg, rgba(124, 252, 152, 0.24), rgba(18, 59, 35, 0.2))",
+        },
+        routes: spectatorGroups.flatMap((group) =>
+          group.spectIds.map((spectId) => ({
+            title: `${group.groupId} / spectator ${spectId}`,
+            path: `/spectator/${spectId}`,
+            note: `Player camera broadcast route for spectator ${spectId}`,
+            type: "Broadcast" as const,
+          })),
+        ),
+      }
+    : null;
+
+  React.useEffect(() => {
+    getSpectatorGroupsApi()
+      .then((response) => setSpectatorGroups(response.groups || []))
+      .catch(() => setSpectatorGroups([]));
+  }, []);
 
   const handleLogout = () => {
     clearAuthSession();
@@ -443,20 +483,24 @@ const RouteNavigator: React.FC = () => {
             <SectionHint>New tab overlays</SectionHint>
           </SectionHeader>
           <Groups aria-label="Broadcast route groups">
-            {broadcastGroups.map((group) => (
-              <GroupSection key={group.title} $variant="broadcast" $accent={group.accent}>
+            {broadcastGroups.map((group, index) => {
+              const groupsToRender =
+                index === 0 && playerCamGroup ? [group, playerCamGroup] : [group];
+
+              return groupsToRender.map((entry) => (
+              <GroupSection key={entry.title} $variant="broadcast" $accent={entry.accent}>
                 <GroupHeader>
-                  <GroupBadge $variant="broadcast" $accent={group.accent} aria-hidden="true">
-                    {getGroupInitials(group.title)}
+                  <GroupBadge $variant="broadcast" $accent={entry.accent} aria-hidden="true">
+                    {entry.title === "Player Cam Features" ? "PC" : getGroupInitials(entry.title)}
                   </GroupBadge>
                   <GroupCopy>
-                    <GroupTitle>{group.title}</GroupTitle>
-                    <GroupDescription>{group.description}</GroupDescription>
+                    <GroupTitle>{entry.title}</GroupTitle>
+                    <GroupDescription>{entry.description}</GroupDescription>
                   </GroupCopy>
-                  <GroupCount $accent={group.accent}>{group.routes.length}</GroupCount>
+                  <GroupCount $accent={entry.accent}>{entry.routes.length}</GroupCount>
                 </GroupHeader>
                 <GroupRoutes>
-                  {group.routes.map((route) => (
+                  {entry.routes.map((route) => (
                     <AnchorChip
                       key={route.path}
                       href={getTournamentPath(route.path, selectedTournamentSlug)}
@@ -464,15 +508,16 @@ const RouteNavigator: React.FC = () => {
                       rel="noreferrer"
                       title={route.note}
                       $variant="broadcast"
-                      $accent={group.accent}
+                      $accent={entry.accent}
                     >
-                      <ChipDot aria-hidden="true" $variant="broadcast" $accent={group.accent} />
+                      <ChipDot aria-hidden="true" $variant="broadcast" $accent={entry.accent} />
                       <span>{route.title}</span>
                     </AnchorChip>
                   ))}
                 </GroupRoutes>
               </GroupSection>
-            ))}
+              ));
+            })}
           </Groups>
         </RouteHalf>
       </Shell>
