@@ -105,7 +105,34 @@ const SpectatorBroadcastView: React.FC = () => {
     [feed, spectId],
   );
 
+  const buildCameraEmbedUrl = React.useCallback((link: string) => {
+    if (!link) return "";
+
+    try {
+      const parsed = new URL(link);
+      const isVdoNinja = /(^|\.)vdo\.ninja$/i.test(parsed.hostname);
+
+      if (!isVdoNinja) {
+        return link;
+      }
+
+      // Best-effort viewer cleanup so VDO.Ninja behaves closer to a camera-only embed.
+      parsed.searchParams.set("cleanoutput", "1");
+      parsed.searchParams.set("transparent", "1");
+      parsed.searchParams.set("cover", "1");
+      parsed.searchParams.set("autoplay", "1");
+      parsed.searchParams.set("muted", "1");
+      parsed.searchParams.set("nocursor", "1");
+      parsed.searchParams.set("noheader", "1");
+
+      return parsed.toString();
+    } catch {
+      return link;
+    }
+  }, []);
+
   const cameraLink = filteredRow?.cameraLink || "";
+  const embedCameraLink = buildCameraEmbedUrl(cameraLink);
   const isVdoNinjaLink = /(^https?:\/\/)?(www\.)?vdo\.ninja/i.test(cameraLink);
 
   return (
@@ -114,8 +141,8 @@ const SpectatorBroadcastView: React.FC = () => {
         <VideoFrame>
           {isVdoNinjaLink ? (
             <EmbedFrame
-              key={cameraLink}
-              src={cameraLink}
+              key={embedCameraLink}
+              src={embedCameraLink}
               allow="autoplay; fullscreen; camera; microphone; display-capture"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
