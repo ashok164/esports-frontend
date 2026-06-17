@@ -1,4 +1,5 @@
 import React from "react";
+import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import { GAME_DETAILS_UPDATED_EVENT, getActiveGameDetails } from "../../GameDetails/gameDetailsState";
 import { getSpectatorGroupsApi } from "../Repository/remote";
@@ -17,6 +18,7 @@ type CameraSocketPayload = {
 };
 
 const SpectatorBroadcastView: React.FC = () => {
+  const { spectId = "" } = useParams();
   const [feed, setFeed] = React.useState<CameraSocketPayload | null>(null);
   const [activeMatchId, setActiveMatchId] = React.useState(() => getActiveGameDetails().matchIds);
   const [tournamentId, setTournamentId] = React.useState<string>("");
@@ -94,39 +96,50 @@ const SpectatorBroadcastView: React.FC = () => {
     };
   }, [activeMatchId, tournamentId]);
 
+  const filteredRow = React.useMemo(
+    () =>
+      (feed?.spectators || []).find(
+        (row) => String(row.spectatorId || "").trim() === String(spectId || "").trim(),
+      ) || null,
+    [feed, spectId],
+  );
+
   return (
     <Canvas>
       <Overlay>
         <Tag>Camera Websocket</Tag>
-        <Headline>Spectator Feed By Match</Headline>
+        <Headline>{filteredRow?.observerName || "Awaiting spectator feed"}</Headline>
         <Meta>
           <span>Match ID: {feed?.matchId || activeMatchId || "-"}</span>
-          <span>Spectator Count: {feed?.spectators?.length ?? 0}</span>
+          <span>Spectator ID: {spectId || "-"}</span>
+          <span>Observer UID: {filteredRow?.observerId || "-"}</span>
+          {filteredRow?.observerTeamName ? <span>Team: {filteredRow.observerTeamName}</span> : null}
           <span>{status}</span>
         </Meta>
       </Overlay>
 
-      <FeedGrid>
-        {(feed?.spectators || []).map((row, index) => (
-          <FeedCard key={`${row.spectatorId}-${row.observerId}-${index}`}>
-            <FieldLabel>Spectator ID</FieldLabel>
-            <FieldValue>{row.spectatorId || "-"}</FieldValue>
-
-            <FieldLabel>Observer ID</FieldLabel>
-            <FieldValue>{row.observerId || "-"}</FieldValue>
-
-            <FieldLabel>Observer Name</FieldLabel>
-            <FieldValue>{row.observerName || "-"}</FieldValue>
-
-            <FieldLabel>Observer Team</FieldLabel>
-            <FieldValue>{row.observerTeamName || "-"}</FieldValue>
-          </FeedCard>
-        ))}
-
-        {(!feed?.spectators || feed.spectators.length === 0) ? (
-          <EmptyState>No spectator rows received yet for this match.</EmptyState>
-        ) : null}
-      </FeedGrid>
+      <InfoPanel>
+        <InfoCard>
+          <InfoLabel>Spectator ID</InfoLabel>
+          <InfoValue>{spectId || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Match ID</InfoLabel>
+          <InfoValue>{feed?.matchId || activeMatchId || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Observer ID</InfoLabel>
+          <InfoValue>{filteredRow?.observerId || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Observer Name</InfoLabel>
+          <InfoValue>{filteredRow?.observerName || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Observer Team</InfoLabel>
+          <InfoValue>{filteredRow?.observerTeamName || "-"}</InfoValue>
+        </InfoCard>
+      </InfoPanel>
     </Canvas>
   );
 };
@@ -184,43 +197,31 @@ const Meta = styled.div`
   font-size: 0.95rem;
 `;
 
-const FeedGrid = styled.section`
-  width: min(1280px, 100%);
+const InfoPanel = styled.section`
+  width: min(960px, 92vw);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 `;
 
-const FeedCard = styled.article`
+const InfoCard = styled.article`
   border-radius: 18px;
   padding: 20px;
   background: rgba(4, 12, 21, 0.82);
   border: 1px solid rgba(142, 241, 255, 0.14);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
-  display: grid;
-  gap: 8px;
 `;
 
-const FieldLabel = styled.div`
+const InfoLabel = styled.div`
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #8ea2b9;
+  margin-bottom: 8px;
 `;
 
-const FieldValue = styled.div`
+const InfoValue = styled.div`
   font-size: 1rem;
   color: #ffffff;
   word-break: break-word;
-  margin-bottom: 6px;
-`;
-
-const EmptyState = styled.div`
-  grid-column: 1 / -1;
-  border-radius: 18px;
-  padding: 28px;
-  text-align: center;
-  color: #8ea2b9;
-  background: rgba(4, 12, 21, 0.82);
-  border: 1px solid rgba(142, 241, 255, 0.14);
 `;

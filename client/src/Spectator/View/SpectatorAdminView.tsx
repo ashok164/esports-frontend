@@ -9,13 +9,34 @@ import {
   updateSpectatorGroupApi,
 } from "../Repository/remote";
 
-const emptySpectIds = ["", "", "", ""];
+const createEmptySpectatorId = () => "";
+
+const createEmptySpectatorIds = () => [createEmptySpectatorId()];
+
+type SpectatorRow = {
+  groupId: string;
+  spectatorId: string;
+  groupIndex: number;
+  spectatorIndex: number;
+  routePath: string;
+};
+
+const flattenSpectatorRows = (groups: SpectatorGroup[]): SpectatorRow[] =>
+  groups.flatMap((group, groupIndex) =>
+    (group.spectIds || []).map((spectatorId, spectatorIndex) => ({
+      groupId: group.groupId,
+      spectatorId,
+      groupIndex,
+      spectatorIndex,
+      routePath: `/spectator/${spectatorId}`,
+    })),
+  );
 
 const SpectatorAdminView: React.FC = () => {
   const [groupId, setGroupId] = React.useState("G1");
-  const [spectIds, setSpectIds] = React.useState<string[]>(emptySpectIds);
+  const [spectIds, setSpectIds] = React.useState<string[]>(createEmptySpectatorIds);
   const [groups, setGroups] = React.useState<SpectatorGroup[]>([]);
-  const [status, setStatus] = React.useState("Create spectator groups, then manage them from the table below.");
+  const [status, setStatus] = React.useState("Create spectator groups, add as many spectator IDs as needed, and open each camera route from the table.");
   const [editingGroupId, setEditingGroupId] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -35,16 +56,33 @@ const SpectatorAdminView: React.FC = () => {
 
   const resetForm = () => {
     setGroupId("G1");
-    setSpectIds(emptySpectIds);
+    setSpectIds(createEmptySpectatorIds());
     setEditingGroupId(null);
   };
 
   const updateSpectId = (index: number, value: string) => {
-    setSpectIds((current) => current.map((item, itemIndex) => (itemIndex === index ? value : item)));
+    setSpectIds((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? value : item)),
+    );
+  };
+
+  const addSpectatorField = () => {
+    setSpectIds((current) => [...current, createEmptySpectatorId()]);
+  };
+
+  const removeSpectatorField = (index: number) => {
+    setSpectIds((current) => {
+      if (current.length === 1) return current;
+      return current.filter((_, itemIndex) => itemIndex !== index);
+    });
   };
 
   const handleSubmit = async () => {
-    const normalizedSpectIds = spectIds.map((value) => value.trim()).filter(Boolean).slice(0, 4);
+    const normalizedSpectIds = Array.from(
+      new Set(
+        spectIds.map((value) => value.trim()).filter(Boolean),
+      ),
+    );
 
     if (!groupId.trim() || normalizedSpectIds.length === 0) {
       setStatus("Group ID and at least one spectator ID are required.");
@@ -80,7 +118,7 @@ const SpectatorAdminView: React.FC = () => {
   const handleEdit = (group: SpectatorGroup) => {
     setEditingGroupId(group.groupId);
     setGroupId(group.groupId);
-    setSpectIds(emptySpectIds.map((_, index) => group.spectIds[index] || ""));
+    setSpectIds(group.spectIds?.length ? group.spectIds : createEmptySpectatorIds());
     setStatus(`Editing spectator group ${group.groupId}.`);
   };
 
@@ -113,13 +151,15 @@ const SpectatorAdminView: React.FC = () => {
     }
   };
 
+  const spectatorRows = flattenSpectatorRows(groups);
+
   return (
     <Page>
       <Hero>
         <Eyebrow>Spectator Admin</Eyebrow>
-        <Title>Manage spectator routes with a proper CRUD table.</Title>
+        <Title>Manage spectator IDs with a real CRUD table.</Title>
         <Copy>
-          Add spectator IDs here, edit them later, and use the live broadcast camera panel from the routes page.
+          Add as many spectator IDs as you need inside a group, edit them later, and open each dedicated camera route directly from the table.
         </Copy>
       </Hero>
 
@@ -127,7 +167,7 @@ const SpectatorAdminView: React.FC = () => {
         <PanelHeader>
           <div>
             <PanelTitle>{editingGroupId ? "Edit Spectator Group" : "Create Spectator Group"}</PanelTitle>
-            <PanelCopy>Enter up to four spectator IDs for one group.</PanelCopy>
+            <PanelCopy>Build a group first, then keep adding or removing spectator IDs like a player table.</PanelCopy>
           </div>
           <ActionRow>
             <SecondaryButton type="button" onClick={handleSeedSample} disabled={isSubmitting}>
@@ -148,22 +188,63 @@ const SpectatorAdminView: React.FC = () => {
           </ActionRow>
         </PanelHeader>
 
-        <FormGrid>
-          <Field>
-            <Label>Group ID</Label>
-            <Input value={groupId} onChange={(event) => setGroupId(event.target.value)} placeholder="G1" />
-          </Field>
-          {spectIds.map((spectId, index) => (
-            <Field key={`spect-${index}`}>
-              <Label>Spectator ID {index + 1}</Label>
-              <Input
-                value={spectId}
-                onChange={(event) => updateSpectId(index, event.target.value)}
-                placeholder={`Enter spectator ID ${index + 1}`}
-              />
-            </Field>
-          ))}
-        </FormGrid>
+        <Field>
+          <Label>Group ID</Label>
+          <Input value={groupId} onChange={(event) => setGroupId(event.target.value)} placeholder="G1" />
+        </Field>
+
+        <EditorTableWrap>
+          <EditorTable>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Spectator ID</th>
+                <th>Camera Route</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {spectIds.map((spectId, index) => {
+                const normalized = spectId.trim();
+                return (
+                  <tr key={`editor-spect-${index}`}>
+                    <td>{index + 1}</td>
+                    <td>
+                      <Input
+                        value={spectId}
+                        onChange={(event) => updateSpectId(index, event.target.value)}
+                        placeholder={`Enter spectator ID ${index + 1}`}
+                      />
+                    </td>
+                    <td>
+                      {normalized ? (
+                        <RoutePill href={`/spectator/${normalized}`} target="_blank" rel="noreferrer">
+                          {`/spectator/${normalized}`}
+                        </RoutePill>
+                      ) : (
+                        <MutedText>Enter a spectator ID to generate the camera route.</MutedText>
+                      )}
+                    </td>
+                    <td>
+                      <ActionRow>
+                        <SmallButton type="button" onClick={addSpectatorField}>
+                          Add Row
+                        </SmallButton>
+                        <DangerButton
+                          type="button"
+                          onClick={() => removeSpectatorField(index)}
+                          disabled={spectIds.length === 1 || isSubmitting}
+                        >
+                          Remove
+                        </DangerButton>
+                      </ActionRow>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </EditorTable>
+        </EditorTableWrap>
 
         <ActionRow>
           <PrimaryButton type="button" onClick={handleSubmit} disabled={isSubmitting}>
@@ -175,46 +256,52 @@ const SpectatorAdminView: React.FC = () => {
       </FormPanel>
 
       <TablePanel>
-        <PanelTitle>Added Spectator List</PanelTitle>
-        <PanelCopy>Each row is editable and deletable. Broadcast routes are generated from these spectator IDs.</PanelCopy>
+        <PanelTitle>Saved Spectator IDs</PanelTitle>
+        <PanelCopy>Each saved spectator ID gets its own camera route, and the spectator broadcast page filters its own websocket row by that spectator ID.</PanelCopy>
 
-        {groups.length ? (
+        {spectatorRows.length ? (
           <TableWrap>
             <Table>
               <thead>
                 <tr>
                   <th>Group</th>
-                  <th>Spectator IDs</th>
-                  <th>Broadcast Links</th>
-                  <th>Actions</th>
+                  <th>Row</th>
+                  <th>Spectator ID</th>
+                  <th>Camera Route</th>
+                  <th>Group Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => (
-                  <tr key={group.groupId}>
-                    <td>{group.groupId}</td>
-                    <td>{group.spectIds.join(", ")}</td>
+                {spectatorRows.map((row) => (
+                  <tr key={`${row.groupId}-${row.spectatorId}-${row.spectatorIndex}`}>
+                    <td>{row.groupId}</td>
+                    <td>{row.spectatorIndex + 1}</td>
+                    <td><Mono>{row.spectatorId}</Mono></td>
                     <td>
-                      <LinkList>
-                        {group.spectIds.map((spectId) => (
-                          <RoutePill
-                            key={`${group.groupId}-${spectId}`}
-                            href={`/spectator/${spectId}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {`/spectator/${spectId}`}
-                          </RoutePill>
-                        ))}
-                      </LinkList>
+                      <RoutePill href={row.routePath} target="_blank" rel="noreferrer">
+                        {row.routePath}
+                      </RoutePill>
                     </td>
                     <td>
                       <ActionRow>
-                        <SmallButton type="button" onClick={() => handleEdit(group)}>
-                          Edit
+                        <SmallButton
+                          type="button"
+                          onClick={() => {
+                            const group = groups.find((item) => item.groupId === row.groupId);
+                            if (group) handleEdit(group);
+                          }}
+                        >
+                          Edit Group
                         </SmallButton>
-                        <DangerButton type="button" onClick={() => handleDelete(group)} disabled={isSubmitting}>
-                          Delete
+                        <DangerButton
+                          type="button"
+                          onClick={() => {
+                            const group = groups.find((item) => item.groupId === row.groupId);
+                            if (group) handleDelete(group);
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          Delete Group
                         </DangerButton>
                       </ActionRow>
                     </td>
@@ -224,7 +311,7 @@ const SpectatorAdminView: React.FC = () => {
             </Table>
           </TableWrap>
         ) : (
-          <EmptyState>No spectator groups added yet.</EmptyState>
+          <EmptyState>No spectator IDs added yet.</EmptyState>
         )}
       </TablePanel>
     </Page>
@@ -304,16 +391,6 @@ const PanelCopy = styled.p`
   line-height: 1.5;
 `;
 
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-
-  @media (max-width: 720px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
 const Field = styled.div`
   display: grid;
   gap: 8px;
@@ -326,8 +403,10 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
+  width: 100%;
   min-height: 48px;
   padding: 0 14px;
+  box-sizing: border-box;
   border: 1px solid rgba(108, 133, 173, 0.35);
   border-radius: 12px;
   background: rgba(10, 18, 32, 0.95);
@@ -400,6 +479,32 @@ const Status = styled.p`
   color: #c9d7e6;
 `;
 
+const EditorTableWrap = styled.div`
+  overflow-x: auto;
+`;
+
+const EditorTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 14px 12px;
+    border-bottom: 1px solid rgba(93, 119, 154, 0.22);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: #f8fbff;
+    font-size: 0.86rem;
+  }
+
+  td {
+    color: #c8d5e4;
+  }
+`;
+
 const TableWrap = styled.div`
   overflow-x: auto;
 `;
@@ -426,12 +531,6 @@ const Table = styled.table`
   }
 `;
 
-const LinkList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
 const RoutePill = styled.a`
   display: inline-flex;
   align-items: center;
@@ -442,6 +541,16 @@ const RoutePill = styled.a`
   color: #e7fff1;
   text-decoration: none;
   background: rgba(19, 47, 40, 0.55);
+`;
+
+const Mono = styled.code`
+  color: #f8fbff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+`;
+
+const MutedText = styled.span`
+  color: #92a6bd;
+  font-size: 0.9rem;
 `;
 
 const EmptyState = styled.div`
