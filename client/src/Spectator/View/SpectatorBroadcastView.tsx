@@ -169,7 +169,7 @@ const SpectatorBroadcastView: React.FC = () => {
         <Placeholder>Waiting for player table camera link and live spectator mapping.</Placeholder>
       )}
 
-      <LowerThird>
+      <InfoDock>
         <UpperMeta>
           <Tag>Camera Websocket</Tag>
           <StatusText>{status}</StatusText>
@@ -194,7 +194,8 @@ const SpectatorBroadcastView: React.FC = () => {
         >
           {cameraLink || "No camera link"}
         </CameraLink>
-      </LowerThird>
+        <LockNote>Camera surface is locked to avoid accidental in-frame settings clicks.</LockNote>
+      </InfoDock>
     </Canvas>
   );
 };
@@ -205,7 +206,11 @@ const Canvas = styled.main`
   position: relative;
   min-height: 100vh;
   display: grid;
-  place-items: center;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 32px 24px;
+  box-sizing: border-box;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 75, 75, 0.16), transparent 28%),
@@ -214,18 +219,33 @@ const Canvas = styled.main`
 `;
 
 const VideoFrame = styled.div`
-  width: 100vw;
-  height: 100vh;
+  width: min(50vw, 960px);
+  height: min(56.25vh, 540px);
   display: grid;
   place-items: center;
   background: #000000;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(142, 241, 255, 0.12);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+
+  @media (max-width: 1100px) {
+    width: min(72vw, 960px);
+    height: min(56vw, 540px);
+  }
+
+  @media (max-width: 720px) {
+    width: calc(100vw - 32px);
+    height: min(58vw, 420px);
+  }
 `;
 
 const Video = styled.video`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   background: #000000;
+  pointer-events: none;
 `;
 
 const EmbedFrame = styled.iframe`
@@ -233,21 +253,25 @@ const EmbedFrame = styled.iframe`
   height: 100%;
   border: 0;
   background: #000000;
+  pointer-events: none;
 `;
 
-const LowerThird = styled.div`
-  position: fixed;
-  left: 24px;
-  right: 24px;
-  bottom: 24px;
-  z-index: 2;
+const InfoDock = styled.div`
   display: grid;
-  gap: 10px;
-  max-width: 720px;
-  padding: 18px 22px;
+  gap: 8px;
+  width: min(50vw, 960px);
+  padding: 16px 18px;
   border-radius: 22px;
   background: rgba(2, 10, 18, 0.78);
   backdrop-filter: blur(14px);
+
+  @media (max-width: 1100px) {
+    width: min(72vw, 960px);
+  }
+
+  @media (max-width: 720px) {
+    width: calc(100vw - 32px);
+  }
 `;
 
 const UpperMeta = styled.div`
@@ -296,11 +320,30 @@ const CameraLink = styled.a`
   }
 `;
 
+const LockNote = styled.span`
+  color: #7f93aa;
+  font-size: 0.76rem;
+`;
+
 const Placeholder = styled.div`
   display: grid;
   place-items: center;
-  width: 100vw;
-  height: 100vh;
+  width: min(50vw, 960px);
+  height: min(56.25vh, 540px);
   color: #8ea2b9;
   font-size: 1.1rem;
+  text-align: center;
+  border-radius: 24px;
+  border: 1px solid rgba(142, 241, 255, 0.12);
+  background: rgba(0, 0, 0, 0.4);
+
+  @media (max-width: 1100px) {
+    width: min(72vw, 960px);
+    height: min(56vw, 540px);
+  }
+
+  @media (max-width: 720px) {
+    width: calc(100vw - 32px);
+    height: min(58vw, 420px);
+  }
 `;
