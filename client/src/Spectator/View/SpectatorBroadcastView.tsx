@@ -1,140 +1,26 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
-import { connectRealtime, getRealtimeData, subscribeRealtime } from "../../GlobalWebsocket/store";
+import {
+  connectCameraSocket,
+  getCameraSocketSnapshot,
+  normalizeSavedPlayers,
+  SavedPlayerProfile,
+  subscribeCameraSocket,
+  type CameraSocketPayload,
+} from "../cameraSocket";
 import {
   GAME_DETAILS_UPDATED_EVENT,
   getActiveGameDetails,
 } from "../../GameDetails/gameDetailsState";
 import { getPlayerUploadsApi } from "../../PlayerUpload/Repository/remote";
 
-type CameraUpdatePayload = {
-  spectatorId: string;
-  matchId: string;
-  playerId: string;
-  name: string;
-  camera: string;
-  teamName?: string;
-};
-
-type SavedPlayerProfile = {
-  uid: string;
-  playerName: string;
-  playerPic: string;
-  cameraLink: string;
-  teamId: string;
-  teamName: string;
-  teamLogo: string;
-  countryLogo: string;
-};
-
-const firstValue = (...values: any[]) =>
-  values.find((value) => value !== undefined && value !== null && value !== "") ?? "";
-
-const normalizeImageUrl = (path: string) => {
-  if (!path) return "";
-  if (/^(https?:|data:|blob:)/i.test(path)) return path;
-  return path;
-};
-
-const normalizeSavedPlayers = (rows: any[]) => {
-  const byUid = new Map<string, SavedPlayerProfile>();
-
-  rows.forEach((record: any) => {
-    const teamId = String(record?.teamId || record?.team_id || record?.team || "");
-    const teamName = String(
-      record?.teamName ||
-      record?.team_name ||
-      record?.name ||
-      record?.team?.teamName ||
-      record?.team?.team_name ||
-      "",
-    );
-    const teamLogo = String(record?.teamLogo || record?.team_logo || "");
-    const countryLogo = String(record?.countryLogo || record?.country_logo || "");
-    const rawPlayers = Array.isArray(record?.players)
-      ? record.players
-      : Array.isArray(record?.playerDetails)
-        ? record.playerDetails
-        : Array.isArray(record?.player_details)
-          ? record.player_details
-          : [];
-
-    rawPlayers.forEach((player: any) => {
-      const uid = String(
-        player?.uid ||
-        player?.playerUid ||
-        player?.player_uid ||
-        player?.player_id ||
-        player?.playerId ||
-        "",
-      ).trim();
-
-      if (!uid) return;
-
-      byUid.set(uid, {
-        uid,
-        playerName: String(
-          player?.playerName ||
-          player?.player_name ||
-          player?.player ||
-          player?.name ||
-          player?.nickname ||
-          "",
-        ),
-        playerPic: normalizeImageUrl(
-          String(
-            player?.playerPic ||
-            player?.player_pic ||
-            player?.playerPhoto ||
-            player?.player_photo ||
-            player?.photo ||
-            player?.image ||
-            "",
-          ),
-        ),
-        cameraLink: String(
-          player?.cameraLink ||
-          player?.camera_link ||
-          player?.camera ||
-          player?.link ||
-          "",
-        ),
-        teamId,
-        teamName,
-        teamLogo,
-        countryLogo,
-      });
-    });
-  });
-
-  return byUid;
-};
-
-const collectSpectatorRows = (result: any) => {
-  const source =
-    result?.data?.match?.match_stats_extra?.spector_info ??
-    result?.match?.match_stats_extra?.spector_info ??
-    result?.data?.matchStatsExtra?.spectorInfo ??
-    result?.matchStatsExtra?.spectorInfo ??
-    [];
-
-  return Array.isArray(source)
-    ? source.map((row: any) => ({
-        spectatorId: String(firstValue(row?.spector_id, row?.spectator_id, row?.spectId, "")).trim(),
-        observerId: String(firstValue(row?.observer_id, row?.observerId, "")).trim(),
-        observerName: String(firstValue(row?.observer_name, row?.observerName, "")),
-        observerTeamName: String(firstValue(row?.observer_team_name, row?.observerTeamName, "")),
-      }))
-    : [];
-};
-
 const SpectatorBroadcastView: React.FC = () => {
   const { spectId = "" } = useParams();
-  const [camera, setCamera] = React.useState<CameraUpdatePayload | null>(null);
+  const [camera, setCamera] = React.useState<CameraSocketPayload | null>(null);
   const [savedPlayers, setSavedPlayers] = React.useState<Map<string, SavedPlayerProfile>>(new Map());
   const [activeMatchId, setActiveMatchId] = React.useState(() => getActiveGameDetails().matchIds);
-  const [status, setStatus] = React.useState("Loading spectator mapping...");
+  const [status, setStatus] = React.useState("Loading camera websocket...");
 
   React.useEffect(() => {
     let isMounted = true;
@@ -188,46 +74,12 @@ const SpectatorBroadcastView: React.FC = () => {
       return;
     }
 
-    connectRealtime(activeMatchId);
+    connectCameraSocket(activeMatchId);
 
-    const syncCamera = (payload: any) => {
-      const spectatorRows = collectSpectatorRows(payload);
-      const spectatorRow = spectatorRows.find((row) => row.spectatorId === spectId.trim());
-      const observerId = spectatorRow?.observerId || spectId.trim();
-      const savedPlayer = savedPlayers.get(observerId) || savedPlayers.get(spectId.trim());
-
-      if (!spectatorRow && !savedPlayer) {
-        setCamera(null);
-        setStatus(`No live spectator mapping found for ${spectId} on match ${activeMatchId}.`);
-        return;
-      }
-
-      const nextCamera = {
-        spectatorId: spectId,
-        matchId: String(payload?.data?.matchId ?? payload?.matchId ?? activeMatchId),
-        playerId: observerId,
-        name:
-          savedPlayer?.playerName ||
-          spectatorRow?.observerName ||
-          `Player ${observerId || spectId}`,
-        camera: savedPlayer?.cameraLink || "",
-        teamName:
-          spectatorRow?.observerTeamName ||
-          savedPlayer?.teamName ||
-          "",
-      };
-
-      setCamera(nextCamera);
-      setStatus(
-        spectatorRow
-          ? `Spectator ${spectId} mapped from websocket on match ${nextCamera.matchId}.`
-          : "Saved player table matched, waiting for spectator mapping from websocket.",
-      );
-    };
-
-    const currentData = getRealtimeData();
-    if (currentData) {
-      syncCamera(currentData);
+    const snapshot = getCameraSocketSnapshot(spectId, activeMatchId, savedPlayers);
+    if (snapshot) {
+      setCamera(snapshot);
+      setStatus(`Camera websocket mapped spectator ${spectId} on match ${snapshot.matchId}.`);
     } else {
       const savedPlayer = savedPlayers.get(spectId.trim());
       if (savedPlayer) {
@@ -239,13 +91,28 @@ const SpectatorBroadcastView: React.FC = () => {
           camera: savedPlayer.cameraLink || "",
           teamName: savedPlayer.teamName || "",
         });
-        setStatus("Saved spectator profile loaded. Waiting for realtime websocket payload.");
+        setStatus("Saved player camera found. Waiting for camera websocket spectator mapping.");
       } else {
-        setStatus(`Listening for spectator ${spectId} on match ${activeMatchId}.`);
+        setCamera(null);
+        setStatus(`Listening on camera websocket for spectator ${spectId}.`);
       }
     }
 
-    const unsubscribe = subscribeRealtime(syncCamera);
+    const unsubscribe = subscribeCameraSocket(
+      spectId,
+      activeMatchId,
+      savedPlayers,
+      (payload) => {
+        if (!payload) {
+          setCamera(null);
+          setStatus(`No spectator mapping found yet for ${spectId} on match ${activeMatchId}.`);
+          return;
+        }
+
+        setCamera(payload);
+        setStatus(`Camera websocket mapped spectator ${payload.spectatorId} on match ${payload.matchId}.`);
+      },
+    );
 
     return () => {
       unsubscribe();
@@ -255,8 +122,8 @@ const SpectatorBroadcastView: React.FC = () => {
   return (
     <Canvas>
       <Overlay>
-        <Tag>Spectator {spectId}</Tag>
-        <Headline>{camera?.name || "Awaiting live observer target"}</Headline>
+        <Tag>Camera Websocket</Tag>
+        <Headline>{camera?.name || "Awaiting mapped spectator target"}</Headline>
         <Meta>
           <span>Enabled match: {activeMatchId || "-"}</span>
           <span>Spectator ID: {camera?.spectatorId || spectId || "-"}</span>
@@ -271,7 +138,7 @@ const SpectatorBroadcastView: React.FC = () => {
           <Video key={camera.camera} src={camera.camera} autoPlay muted playsInline controls />
         </VideoFrame>
       ) : (
-        <Placeholder>No camera link is available for this spectator/player yet.</Placeholder>
+        <Placeholder>No mapped camera link is available yet.</Placeholder>
       )}
     </Canvas>
   );
