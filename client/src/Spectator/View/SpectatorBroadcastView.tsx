@@ -170,31 +170,20 @@ const SpectatorBroadcastView: React.FC = () => {
       )}
 
       <InfoDock>
-        <UpperMeta>
-          <Tag>Camera Websocket</Tag>
-          <StatusText>{status}</StatusText>
-        </UpperMeta>
-        <PlayerName>{filteredRow?.playerName || "Awaiting spectator feed"}</PlayerName>
-        <PlayerMeta>
-          <span>UID: {filteredRow?.playerId || "-"}</span>
-          <span>Spectator: {spectId || "-"}</span>
-          <span>Match: {feed?.matchId || activeMatchId || "-"}</span>
-          <span>Team: {filteredRow?.teamName || "-"}</span>
-        </PlayerMeta>
-        <CameraLink
-          href={cameraLink || "#"}
-          target="_blank"
-          rel="noreferrer"
-          aria-disabled={!cameraLink}
-          onClick={(event) => {
-            if (!cameraLink) {
-              event.preventDefault();
-            }
-          }}
-        >
-          {cameraLink || "No camera link"}
-        </CameraLink>
-        <LockNote>Camera surface is locked to avoid accidental in-frame settings clicks.</LockNote>
+        <InfoGrid>
+          <InfoBox>
+            <InfoLabel>Name</InfoLabel>
+            <InfoValue>{filteredRow?.playerName || "-"}</InfoValue>
+          </InfoBox>
+          <InfoBox>
+            <InfoLabel>UID</InfoLabel>
+            <InfoValue>{filteredRow?.playerId || "-"}</InfoValue>
+          </InfoBox>
+          <InfoBox>
+            <InfoLabel>Team</InfoLabel>
+            <InfoValue>{filteredRow?.teamName || "-"}</InfoValue>
+          </InfoBox>
+        </InfoGrid>
       </InfoDock>
     </Canvas>
   );
@@ -257,13 +246,8 @@ const EmbedFrame = styled.iframe`
 `;
 
 const InfoDock = styled.div`
-  display: grid;
-  gap: 8px;
   width: min(50vw, 960px);
-  padding: 16px 18px;
-  border-radius: 22px;
-  background: rgba(2, 10, 18, 0.78);
-  backdrop-filter: blur(14px);
+  padding: 0;
 
   @media (max-width: 1100px) {
     width: min(72vw, 960px);
@@ -274,55 +258,39 @@ const InfoDock = styled.div`
   }
 `;
 
-const UpperMeta = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const InfoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
-`;
 
-const Tag = styled.span`
-  color: #8ef1ff;
-  font-size: 0.78rem;
-  font-weight: 900;
-  text-transform: uppercase;
-`;
-
-const StatusText = styled.span`
-  color: #d1dfef;
-  font-size: 0.84rem;
-`;
-
-const PlayerName = styled.h1`
-  margin: 0;
-  font-size: clamp(1.6rem, 3vw, 3rem);
-  line-height: 0.96;
-`;
-
-const PlayerMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  color: #d1dfef;
-  font-size: 0.92rem;
-`;
-
-const CameraLink = styled.a`
-  color: #9cefff;
-  font-size: 0.88rem;
-  text-decoration: none;
-  overflow-wrap: anywhere;
-
-  &[aria-disabled="true"] {
-    color: #70859d;
-    cursor: default;
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const LockNote = styled.span`
-  color: #7f93aa;
-  font-size: 0.76rem;
+const InfoBox = styled.div`
+  min-height: 78px;
+  padding: 14px 16px;
+  border-radius: 0;
+  border: 1px solid rgba(142, 241, 255, 0.14);
+  background: rgba(4, 12, 21, 0.88);
+  display: grid;
+  align-content: center;
+  gap: 6px;
+`;
+
+const InfoLabel = styled.span`
+  color: #8ea2b9;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+const InfoValue = styled.span`
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 `;
 
 const Placeholder = styled.div`
