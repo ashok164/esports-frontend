@@ -14,11 +14,7 @@ type CameraUpdatePayload = {
   playerId: string;
   name: string;
   camera: string;
-  observerName?: string;
   teamName?: string;
-  teamTag?: string;
-  hp?: number;
-  isAlive?: boolean;
 };
 
 type SavedPlayerProfile = {
@@ -115,54 +111,6 @@ const normalizeSavedPlayers = (rows: any[]) => {
   return byUid;
 };
 
-const collectLiveRows = (result: any) => {
-  const overallRankingEnabled = Boolean(
-    result?.data?.settings?.overallRankingEnabled ??
-    result?.data?.settings?.overall_ranking_enabled ??
-    result?.settings?.overallRankingEnabled ??
-    result?.settings?.overall_ranking_enabled,
-  );
-
-  const source =
-    (overallRankingEnabled
-      ? result?.data?.liveOverall ?? result?.liveOverall
-      : result?.data?.liveMatchStandings ?? result?.liveMatchStandings) ??
-    result?.data?.liveStandings2 ??
-    result?.liveStandings2 ??
-    result?.data?.standings ??
-    result?.data?.team_stats ??
-    result?.standings ??
-    result?.team_stats ??
-    (Array.isArray(result) ? result : null);
-
-  return Array.isArray(source) ? source : [];
-};
-
-const flattenLivePlayers = (result: any) =>
-  collectLiveRows(result).flatMap((team: any) => {
-    const players = Array.isArray(team?.player_stats)
-      ? team.player_stats
-      : Array.isArray(team?.players)
-        ? team.players
-        : [];
-
-    return players.map((player: any) => ({
-      uid: String(
-        firstValue(player?.account_id, player?.player_uid, player?.playerUid, player?.id),
-      ).trim(),
-      name: String(
-        firstValue(player?.nickname, player?.player_name, player?.playerName, player?.name, "Unknown"),
-      ),
-      cameraLink: String(
-        firstValue(player?.camera_link, player?.cameraLink, player?.camera, player?.link, ""),
-      ),
-      hp: Number(firstValue(player?.hp_info?.current_hp, player?.hpInfo?.currentHp, 0)),
-      isAlive: Number(firstValue(player?.hp_info?.current_hp, player?.hpInfo?.currentHp, 0)) > 0,
-      teamName: String(firstValue(team?.team_name, team?.teamName, team?.name, "")),
-      teamTag: String(firstValue(team?.short_tag, team?.teamTag, team?.tag, "")),
-    }));
-  });
-
 const collectSpectatorRows = (result: any) => {
   const source =
     result?.data?.match?.match_stats_extra?.spector_info ??
@@ -244,13 +192,11 @@ const SpectatorBroadcastView: React.FC = () => {
 
     const syncCamera = (payload: any) => {
       const spectatorRows = collectSpectatorRows(payload);
-      const livePlayers = flattenLivePlayers(payload);
       const spectatorRow = spectatorRows.find((row) => row.spectatorId === spectId.trim());
       const observerId = spectatorRow?.observerId || spectId.trim();
-      const livePlayer = livePlayers.find((player) => player.uid === observerId);
       const savedPlayer = savedPlayers.get(observerId) || savedPlayers.get(spectId.trim());
 
-      if (!spectatorRow && !livePlayer && !savedPlayer) {
+      if (!spectatorRow && !savedPlayer) {
         setCamera(null);
         setStatus(`No live spectator mapping found for ${spectId} on match ${activeMatchId}.`);
         return;
@@ -261,29 +207,21 @@ const SpectatorBroadcastView: React.FC = () => {
         matchId: String(payload?.data?.matchId ?? payload?.matchId ?? activeMatchId),
         playerId: observerId,
         name:
-          livePlayer?.name ||
           savedPlayer?.playerName ||
           spectatorRow?.observerName ||
           `Player ${observerId || spectId}`,
-        camera: savedPlayer?.cameraLink || livePlayer?.cameraLink || "",
-        observerName: spectatorRow?.observerName || livePlayer?.name || savedPlayer?.playerName || "",
+        camera: savedPlayer?.cameraLink || "",
         teamName:
-          livePlayer?.teamName ||
           spectatorRow?.observerTeamName ||
           savedPlayer?.teamName ||
           "",
-        teamTag: livePlayer?.teamTag || "",
-        hp: livePlayer?.hp,
-        isAlive: livePlayer?.isAlive,
       };
 
       setCamera(nextCamera);
       setStatus(
         spectatorRow
           ? `Spectator ${spectId} mapped from websocket on match ${nextCamera.matchId}.`
-          : livePlayer
-            ? `Live player ${observerId} found on match ${nextCamera.matchId}.`
-            : "Saved player table matched, waiting for spectator mapping from websocket.",
+          : "Saved player table matched, waiting for spectator mapping from websocket.",
       );
     };
 
@@ -324,10 +262,6 @@ const SpectatorBroadcastView: React.FC = () => {
           <span>Spectator ID: {camera?.spectatorId || spectId || "-"}</span>
           <span>Observer UID: {camera?.playerId || "-"}</span>
           {camera?.teamName ? <span>Team: {camera.teamName}</span> : null}
-          {typeof camera?.hp === "number" ? <span>HP: {camera.hp}</span> : null}
-          {typeof camera?.isAlive === "boolean" ? (
-            <span>{camera.isAlive ? "Alive" : "Eliminated"}</span>
-          ) : null}
           <span>{status}</span>
         </Meta>
       </Overlay>
