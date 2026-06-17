@@ -105,11 +105,25 @@ const SpectatorBroadcastView: React.FC = () => {
     [feed, spectId],
   );
 
+  const cameraLink = filteredRow?.cameraLink || "";
+  const isVdoNinjaLink = /(^https?:\/\/)?(www\.)?vdo\.ninja/i.test(cameraLink);
+
   return (
     <Canvas>
-      {filteredRow?.cameraLink ? (
+      {cameraLink ? (
         <VideoFrame>
-          <Video key={filteredRow.cameraLink} src={filteredRow.cameraLink} autoPlay muted playsInline controls />
+          {isVdoNinjaLink ? (
+            <EmbedFrame
+              key={cameraLink}
+              src={cameraLink}
+              allow="autoplay; fullscreen; camera; microphone; display-capture"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+              title={filteredRow?.playerName || "Player camera"}
+            />
+          ) : (
+            <Video key={cameraLink} src={cameraLink} autoPlay muted playsInline controls />
+          )}
         </VideoFrame>
       ) : (
         <Placeholder>Waiting for player table camera link and live spectator mapping.</Placeholder>
@@ -128,17 +142,17 @@ const SpectatorBroadcastView: React.FC = () => {
           <span>Team: {filteredRow?.teamName || "-"}</span>
         </PlayerMeta>
         <CameraLink
-          href={filteredRow?.cameraLink || "#"}
+          href={cameraLink || "#"}
           target="_blank"
           rel="noreferrer"
-          aria-disabled={!filteredRow?.cameraLink}
+          aria-disabled={!cameraLink}
           onClick={(event) => {
-            if (!filteredRow?.cameraLink) {
+            if (!cameraLink) {
               event.preventDefault();
             }
           }}
         >
-          {filteredRow?.cameraLink || "No camera link"}
+          {cameraLink || "No camera link"}
         </CameraLink>
       </LowerThird>
     </Canvas>
@@ -171,6 +185,13 @@ const Video = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: #000000;
+`;
+
+const EmbedFrame = styled.iframe`
+  width: 100%;
+  height: 100%;
+  border: 0;
   background: #000000;
 `;
 
