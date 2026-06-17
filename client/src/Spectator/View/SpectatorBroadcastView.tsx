@@ -134,6 +134,19 @@ const SpectatorBroadcastView: React.FC = () => {
   const cameraLink = filteredRow?.cameraLink || "";
   const embedCameraLink = buildCameraEmbedUrl(cameraLink);
   const isVdoNinjaLink = /(^https?:\/\/)?(www\.)?vdo\.ninja/i.test(cameraLink);
+  const [embedReloadKey, setEmbedReloadKey] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!isVdoNinjaLink || !embedCameraLink) return;
+
+    const timerId = window.setTimeout(() => {
+      setEmbedReloadKey((current) => current + 1);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [embedCameraLink, isVdoNinjaLink]);
 
   return (
     <Canvas>
@@ -141,7 +154,7 @@ const SpectatorBroadcastView: React.FC = () => {
         <VideoFrame>
           {isVdoNinjaLink ? (
             <EmbedFrame
-              key={embedCameraLink}
+              key={`${embedCameraLink}-${embedReloadKey}`}
               src={embedCameraLink}
               allow="autoplay; fullscreen; camera; microphone; display-capture"
               allowFullScreen
