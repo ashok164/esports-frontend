@@ -8,10 +8,9 @@ import { getSpectatorSocket } from "../socket";
 type CameraSocketPayload = {
   spectatorId: string;
   matchId: string;
-  playerId: string;
-  name: string;
-  camera: string;
-  teamName?: string;
+  observerId: string;
+  observerName: string;
+  observerTeamName?: string;
 };
 
 const SpectatorBroadcastView: React.FC = () => {
@@ -45,11 +44,30 @@ const SpectatorBroadcastView: React.FC = () => {
     let isMounted = true;
 
     getSpectatorSnapshotApi(spectId)
-      .then((response) => {
+      .then((response: any) => {
         if (!isMounted) return;
         setTournamentId(String(response?.tournamentId || ""));
-        if (response?.latest) {
-          setCamera(response.latest);
+        const latest = response?.latest;
+        if (latest) {
+          setCamera({
+            spectatorId: String(latest.spectatorId || spectId),
+            matchId: String(latest.matchId || activeMatchId),
+            observerId: String(
+              latest.observerId ||
+              latest.playerId ||
+              "",
+            ),
+            observerName: String(
+              latest.observerName ||
+              latest.name ||
+              "",
+            ),
+            observerTeamName: String(
+              latest.observerTeamName ||
+              latest.teamName ||
+              "",
+            ),
+          });
           setStatus("Loaded latest backend camera snapshot.");
         }
       })
@@ -79,7 +97,7 @@ const SpectatorBroadcastView: React.FC = () => {
 
     const handleUpdate = (payload: CameraSocketPayload) => {
       setCamera(payload);
-      setStatus(`Camera feed mapped for spectator ${payload.spectatorId} on match ${payload.matchId}.`);
+      setStatus(`Spectator info received for ${payload.spectatorId} on match ${payload.matchId}.`);
     };
 
     const handleError = (payload: { message?: string }) => {
@@ -107,23 +125,38 @@ const SpectatorBroadcastView: React.FC = () => {
     <Canvas>
       <Overlay>
         <Tag>Camera Websocket</Tag>
-        <Headline>{camera?.name || "Awaiting spectator camera feed"}</Headline>
+        <Headline>{camera?.observerName || "Awaiting spectator feed"}</Headline>
         <Meta>
           <span>Match ID: {activeMatchId || "-"}</span>
           <span>Spectator ID: {camera?.spectatorId || spectId || "-"}</span>
-          <span>Observer UID: {camera?.playerId || "-"}</span>
-          {camera?.teamName ? <span>Team: {camera.teamName}</span> : null}
+          <span>Observer UID: {camera?.observerId || "-"}</span>
+          {camera?.observerTeamName ? <span>Team: {camera.observerTeamName}</span> : null}
           <span>{status}</span>
         </Meta>
       </Overlay>
 
-      {camera?.camera ? (
-        <VideoFrame>
-          <Video key={camera.camera} src={camera.camera} autoPlay muted playsInline controls />
-        </VideoFrame>
-      ) : (
-        <Placeholder>No spectator camera feed is available yet.</Placeholder>
-      )}
+      <InfoPanel>
+        <InfoCard>
+          <InfoLabel>Spectator ID</InfoLabel>
+          <InfoValue>{camera?.spectatorId || spectId || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Match ID</InfoLabel>
+          <InfoValue>{camera?.matchId || activeMatchId || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Observer ID</InfoLabel>
+          <InfoValue>{camera?.observerId || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Observer Name</InfoLabel>
+          <InfoValue>{camera?.observerName || "-"}</InfoValue>
+        </InfoCard>
+        <InfoCard>
+          <InfoLabel>Observer Team</InfoLabel>
+          <InfoValue>{camera?.observerTeamName || "-"}</InfoValue>
+        </InfoCard>
+      </InfoPanel>
     </Canvas>
   );
 };
@@ -140,17 +173,6 @@ const Canvas = styled.main`
     radial-gradient(circle at 50% 20%, rgba(255, 75, 75, 0.16), transparent 28%),
     #02070d;
   color: #ffffff;
-`;
-
-const VideoFrame = styled.div`
-  width: 90vw;
-  height: 90vh;
-  display: grid;
-  place-items: center;
-  border-radius: 22px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.86);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.4);
 `;
 
 const Overlay = styled.div`
@@ -188,18 +210,32 @@ const Meta = styled.div`
   font-size: 0.95rem;
 `;
 
-const Video = styled.video`
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #000000;
+const InfoPanel = styled.section`
+  width: min(960px, 92vw);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding-top: 72px;
 `;
 
-const Placeholder = styled.div`
-  display: grid;
-  place-items: center;
-  width: 90vw;
-  height: 90vh;
+const InfoCard = styled.article`
+  border-radius: 18px;
+  padding: 20px;
+  background: rgba(4, 12, 21, 0.82);
+  border: 1px solid rgba(142, 241, 255, 0.14);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+`;
+
+const InfoLabel = styled.div`
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: #8ea2b9;
-  font-size: 1.1rem;
+  margin-bottom: 8px;
+`;
+
+const InfoValue = styled.div`
+  font-size: 1rem;
+  color: #ffffff;
+  word-break: break-word;
 `;
