@@ -1,21 +1,23 @@
 import React from "react";
-import { useParams } from "react-router-dom";
 import styled from "styled-components";
-import { getActiveGameDetails, GAME_DETAILS_UPDATED_EVENT } from "../../GameDetails/gameDetailsState";
-import { getSpectatorSnapshotApi } from "../Repository/remote";
+import { GAME_DETAILS_UPDATED_EVENT, getActiveGameDetails } from "../../GameDetails/gameDetailsState";
+import { getSpectatorGroupsApi } from "../Repository/remote";
 import { getSpectatorSocket } from "../socket";
 
-type CameraSocketPayload = {
+type SpectatorFeedRow = {
   spectatorId: string;
-  matchId: string;
   observerId: string;
   observerName: string;
   observerTeamName?: string;
 };
 
+type CameraSocketPayload = {
+  matchId: string;
+  spectators: SpectatorFeedRow[];
+};
+
 const SpectatorBroadcastView: React.FC = () => {
-  const { spectId = "" } = useParams();
-  const [camera, setCamera] = React.useState<CameraSocketPayload | null>(null);
+  const [feed, setFeed] = React.useState<CameraSocketPayload | null>(null);
   const [activeMatchId, setActiveMatchId] = React.useState(() => getActiveGameDetails().matchIds);
   const [tournamentId, setTournamentId] = React.useState<string>("");
   const [status, setStatus] = React.useState("Connecting to camera websocket...");
@@ -36,53 +38,25 @@ const SpectatorBroadcastView: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (!spectId.trim()) {
-      setStatus("Missing spectator ID in route.");
-      return;
-    }
-
     let isMounted = true;
 
-    getSpectatorSnapshotApi(spectId)
-      .then((response: any) => {
+    getSpectatorGroupsApi()
+      .then((response) => {
         if (!isMounted) return;
-        setTournamentId(String(response?.tournamentId || ""));
-        const latest = response?.latest;
-        if (latest) {
-          setCamera({
-            spectatorId: String(latest.spectatorId || spectId),
-            matchId: String(latest.matchId || activeMatchId),
-            observerId: String(
-              latest.observerId ||
-              latest.playerId ||
-              "",
-            ),
-            observerName: String(
-              latest.observerName ||
-              latest.name ||
-              "",
-            ),
-            observerTeamName: String(
-              latest.observerTeamName ||
-              latest.teamName ||
-              "",
-            ),
-          });
-          setStatus("Loaded latest backend camera snapshot.");
-        }
+        const firstGroup = Array.isArray(response?.groups) ? response.groups[0] : null;
+        setTournamentId(String(firstGroup?.tournamentId || ""));
       })
       .catch((error: any) => {
         if (!isMounted) return;
-        setStatus(error?.response?.data?.message || error?.message || "Failed to load spectator snapshot.");
+        setStatus(error?.response?.data?.message || error?.message || "Failed to load spectator groups.");
       });
 
     return () => {
       isMounted = false;
     };
-  }, [spectId]);
+  }, []);
 
   React.useEffect(() => {
-    if (!spectId.trim()) return;
     if (!activeMatchId.trim()) {
       setStatus("No enabled websocket match ID found in game details.");
       return;
@@ -96,8 +70,8 @@ const SpectatorBroadcastView: React.FC = () => {
     };
 
     const handleUpdate = (payload: CameraSocketPayload) => {
-      setCamera(payload);
-      setStatus(`Spectator info received for ${payload.spectatorId} on match ${payload.matchId}.`);
+      setFeed(payload);
+      setStatus(`Loaded ${payload.spectators.length} spectator row${payload.spectators.length === 1 ? "" : "s"} for match ${payload.matchId}.`);
     };
 
     const handleError = (payload: { message?: string }) => {
@@ -109,7 +83,6 @@ const SpectatorBroadcastView: React.FC = () => {
     socket.on("camera:error", handleError);
 
     socket.emit("camera:join", {
-      spectId: spectId.trim(),
       matchId: activeMatchId.trim(),
       tournamentId: tournamentId.trim(),
     });
@@ -119,44 +92,41 @@ const SpectatorBroadcastView: React.FC = () => {
       socket.off("camera_update", handleUpdate);
       socket.off("camera:error", handleError);
     };
-  }, [activeMatchId, spectId, tournamentId]);
+  }, [activeMatchId, tournamentId]);
 
   return (
     <Canvas>
       <Overlay>
         <Tag>Camera Websocket</Tag>
-        <Headline>{camera?.observerName || "Awaiting spectator feed"}</Headline>
+        <Headline>Spectator Feed By Match</Headline>
         <Meta>
-          <span>Match ID: {activeMatchId || "-"}</span>
-          <span>Spectator ID: {camera?.spectatorId || spectId || "-"}</span>
-          <span>Observer UID: {camera?.observerId || "-"}</span>
-          {camera?.observerTeamName ? <span>Team: {camera.observerTeamName}</span> : null}
+          <span>Match ID: {feed?.matchId || activeMatchId || "-"}</span>
+          <span>Spectator Count: {feed?.spectators?.length ?? 0}</span>
           <span>{status}</span>
         </Meta>
       </Overlay>
 
-      <InfoPanel>
-        <InfoCard>
-          <InfoLabel>Spectator ID</InfoLabel>
-          <InfoValue>{camera?.spectatorId || spectId || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Match ID</InfoLabel>
-          <InfoValue>{camera?.matchId || activeMatchId || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Observer ID</InfoLabel>
-          <InfoValue>{camera?.observerId || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Observer Name</InfoLabel>
-          <InfoValue>{camera?.observerName || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Observer Team</InfoLabel>
-          <InfoValue>{camera?.observerTeamName || "-"}</InfoValue>
-        </InfoCard>
-      </InfoPanel>
+      <FeedGrid>
+        {(feed?.spectators || []).map((row, index) => (
+          <FeedCard key={`${row.spectatorId}-${row.observerId}-${index}`}>
+            <FieldLabel>Spectator ID</FieldLabel>
+            <FieldValue>{row.spectatorId || "-"}</FieldValue>
+
+            <FieldLabel>Observer ID</FieldLabel>
+            <FieldValue>{row.observerId || "-"}</FieldValue>
+
+            <FieldLabel>Observer Name</FieldLabel>
+            <FieldValue>{row.observerName || "-"}</FieldValue>
+
+            <FieldLabel>Observer Team</FieldLabel>
+            <FieldValue>{row.observerTeamName || "-"}</FieldValue>
+          </FeedCard>
+        ))}
+
+        {(!feed?.spectators || feed.spectators.length === 0) ? (
+          <EmptyState>No spectator rows received yet for this match.</EmptyState>
+        ) : null}
+      </FeedGrid>
     </Canvas>
   );
 };
@@ -167,7 +137,10 @@ const Canvas = styled.main`
   position: relative;
   min-height: 100vh;
   display: grid;
-  place-items: center;
+  align-content: start;
+  justify-items: center;
+  gap: 32px;
+  padding: 140px 24px 48px;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 75, 75, 0.16), transparent 28%),
@@ -176,13 +149,14 @@ const Canvas = styled.main`
 `;
 
 const Overlay = styled.div`
-  position: absolute;
+  position: fixed;
   top: 24px;
   left: 24px;
+  right: 24px;
   z-index: 2;
   display: grid;
   gap: 8px;
-  max-width: 620px;
+  max-width: 920px;
   padding: 18px 20px;
   border-radius: 18px;
   background: rgba(2, 10, 18, 0.72);
@@ -210,32 +184,43 @@ const Meta = styled.div`
   font-size: 0.95rem;
 `;
 
-const InfoPanel = styled.section`
-  width: min(960px, 92vw);
+const FeedGrid = styled.section`
+  width: min(1280px, 100%);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
-  padding-top: 72px;
 `;
 
-const InfoCard = styled.article`
+const FeedCard = styled.article`
   border-radius: 18px;
   padding: 20px;
   background: rgba(4, 12, 21, 0.82);
   border: 1px solid rgba(142, 241, 255, 0.14);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+  display: grid;
+  gap: 8px;
 `;
 
-const InfoLabel = styled.div`
+const FieldLabel = styled.div`
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #8ea2b9;
-  margin-bottom: 8px;
 `;
 
-const InfoValue = styled.div`
+const FieldValue = styled.div`
   font-size: 1rem;
   color: #ffffff;
   word-break: break-word;
+  margin-bottom: 6px;
+`;
+
+const EmptyState = styled.div`
+  grid-column: 1 / -1;
+  border-radius: 18px;
+  padding: 28px;
+  text-align: center;
+  color: #8ea2b9;
+  background: rgba(4, 12, 21, 0.82);
+  border: 1px solid rgba(142, 241, 255, 0.14);
 `;
