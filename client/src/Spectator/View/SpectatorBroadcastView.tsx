@@ -1,51 +1,25 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
-import {
-  connectCameraSocket,
-  getCameraSocketSnapshot,
-  normalizeSavedPlayers,
-  SavedPlayerProfile,
-  subscribeCameraSocket,
-  type CameraSocketPayload,
-} from "../cameraSocket";
-import {
-  GAME_DETAILS_UPDATED_EVENT,
-  getActiveGameDetails,
-} from "../../GameDetails/gameDetailsState";
-import { getPlayerUploadsApi } from "../../PlayerUpload/Repository/remote";
+import { getActiveGameDetails, GAME_DETAILS_UPDATED_EVENT } from "../../GameDetails/gameDetailsState";
+import { getSpectatorSnapshotApi } from "../Repository/remote";
+import { getSpectatorSocket } from "../socket";
+
+type CameraSocketPayload = {
+  spectatorId: string;
+  matchId: string;
+  playerId: string;
+  name: string;
+  camera: string;
+  teamName?: string;
+};
 
 const SpectatorBroadcastView: React.FC = () => {
   const { spectId = "" } = useParams();
   const [camera, setCamera] = React.useState<CameraSocketPayload | null>(null);
-  const [savedPlayers, setSavedPlayers] = React.useState<Map<string, SavedPlayerProfile>>(new Map());
   const [activeMatchId, setActiveMatchId] = React.useState(() => getActiveGameDetails().matchIds);
-  const [status, setStatus] = React.useState("Loading camera websocket...");
-
-  React.useEffect(() => {
-    let isMounted = true;
-
-    getPlayerUploadsApi()
-      .then((response) => {
-        if (!isMounted) return;
-        const rows = Array.isArray(response?.data)
-          ? response.data
-          : Array.isArray(response?.playerUploads)
-            ? response.playerUploads
-            : Array.isArray(response)
-              ? response
-              : [];
-        setSavedPlayers(normalizeSavedPlayers(rows));
-      })
-      .catch((error: any) => {
-        if (!isMounted) return;
-        setStatus(error?.response?.data?.message || error?.message || "Failed to load player details.");
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [tournamentId, setTournamentId] = React.useState<string>("");
+  const [status, setStatus] = React.useState("Connecting to camera websocket...");
 
   React.useEffect(() => {
     const syncMatchId = () => {
@@ -68,64 +42,74 @@ const SpectatorBroadcastView: React.FC = () => {
       return;
     }
 
+    let isMounted = true;
+
+    getSpectatorSnapshotApi(spectId)
+      .then((response) => {
+        if (!isMounted) return;
+        setTournamentId(String(response?.tournamentId || ""));
+        if (response?.latest) {
+          setCamera(response.latest);
+          setStatus("Loaded latest backend camera snapshot.");
+        }
+      })
+      .catch((error: any) => {
+        if (!isMounted) return;
+        setStatus(error?.response?.data?.message || error?.message || "Failed to load spectator snapshot.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [spectId]);
+
+  React.useEffect(() => {
+    if (!spectId.trim()) return;
     if (!activeMatchId.trim()) {
-      setCamera(null);
       setStatus("No enabled websocket match ID found in game details.");
       return;
     }
+    if (!tournamentId.trim()) return;
 
-    connectCameraSocket(activeMatchId);
+    const socket = getSpectatorSocket();
 
-    const snapshot = getCameraSocketSnapshot(spectId, activeMatchId, savedPlayers);
-    if (snapshot) {
-      setCamera(snapshot);
-      setStatus(`Camera websocket mapped spectator ${spectId} on match ${snapshot.matchId}.`);
-    } else {
-      const savedPlayer = savedPlayers.get(spectId.trim());
-      if (savedPlayer) {
-        setCamera({
-          spectatorId: spectId,
-          matchId: activeMatchId,
-          playerId: spectId,
-          name: savedPlayer.playerName || `Player ${spectId}`,
-          camera: savedPlayer.cameraLink || "",
-          teamName: savedPlayer.teamName || "",
-        });
-        setStatus("Saved player camera found. Waiting for camera websocket spectator mapping.");
-      } else {
-        setCamera(null);
-        setStatus(`Listening on camera websocket for spectator ${spectId}.`);
-      }
-    }
+    const handleJoined = (payload: { room?: string }) => {
+      setStatus(`Camera websocket joined${payload?.room ? ` ${payload.room}` : ""}.`);
+    };
 
-    const unsubscribe = subscribeCameraSocket(
-      spectId,
-      activeMatchId,
-      savedPlayers,
-      (payload) => {
-        if (!payload) {
-          setCamera(null);
-          setStatus(`No spectator mapping found yet for ${spectId} on match ${activeMatchId}.`);
-          return;
-        }
+    const handleUpdate = (payload: CameraSocketPayload) => {
+      setCamera(payload);
+      setStatus(`Camera feed mapped for spectator ${payload.spectatorId} on match ${payload.matchId}.`);
+    };
 
-        setCamera(payload);
-        setStatus(`Camera websocket mapped spectator ${payload.spectatorId} on match ${payload.matchId}.`);
-      },
-    );
+    const handleError = (payload: { message?: string }) => {
+      setStatus(payload?.message || "Camera websocket error.");
+    };
+
+    socket.on("camera:joined", handleJoined);
+    socket.on("camera_update", handleUpdate);
+    socket.on("camera:error", handleError);
+
+    socket.emit("camera:join", {
+      spectId: spectId.trim(),
+      matchId: activeMatchId.trim(),
+      tournamentId: tournamentId.trim(),
+    });
 
     return () => {
-      unsubscribe();
+      socket.off("camera:joined", handleJoined);
+      socket.off("camera_update", handleUpdate);
+      socket.off("camera:error", handleError);
     };
-  }, [activeMatchId, savedPlayers, spectId]);
+  }, [activeMatchId, spectId, tournamentId]);
 
   return (
     <Canvas>
       <Overlay>
         <Tag>Camera Websocket</Tag>
-        <Headline>{camera?.name || "Awaiting mapped spectator target"}</Headline>
+        <Headline>{camera?.name || "Awaiting spectator camera feed"}</Headline>
         <Meta>
-          <span>Enabled match: {activeMatchId || "-"}</span>
+          <span>Match ID: {activeMatchId || "-"}</span>
           <span>Spectator ID: {camera?.spectatorId || spectId || "-"}</span>
           <span>Observer UID: {camera?.playerId || "-"}</span>
           {camera?.teamName ? <span>Team: {camera.teamName}</span> : null}
@@ -138,7 +122,7 @@ const SpectatorBroadcastView: React.FC = () => {
           <Video key={camera.camera} src={camera.camera} autoPlay muted playsInline controls />
         </VideoFrame>
       ) : (
-        <Placeholder>No mapped camera link is available yet.</Placeholder>
+        <Placeholder>No spectator camera feed is available yet.</Placeholder>
       )}
     </Canvas>
   );
