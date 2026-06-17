@@ -1,12 +1,12 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
+import { connectRealtime, getRealtimeData, subscribeRealtime } from "../../GlobalWebsocket/store";
 import {
-  getSpectatorSnapshotApi,
-  resolveSpectatorApi,
-  SpectatorSnapshot,
-} from "../Repository/remote";
-import { getSpectatorSocket } from "../socket";
+  GAME_DETAILS_UPDATED_EVENT,
+  getActiveGameDetails,
+} from "../../GameDetails/gameDetailsState";
+import { getPlayerUploadsApi } from "../../PlayerUpload/Repository/remote";
 
 type CameraUpdatePayload = {
   spectatorId: string;
@@ -14,74 +14,272 @@ type CameraUpdatePayload = {
   playerId: string;
   name: string;
   camera: string;
+  teamName?: string;
+  teamTag?: string;
+  hp?: number;
+  isAlive?: boolean;
 };
+
+type SavedPlayerProfile = {
+  uid: string;
+  playerName: string;
+  playerPic: string;
+  cameraLink: string;
+  teamId: string;
+  teamName: string;
+  teamLogo: string;
+  countryLogo: string;
+};
+
+const firstValue = (...values: any[]) =>
+  values.find((value) => value !== undefined && value !== null && value !== "") ?? "";
+
+const normalizeImageUrl = (path: string) => {
+  if (!path) return "";
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  return path;
+};
+
+const normalizeSavedPlayers = (rows: any[]) => {
+  const byUid = new Map<string, SavedPlayerProfile>();
+
+  rows.forEach((record: any) => {
+    const teamId = String(record?.teamId || record?.team_id || record?.team || "");
+    const teamName = String(
+      record?.teamName ||
+      record?.team_name ||
+      record?.name ||
+      record?.team?.teamName ||
+      record?.team?.team_name ||
+      "",
+    );
+    const teamLogo = String(record?.teamLogo || record?.team_logo || "");
+    const countryLogo = String(record?.countryLogo || record?.country_logo || "");
+    const rawPlayers = Array.isArray(record?.players)
+      ? record.players
+      : Array.isArray(record?.playerDetails)
+        ? record.playerDetails
+        : Array.isArray(record?.player_details)
+          ? record.player_details
+          : [];
+
+    rawPlayers.forEach((player: any) => {
+      const uid = String(
+        player?.uid ||
+        player?.playerUid ||
+        player?.player_uid ||
+        player?.player_id ||
+        player?.playerId ||
+        "",
+      ).trim();
+
+      if (!uid) return;
+
+      byUid.set(uid, {
+        uid,
+        playerName: String(
+          player?.playerName ||
+          player?.player_name ||
+          player?.player ||
+          player?.name ||
+          player?.nickname ||
+          "",
+        ),
+        playerPic: normalizeImageUrl(
+          String(
+            player?.playerPic ||
+            player?.player_pic ||
+            player?.playerPhoto ||
+            player?.player_photo ||
+            player?.photo ||
+            player?.image ||
+            "",
+          ),
+        ),
+        cameraLink: String(
+          player?.cameraLink ||
+          player?.camera_link ||
+          player?.camera ||
+          player?.link ||
+          "",
+        ),
+        teamId,
+        teamName,
+        teamLogo,
+        countryLogo,
+      });
+    });
+  });
+
+  return byUid;
+};
+
+const collectLiveRows = (result: any) => {
+  const overallRankingEnabled = Boolean(
+    result?.data?.settings?.overallRankingEnabled ??
+    result?.data?.settings?.overall_ranking_enabled ??
+    result?.settings?.overallRankingEnabled ??
+    result?.settings?.overall_ranking_enabled,
+  );
+
+  const source =
+    (overallRankingEnabled
+      ? result?.data?.liveOverall ?? result?.liveOverall
+      : result?.data?.liveMatchStandings ?? result?.liveMatchStandings) ??
+    result?.data?.liveStandings2 ??
+    result?.liveStandings2 ??
+    result?.data?.standings ??
+    result?.data?.team_stats ??
+    result?.standings ??
+    result?.team_stats ??
+    (Array.isArray(result) ? result : null);
+
+  return Array.isArray(source) ? source : [];
+};
+
+const flattenLivePlayers = (result: any) =>
+  collectLiveRows(result).flatMap((team: any) => {
+    const players = Array.isArray(team?.player_stats)
+      ? team.player_stats
+      : Array.isArray(team?.players)
+        ? team.players
+        : [];
+
+    return players.map((player: any) => ({
+      uid: String(
+        firstValue(player?.account_id, player?.player_uid, player?.playerUid, player?.id),
+      ).trim(),
+      name: String(
+        firstValue(player?.nickname, player?.player_name, player?.playerName, player?.name, "Unknown"),
+      ),
+      cameraLink: String(
+        firstValue(player?.camera_link, player?.cameraLink, player?.camera, player?.link, ""),
+      ),
+      hp: Number(firstValue(player?.hp_info?.current_hp, player?.hpInfo?.currentHp, 0)),
+      isAlive: Number(firstValue(player?.hp_info?.current_hp, player?.hpInfo?.currentHp, 0)) > 0,
+      teamName: String(firstValue(team?.team_name, team?.teamName, team?.name, "")),
+      teamTag: String(firstValue(team?.short_tag, team?.teamTag, team?.tag, "")),
+    }));
+  });
 
 const SpectatorBroadcastView: React.FC = () => {
   const { spectId = "" } = useParams();
   const [camera, setCamera] = React.useState<CameraUpdatePayload | null>(null);
-  const [snapshot, setSnapshot] = React.useState<SpectatorSnapshot | null>(null);
-  const [status, setStatus] = React.useState("Waiting for spectator room join...");
+  const [savedPlayers, setSavedPlayers] = React.useState<Map<string, SavedPlayerProfile>>(new Map());
+  const [activeMatchId, setActiveMatchId] = React.useState(() => getActiveGameDetails().matchIds);
+  const [status, setStatus] = React.useState("Loading spectator mapping...");
 
   React.useEffect(() => {
-    if (!spectId || !snapshot?.tournamentId) return;
-
     let isMounted = true;
 
-    getSpectatorSnapshotApi(spectId)
-      .then((snapshot) => {
+    getPlayerUploadsApi()
+      .then((response) => {
         if (!isMounted) return;
-        setSnapshot(snapshot);
-        if (snapshot.latest) {
-          setCamera(snapshot.latest);
-          setStatus("Loaded latest backend snapshot.");
-        } else {
-          setStatus("Resolving spectator from Garena data...");
-          resolveSpectatorApi(spectId)
-            .then((resolved) => {
-              if (!isMounted || !resolved?.success) return;
-              setCamera(resolved);
-              setStatus("Resolved spectator from Garena and DB.");
-            })
-            .catch(() => {
-              if (!isMounted) return;
-              setStatus("Spectator route is ready. Waiting for the next camera update.");
-            });
-        }
+        const rows = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.playerUploads)
+            ? response.playerUploads
+            : Array.isArray(response)
+              ? response
+              : [];
+        setSavedPlayers(normalizeSavedPlayers(rows));
       })
       .catch((error: any) => {
         if (!isMounted) return;
-        setStatus(error?.response?.data?.message || error?.message || "Unable to load spectator snapshot.");
+        setStatus(error?.response?.data?.message || error?.message || "Failed to load player details.");
       });
 
     return () => {
       isMounted = false;
     };
-  }, [spectId]);
+  }, []);
 
   React.useEffect(() => {
-    if (!spectId) return;
-
-    const socket = getSpectatorSocket();
-    const handleJoined = () => {
-      setStatus("Connected to spectator room. Listening for live camera updates.");
-    };
-    const handleUpdate = (payload: CameraUpdatePayload) => {
-      setCamera(payload);
-      setStatus(`Live on ${payload.name}`);
+    const syncMatchId = () => {
+      setActiveMatchId(getActiveGameDetails().matchIds);
     };
 
-    socket.emit("spectator:join", {
-      spectId,
-      tournamentId: snapshot.tournamentId,
-    });
-    socket.on("spectator:joined", handleJoined);
-    socket.on("camera_update", handleUpdate);
+    syncMatchId();
+    window.addEventListener(GAME_DETAILS_UPDATED_EVENT, syncMatchId);
+    window.addEventListener("storage", syncMatchId);
 
     return () => {
-      socket.off("spectator:joined", handleJoined);
-      socket.off("camera_update", handleUpdate);
+      window.removeEventListener(GAME_DETAILS_UPDATED_EVENT, syncMatchId);
+      window.removeEventListener("storage", syncMatchId);
     };
-  }, [spectId, snapshot?.tournamentId]);
+  }, []);
+
+  React.useEffect(() => {
+    if (!spectId.trim()) {
+      setStatus("Missing spectator ID in route.");
+      return;
+    }
+
+    if (!activeMatchId.trim()) {
+      setCamera(null);
+      setStatus("No enabled websocket match ID found in game details.");
+      return;
+    }
+
+    connectRealtime(activeMatchId);
+
+    const syncCamera = (payload: any) => {
+      const livePlayers = flattenLivePlayers(payload);
+      const livePlayer = livePlayers.find((player) => player.uid === spectId.trim());
+      const savedPlayer = savedPlayers.get(spectId.trim());
+
+      if (!livePlayer && !savedPlayer) {
+        setCamera(null);
+        setStatus(`No live or saved player match found for ${spectId}.`);
+        return;
+      }
+
+      const nextCamera = {
+        spectatorId: spectId,
+        matchId: String(payload?.data?.matchId ?? payload?.matchId ?? activeMatchId),
+        playerId: spectId,
+        name: livePlayer?.name || savedPlayer?.playerName || `Player ${spectId}`,
+        camera: savedPlayer?.cameraLink || livePlayer?.cameraLink || "",
+        teamName: livePlayer?.teamName || savedPlayer?.teamName || "",
+        teamTag: livePlayer?.teamTag || "",
+        hp: livePlayer?.hp,
+        isAlive: livePlayer?.isAlive,
+      };
+
+      setCamera(nextCamera);
+      setStatus(
+        livePlayer
+          ? `Live spectator synced from websocket for match ${nextCamera.matchId}.`
+          : "Saved spectator profile found. Waiting for live websocket player presence.",
+      );
+    };
+
+    const currentData = getRealtimeData();
+    if (currentData) {
+      syncCamera(currentData);
+    } else {
+      const savedPlayer = savedPlayers.get(spectId.trim());
+      if (savedPlayer) {
+        setCamera({
+          spectatorId: spectId,
+          matchId: activeMatchId,
+          playerId: spectId,
+          name: savedPlayer.playerName || `Player ${spectId}`,
+          camera: savedPlayer.cameraLink || "",
+          teamName: savedPlayer.teamName || "",
+        });
+        setStatus("Saved spectator profile loaded. Waiting for realtime websocket payload.");
+      } else {
+        setStatus(`Listening for spectator ${spectId} on match ${activeMatchId}.`);
+      }
+    }
+
+    const unsubscribe = subscribeRealtime(syncCamera);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeMatchId, savedPlayers, spectId]);
 
   return (
     <Canvas>
@@ -89,8 +287,13 @@ const SpectatorBroadcastView: React.FC = () => {
         <Tag>Spectator {spectId}</Tag>
         <Headline>{camera?.name || "Awaiting live observer target"}</Headline>
         <Meta>
-          <span>Match: {camera?.matchId || "-"}</span>
-          <span>Player: {camera?.playerId || "-"}</span>
+          <span>Enabled match: {activeMatchId || "-"}</span>
+          <span>Player UID: {camera?.playerId || spectId || "-"}</span>
+          {camera?.teamName ? <span>Team: {camera.teamName}</span> : null}
+          {typeof camera?.hp === "number" ? <span>HP: {camera.hp}</span> : null}
+          {typeof camera?.isAlive === "boolean" ? (
+            <span>{camera.isAlive ? "Alive" : "Eliminated"}</span>
+          ) : null}
           <span>{status}</span>
         </Meta>
       </Overlay>
@@ -100,7 +303,7 @@ const SpectatorBroadcastView: React.FC = () => {
           <Video key={camera.camera} src={camera.camera} autoPlay muted playsInline controls />
         </VideoFrame>
       ) : (
-        <Placeholder>No camera stream has been assigned yet.</Placeholder>
+        <Placeholder>No camera link is available for this spectator/player yet.</Placeholder>
       )}
     </Canvas>
   );
@@ -138,7 +341,7 @@ const Overlay = styled.div`
   z-index: 2;
   display: grid;
   gap: 8px;
-  max-width: 520px;
+  max-width: 620px;
   padding: 18px 20px;
   border-radius: 18px;
   background: rgba(2, 10, 18, 0.72);
