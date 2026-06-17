@@ -7,9 +7,10 @@ import { getSpectatorSocket } from "../socket";
 
 type SpectatorFeedRow = {
   spectatorId: string;
-  observerId: string;
-  observerName: string;
-  observerTeamName?: string;
+  playerId: string;
+  playerName: string;
+  cameraLink: string;
+  teamName?: string;
 };
 
 type CameraSocketPayload = {
@@ -106,40 +107,40 @@ const SpectatorBroadcastView: React.FC = () => {
 
   return (
     <Canvas>
-      <Overlay>
-        <Tag>Camera Websocket</Tag>
-        <Headline>{filteredRow?.observerName || "Awaiting spectator feed"}</Headline>
-        <Meta>
-          <span>Match ID: {feed?.matchId || activeMatchId || "-"}</span>
-          <span>Spectator ID: {spectId || "-"}</span>
-          <span>Observer UID: {filteredRow?.observerId || "-"}</span>
-          {filteredRow?.observerTeamName ? <span>Team: {filteredRow.observerTeamName}</span> : null}
-          <span>{status}</span>
-        </Meta>
-      </Overlay>
+      {filteredRow?.cameraLink ? (
+        <VideoFrame>
+          <Video key={filteredRow.cameraLink} src={filteredRow.cameraLink} autoPlay muted playsInline controls />
+        </VideoFrame>
+      ) : (
+        <Placeholder>Waiting for player table camera link and live spectator mapping.</Placeholder>
+      )}
 
-      <InfoPanel>
-        <InfoCard>
-          <InfoLabel>Spectator ID</InfoLabel>
-          <InfoValue>{spectId || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Match ID</InfoLabel>
-          <InfoValue>{feed?.matchId || activeMatchId || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Observer ID</InfoLabel>
-          <InfoValue>{filteredRow?.observerId || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Observer Name</InfoLabel>
-          <InfoValue>{filteredRow?.observerName || "-"}</InfoValue>
-        </InfoCard>
-        <InfoCard>
-          <InfoLabel>Observer Team</InfoLabel>
-          <InfoValue>{filteredRow?.observerTeamName || "-"}</InfoValue>
-        </InfoCard>
-      </InfoPanel>
+      <LowerThird>
+        <UpperMeta>
+          <Tag>Camera Websocket</Tag>
+          <StatusText>{status}</StatusText>
+        </UpperMeta>
+        <PlayerName>{filteredRow?.playerName || "Awaiting spectator feed"}</PlayerName>
+        <PlayerMeta>
+          <span>UID: {filteredRow?.playerId || "-"}</span>
+          <span>Spectator: {spectId || "-"}</span>
+          <span>Match: {feed?.matchId || activeMatchId || "-"}</span>
+          <span>Team: {filteredRow?.teamName || "-"}</span>
+        </PlayerMeta>
+        <CameraLink
+          href={filteredRow?.cameraLink || "#"}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={!filteredRow?.cameraLink}
+          onClick={(event) => {
+            if (!filteredRow?.cameraLink) {
+              event.preventDefault();
+            }
+          }}
+        >
+          {filteredRow?.cameraLink || "No camera link"}
+        </CameraLink>
+      </LowerThird>
     </Canvas>
   );
 };
@@ -150,10 +151,7 @@ const Canvas = styled.main`
   position: relative;
   min-height: 100vh;
   display: grid;
-  align-content: start;
-  justify-items: center;
-  gap: 32px;
-  padding: 140px 24px 48px;
+  place-items: center;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 75, 75, 0.16), transparent 28%),
@@ -161,67 +159,87 @@ const Canvas = styled.main`
   color: #ffffff;
 `;
 
-const Overlay = styled.div`
+const VideoFrame = styled.div`
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #000000;
+`;
+
+const Video = styled.video`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000000;
+`;
+
+const LowerThird = styled.div`
   position: fixed;
-  top: 24px;
   left: 24px;
   right: 24px;
+  bottom: 24px;
   z-index: 2;
   display: grid;
-  gap: 8px;
-  max-width: 920px;
-  padding: 18px 20px;
-  border-radius: 18px;
-  background: rgba(2, 10, 18, 0.72);
+  gap: 10px;
+  max-width: 720px;
+  padding: 18px 22px;
+  border-radius: 22px;
+  background: rgba(2, 10, 18, 0.78);
   backdrop-filter: blur(14px);
+`;
+
+const UpperMeta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 `;
 
 const Tag = styled.span`
   color: #8ef1ff;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
 `;
 
-const Headline = styled.h1`
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 4.2rem);
-  line-height: 0.94;
+const StatusText = styled.span`
+  color: #d1dfef;
+  font-size: 0.84rem;
 `;
 
-const Meta = styled.div`
+const PlayerName = styled.h1`
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 3rem);
+  line-height: 0.96;
+`;
+
+const PlayerMeta = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   color: #d1dfef;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 `;
 
-const InfoPanel = styled.section`
-  width: min(960px, 92vw);
+const CameraLink = styled.a`
+  color: #9cefff;
+  font-size: 0.88rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &[aria-disabled="true"] {
+    color: #70859d;
+    cursor: default;
+  }
+`;
+
+const Placeholder = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-`;
-
-const InfoCard = styled.article`
-  border-radius: 18px;
-  padding: 20px;
-  background: rgba(4, 12, 21, 0.82);
-  border: 1px solid rgba(142, 241, 255, 0.14);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
-`;
-
-const InfoLabel = styled.div`
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
   color: #8ea2b9;
-  margin-bottom: 8px;
-`;
-
-const InfoValue = styled.div`
-  font-size: 1rem;
-  color: #ffffff;
-  word-break: break-word;
+  font-size: 1.1rem;
 `;
