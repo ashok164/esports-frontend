@@ -22,9 +22,8 @@ import MvpPage from "../../Result/view/MvpPage";
 import PlayersModeView from "../../PlayersMode/View";
 import PlayerUploadProfile from "../../PlayerUpload/View/PlayerUploadProfile";
 import PlayerUploadView from "../../PlayerUpload/View";
-import OverallResultView from "../../Result/view/OverallResultView";
 import ResultJsonControlView from "../../ResultJsonControl/View";
-import ResultBroadcastView from "../../Result/view/ResultBroadcastView";
+import ResultStandingsBroadcast from "../../Result/view/ResultStandingsBroadcast";
 import ResultViewerPage from "../../Result/view/ResultViewerPage";
 import RouteNavigator from "../RouteNavigator";
 import { SpectatorAdminView, SpectatorBroadcastView } from "../../Spectator/View";
@@ -87,8 +86,8 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/result-mvp", element: <MvpPage />, isProtected: true },
   { path: "/result-booyah-team-stats", element: <BooyahTeamStatsPage />, isProtected: true },
   { path: "/result-top-fraggers", element: <TopFraggersPage />, isProtected: true },
-  { path: "/result", element: <ResultBroadcastView />, isBroadcast: true },
-  { path: "/overall-result", element: <OverallResultView />, isBroadcast: true },
+  { path: "/result", element: <ResultStandingsBroadcast mode="game" />, isBroadcast: true },
+  { path: "/overall-result", element: <ResultStandingsBroadcast mode="overall" />, isBroadcast: true },
   { path: "/view-weapons", element: <ViewWeapons />, isProtected: true },
   { path: "/view-characters", element: <ViewCharacters />, isProtected: true },
   { path: "/view-skills", element: <ViewSkills />, isProtected: true },
