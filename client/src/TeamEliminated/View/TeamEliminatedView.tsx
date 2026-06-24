@@ -13,6 +13,7 @@ const TeamEliminatedView = () => {
   });
   const { isLoading: isThemeLoading, broadcastSettings } = useProjectTheme();
   const [activeEliminatedTeam, setActiveEliminatedTeam] = useState(null);
+  const [isEliminationExiting, setIsEliminationExiting] = useState(false);
   const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
 
   const shownEliminations = useRef(new Set());
@@ -21,6 +22,7 @@ const TeamEliminatedView = () => {
   const queuedEliminations = useRef([]);
   const isShowingElimination = useRef(false);
   const timeoutRef = useRef(null);
+  const exitTimeoutRef = useRef(null);
 
   const getTeamId = (team) => String(team?.id ?? team?.name ?? "");
 
@@ -117,15 +119,22 @@ const TeamEliminatedView = () => {
     if (!nextTeam) return;
 
     isShowingElimination.current = true;
+    setIsEliminationExiting(false);
     setActiveEliminatedTeam(nextTeam);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
-      setActiveEliminatedTeam(null);
-      isShowingElimination.current = false;
-      showNextQueuedElimination();
-    }, 5000);
+      setIsEliminationExiting(true);
+
+      exitTimeoutRef.current = setTimeout(() => {
+        setActiveEliminatedTeam(null);
+        setIsEliminationExiting(false);
+        isShowingElimination.current = false;
+        showNextQueuedElimination();
+      }, 520);
+    }, 4480);
   };
 
   const queueEliminatedTeams = (targetTeams, allStandings) => {
@@ -195,6 +204,7 @@ const TeamEliminatedView = () => {
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
       queuedEliminations.current = [];
       isShowingElimination.current = false;
     };
@@ -273,8 +283,12 @@ const TeamEliminatedView = () => {
           textColor3={broadcastSettings.liveStandings2TextColor3}
           textColor4={broadcastSettings.liveStandings2TextColor4}
         />
-      ) : broadcastSettings.selectedBroadcastTheme === "theme2" ? (
-        <StyleTwoEliminatedCard team={activeEliminatedTeam} />
+      ) : broadcastSettings.selectedBroadcastStyle === "theme2" ? (
+        <StyleTwoEliminatedCard
+          team={activeEliminatedTeam}
+          isExiting={isEliminationExiting}
+          showPlayers={broadcastSettings.teamEliminationPlayerEnabled}
+        />
       ) : (
         <TeamNotificationCard team={activeEliminatedTeam} />
       )}

@@ -1,7 +1,7 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-// export const API_BASE_URL = "http://127.0.0.1:3000";
-export const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "https://api.freefireesportsnepal.com";
+export const API_BASE_URL = "http://127.0.0.1:3000";
+// export const API_BASE_URL =
+//   process.env.REACT_APP_API_BASE_URL || "https://api.freefireesportsnepal.com";
 export const REAL_TIME_API = "/tablestandings";
 export const GET_REALTIME_SETTINGS = "/settings";
 export const UPDATE_REALTIME_SETTINGS = "/settings";

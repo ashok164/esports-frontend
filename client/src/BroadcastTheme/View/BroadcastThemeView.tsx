@@ -424,6 +424,18 @@ const BroadcastThemeView: React.FC = () => {
                   <small>Shows an uploaded image on the Team Elimination overlay instead of the coded style.</small>
                 </ToggleCopy>
               </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.teamEliminationPlayerEnabled}
+                  onChange={(event) => updateDisplaySetting("teamEliminationPlayerEnabled", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Team elimination player mode</strong>
+                  <small>When image mode is off, shows four player portraits in the Style 2 elimination overlay.</small>
+                </ToggleCopy>
+              </SwitchToggle>
                </ToggleGrid>
                <QuickLinks>
                  <ConfigLink to={getTournamentPath("/broadcast-image-match-number", getSelectedTournamentSlug())}>Open Match Number Image Page</ConfigLink>

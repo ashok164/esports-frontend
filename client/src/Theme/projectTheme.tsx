@@ -51,6 +51,7 @@ export type BroadcastDisplaySettings = {
   championRushEnabled: boolean;
   matchNumberImageEnabled: boolean;
   teamEliminationImageEnabled: boolean;
+  teamEliminationPlayerEnabled: boolean;
   matchNumberImageUrl: string;
   teamEliminationImageUrl: string;
   matchNumberImageEntries: MatchNumberImageEntry[];
@@ -79,6 +80,7 @@ export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
   championRushEnabled: true,
   matchNumberImageEnabled: false,
   teamEliminationImageEnabled: false,
+  teamEliminationPlayerEnabled: false,
   matchNumberImageUrl: "",
   teamEliminationImageUrl: "",
   matchNumberImageEntries: [],
