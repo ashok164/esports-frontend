@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import TeamNotificationCard from "../../Components/EliminatedComponent/Eliminated";
+import StyleTwoEliminatedCard from "../../Components/EliminatedComponent/Eliminated2";
+import StyleThreeEliminatedCard from "../../Components/EliminatedComponent/Eliminated3";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
+import TeamEliminationImageOverlay from "./TeamEliminationImageOverlay";
 
 const TeamEliminatedView = () => {
   const { standings, loading } = useLiveStandingsController({
     forceLiveMatchStandings: true,
   });
-  const { isLoading: isThemeLoading } = useProjectTheme();
+  const { isLoading: isThemeLoading, broadcastSettings } = useProjectTheme();
   const [activeEliminatedTeam, setActiveEliminatedTeam] = useState(null);
   const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
 
@@ -222,9 +225,59 @@ const TeamEliminatedView = () => {
 
   if (isThemeLoading || !activeEliminatedTeam || isFinalPhaseLocked) return null;
 
+  const activeTeamId = String(
+    activeEliminatedTeam?.id ??
+      activeEliminatedTeam?.teamId ??
+      "",
+  ).trim();
+  const activeTeamName = String(
+    activeEliminatedTeam?.teamTag ??
+      activeEliminatedTeam?.shortName ??
+      activeEliminatedTeam?.tag ??
+      activeEliminatedTeam?.name ??
+      "",
+  )
+    .trim()
+    .toLowerCase();
+  const matchingTeamEliminationImage = broadcastSettings.teamEliminationImageEntries.find(
+    (entry) =>
+      (entry.teamId && entry.teamId.trim() === activeTeamId) ||
+      (entry.teamName &&
+        entry.teamName.trim().toLowerCase() === activeTeamName),
+  );
+
+  if (
+    broadcastSettings.teamEliminationImageEnabled &&
+    (matchingTeamEliminationImage?.imageUrl ||
+      broadcastSettings.teamEliminationImageUrl)
+  ) {
+    return (
+      <TeamEliminationImageOverlay
+        imageUrl={
+          matchingTeamEliminationImage?.imageUrl ||
+          broadcastSettings.teamEliminationImageUrl
+        }
+      />
+    );
+  }
+
   return (
     <>
-      <TeamNotificationCard team={activeEliminatedTeam} />
+      {broadcastSettings.selectedBroadcastStyle === "theme3" ? (
+        <StyleThreeEliminatedCard
+          team={activeEliminatedTeam}
+          color1={broadcastSettings.liveStandings2Color1}
+          color2={broadcastSettings.liveStandings2Color2}
+          color5={broadcastSettings.liveStandings2Color5}
+          textColor1={broadcastSettings.liveStandings2TextColor1}
+          textColor3={broadcastSettings.liveStandings2TextColor3}
+          textColor4={broadcastSettings.liveStandings2TextColor4}
+        />
+      ) : broadcastSettings.selectedBroadcastTheme === "theme2" ? (
+        <StyleTwoEliminatedCard team={activeEliminatedTeam} />
+      ) : (
+        <TeamNotificationCard team={activeEliminatedTeam} />
+      )}
     </>
   );
 };

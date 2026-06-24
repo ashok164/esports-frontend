@@ -9,10 +9,13 @@ import {
   PATCH_PROJECT_COLOR_THEME,
   UPDATE_BROADCAST_DISPLAY_SETTINGS,
 } from "../../Routes/ApiRoutes/apiRoutes";
-import { getSelectedTournamentSlug } from "../../Tournaments/tournamentState";
+import { Link } from "react-router-dom";
+import { getSelectedTournamentSlug, getTournamentPath } from "../../Tournaments/tournamentState";
 import {
+  BroadcastThemePreset,
   DEFAULT_PROJECT_THEME,
   getBroadcastDisplaySettings,
+  mergeBroadcastDisplaySettings,
   ProjectColorTheme,
   setBroadcastDisplaySettings,
 } from "../../Theme";
@@ -22,6 +25,29 @@ type ColorField = {
   label: string;
   description: string;
 };
+
+type LiveStandings2ColorKey =
+  | "liveStandings2Color1"
+  | "liveStandings2Color2"
+  | "liveStandings2Color3"
+  | "liveStandings2Color4"
+  | "liveStandings2Color5"
+  | "liveStandings2TextColor1"
+  | "liveStandings2TextColor2"
+  | "liveStandings2TextColor3"
+  | "liveStandings2TextColor4";
+
+const liveStandings2ColorFields: Array<{ key: LiveStandings2ColorKey; label: string; description: string }> = [
+  { key: "liveStandings2Color1", label: "Color 1", description: "Status, FIN, and PTS channel background." },
+  { key: "liveStandings2Color2", label: "Color 2", description: "Rank, flag, logo, and team-name background." },
+  { key: "liveStandings2Color3", label: "Color 3", description: "Live standings header background." },
+  { key: "liveStandings2Color4", label: "Color 4", description: "Footer / legend background." },
+  { key: "liveStandings2Color5", label: "Color 5", description: "Style 2 match-number logo background." },
+  { key: "liveStandings2TextColor1", label: "Text Color 1", description: "FIN and PTS text on the right." },
+  { key: "liveStandings2TextColor2", label: "Text Color 2", description: "Rank and team text on the left." },
+  { key: "liveStandings2TextColor3", label: "Text Color 3", description: "Header text." },
+  { key: "liveStandings2TextColor4", label: "Text Color 4", description: "Footer / legend text." },
+];
 
 const colorFields: ColorField[] = [
   { key: "primary", label: "Primary", description: "Main action, brand, and broadcast accent." },
@@ -60,6 +86,12 @@ const normalizeThemePayload = (data: Partial<ProjectColorTheme>): ProjectColorTh
   ...data,
   useDefaultColors: data?.useDefaultColors !== false,
 });
+
+const presetOptions: Array<{ id: BroadcastThemePreset; label: string; description: string }> = [
+  { id: "theme1", label: "Style 1", description: "Current broadcast overlay layout." },
+  { id: "theme2", label: "Style 2", description: "Reference-style standings, final-four, and elimination layout." },
+  { id: "theme3", label: "Style 3", description: "Live standings 3 table format." },
+];
 
 const BroadcastThemeView: React.FC = () => {
   const [theme, setTheme] = useState<ProjectColorTheme>(DEFAULT_PROJECT_THEME);
@@ -117,10 +149,10 @@ const BroadcastThemeView: React.FC = () => {
       .get(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || GET_BROADCAST_DISPLAY_SETTINGS)
       .then((response) => {
         if (!isMounted) return;
-        const nextSettings = {
-          ...getBroadcastDisplaySettings(),
-          ...(response.data?.settings || response.data || {}),
-        };
+        const nextSettings = mergeBroadcastDisplaySettings(
+          getBroadcastDisplaySettings(),
+          response.data?.settings || response.data,
+        );
         setDisplaySettings(nextSettings);
         setBroadcastDisplaySettings(nextSettings);
       })
@@ -185,6 +217,49 @@ const BroadcastThemeView: React.FC = () => {
     }
   };
 
+  const updateLiveStandings2Color = async (key: LiveStandings2ColorKey, value: string) => {
+    const nextSettings = { ...displaySettings, [key]: value };
+    const selectedTournamentSlug = getSelectedTournamentSlug();
+    setDisplaySettings(nextSettings);
+    setBroadcastDisplaySettings(nextSettings);
+
+    try {
+      await http.patch(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || UPDATE_BROADCAST_DISPLAY_SETTINGS, {
+        settings: nextSettings,
+      });
+      setStatus("Style 2 colors updated.");
+    } catch {
+      setStatus("Style 2 colors saved locally. Add the backend route to sync them.");
+    }
+  };
+
+  const selectBroadcastStyle = async (preset: BroadcastThemePreset) => {
+    const nextSettings = {
+      ...displaySettings,
+      selectedBroadcastTheme: preset,
+      selectedBroadcastStyle: preset,
+      broadcastThemeEnabled: true,
+    };
+    const selectedTournamentSlug = getSelectedTournamentSlug();
+
+    setIsSaving(true);
+    setError("");
+    setStatus("");
+    setDisplaySettings(nextSettings);
+    setBroadcastDisplaySettings(nextSettings);
+
+    try {
+      await http.patch(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || UPDATE_BROADCAST_DISPLAY_SETTINGS, {
+        settings: { ...nextSettings, selectedBroadcastStyle: preset },
+      });
+      setStatus(`${preset.replace("theme", "Style ")} is live across broadcast overlays.`);
+    } catch {
+      setError("Broadcast style could not be synced. Check the broadcast settings API route.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const togglePanel = (key: keyof typeof openPanels) => {
     setOpenPanels((current) => ({ ...current, [key]: !current[key] }));
   };
@@ -230,7 +305,29 @@ const BroadcastThemeView: React.FC = () => {
             <PanelNote>Saved locally and synced through the broadcast settings API.</PanelNote>
           </PanelHeader>
           {openPanels.display && (
-            <ToggleGrid>
+            <>
+              <PresetGrid>
+                {presetOptions.map((preset) => (
+                  <PresetToggleButton
+                    key={preset.id}
+                    type="button"
+                    onClick={() => selectBroadcastStyle(preset.id)}
+                    disabled={isSaving}
+                  >
+                    <PresetSwitch
+                      aria-hidden="true"
+                      $selected={displaySettings.selectedBroadcastStyle === preset.id}
+                    >
+                      <PresetSwitchThumb $selected={displaySettings.selectedBroadcastStyle === preset.id} />
+                    </PresetSwitch>
+                    <ToggleCopy>
+                      <strong>{preset.label}</strong>
+                      <small>{preset.description}</small>
+                    </ToggleCopy>
+                  </PresetToggleButton>
+                ))}
+              </PresetGrid>
+              <ToggleGrid>
               <SwitchToggle>
                 <SwitchInput
                   type="checkbox"
@@ -303,7 +400,64 @@ const BroadcastThemeView: React.FC = () => {
                   <small>Toggle this once to open the next six-team roster batch on broadcast.</small>
                 </ToggleCopy>
               </SwitchToggle>
-            </ToggleGrid>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.matchNumberImageEnabled}
+                  onChange={(event) => updateDisplaySetting("matchNumberImageEnabled", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Match number image mode</strong>
+                  <small>Shows an uploaded image on the Match Number overlay instead of the coded style.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.teamEliminationImageEnabled}
+                  onChange={(event) => updateDisplaySetting("teamEliminationImageEnabled", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Team elimination image mode</strong>
+                  <small>Shows an uploaded image on the Team Elimination overlay instead of the coded style.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+               </ToggleGrid>
+               <QuickLinks>
+                 <ConfigLink to={getTournamentPath("/broadcast-image-match-number", getSelectedTournamentSlug())}>Open Match Number Image Page</ConfigLink>
+                 <ConfigLink to={getTournamentPath("/broadcast-image-team-elimination", getSelectedTournamentSlug())}>Open Team Elimination Image Page</ConfigLink>
+               </QuickLinks>
+               <PaletteHeading>Style 2 Overlay Colors</PaletteHeading>
+               <FieldGrid>
+                 {liveStandings2ColorFields.map((field) => {
+                   const value = displaySettings[field.key];
+                   const valid = isHexColor(value);
+                   return (
+                     <ColorFieldCard key={field.key} $invalid={!valid}>
+                       <FieldText>
+                         <label htmlFor={field.key}>{field.label}</label>
+                         <span>{field.description}</span>
+                       </FieldText>
+                       <ColorControls>
+                         <ColorInput
+                           id={field.key}
+                           type="color"
+                           value={convertToFullHex(value)}
+                           onChange={(event) => updateLiveStandings2Color(field.key, event.target.value)}
+                         />
+                         <HexInput
+                           value={value}
+                           onChange={(event) => updateLiveStandings2Color(field.key, event.target.value)}
+                           aria-label={`${field.label} hex color`}
+                         />
+                       </ColorControls>
+                     </ColorFieldCard>
+                   );
+                 })}
+               </FieldGrid>
+             </>
           )}
         </DisplaySettings>
 
@@ -532,6 +686,64 @@ const DisplaySettings = styled.section`
   background: var(--project-surface, #111827);
 `;
 
+const PresetGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+
+  @media (max-width: 780px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const PresetToggleButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 78px;
+  padding: 14px;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  background: var(--project-surface, #111827);
+  color: var(--project-text-primary, #ffffff);
+  text-align: left;
+  cursor: pointer;
+
+  small {
+    color: var(--project-text-secondary, #94a3b8);
+    line-height: 1.35;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.6;
+  }
+`;
+
+const PresetSwitch = styled.span<{ $selected: boolean }>`
+  position: relative;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 26px;
+  border: 1px solid ${({ $selected }) => ($selected ? "var(--project-primary, #ef4444)" : "var(--project-border, #334155)")};
+  border-radius: 999px;
+  background: ${({ $selected }) => ($selected ? "var(--project-primary, #ef4444)" : "var(--project-surface-alt, #1f293d)")};
+  transition: background 160ms ease, border-color 160ms ease;
+`;
+
+const PresetSwitchThumb = styled.span<{ $selected: boolean }>`
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--project-text-primary, #ffffff);
+  transform: ${({ $selected }) => ($selected ? "translateX(22px)" : "translateX(0)")};
+  transition: transform 160ms ease;
+`;
+
 const ToggleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -540,6 +752,32 @@ const ToggleGrid = styled.div`
   @media (max-width: 780px) {
     grid-template-columns: 1fr;
   }
+`;
+
+const QuickLinks = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+`;
+
+const ConfigLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  background: var(--project-surface-alt, #1f293d);
+  color: var(--project-text-primary, #ffffff);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+`;
+
+const PaletteHeading = styled.h3`
+  margin: 20px 0 12px;
+  font-size: 1rem;
 `;
 
 const FormPanel = styled.section`

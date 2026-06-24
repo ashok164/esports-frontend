@@ -1,413 +1,264 @@
-import React, { useMemo } from "react";
-import styled, { keyframes, css } from "styled-components";
-import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
+import styled, { css } from "styled-components";
+import { AnimatePresence, motion } from "framer-motion";
+import { useProjectTheme } from "../../../Theme";
+import { PlayerData, PlayerStatus, TeamData } from "./LastFourTeam1";
 
-/* ==========================================================================
-   TYPE DEFINITIONS
-   ========================================================================== */
+const CARD_WIDTH = 210;
+const CARD_HEIGHT = 70;
+const LOGO_WIDTH = 58;
+const FOOTER_HEIGHT = 24;
+const RECALLED_BLUE = "#2575fc";
 
-export type PlayerStatus = "alive" | "knocked" | "dead";
+const withOpacity = (color: string, opacity: number) => {
+  const normalized = color.replace("#", "").trim();
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return color;
 
-export interface PlayerData {
-  status: PlayerStatus;
-  hpPercent: number;
-  isKnocked: boolean;
-  hasRecalled: boolean;
-}
+  const value = Number.parseInt(normalized, 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${opacity})`;
+};
 
-export interface TeamData {
-  id?: string | number;
-  name: string;
-  shortName?: string;
-  logoUrl?: string;
-  countryFlag?: string;
-  rank: number;
-  playersAlive: number;
-  is_eliminated?: boolean;
-  winRate?: string | number;
-  players?: PlayerData[];
-}
+const formatWinRate = (value: string | number | undefined) => {
+  if (value === undefined || value === null || value === "") return "0%";
+  const numeric = Number(String(value).replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(numeric)) return "0%";
+  return `${Math.round(numeric)}%`;
+};
 
-interface EndgameTopHUDProps {
-  teams?: TeamData[];
-}
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
-/* ==========================================================================
-   TIER-1 PREMIUM COLOR STANDARD MATRIX
-   ========================================================================== */
+const getPlayerHpPercent = (player: PlayerData) =>
+  Math.max(0, Math.min(100, toNumber(player.hpPercent ?? player.hp ?? 100)));
 
-const BROADCAST_THEME = {
-  gradients: {
-    mainCarbon: "linear-gradient(180deg, var(--project-surface, #0d0e12) 0%, var(--project-background, #060608) 100%)",
-    brandAegis: "linear-gradient(135deg, var(--project-primary, #1b0e30) 0%, var(--project-background, #07030d) 100%)",
-    shineOverlay: "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent)",
-    barBacktrack: "linear-gradient(180deg, rgba(20, 20, 25, 0.8) 0%, rgba(10, 10, 12, 0.9) 100%)",
-    hpActiveNormal: "linear-gradient(to top, var(--project-accent, #447300) 0%, var(--project-accent, #bfff00) 100%)",
-    hpActiveKnocked: "linear-gradient(to top, var(--project-danger, #8f001b) 0%, var(--project-danger, #ff003c) 100%)",
-    hpActiveRecalled: "linear-gradient(to top, var(--project-success, #007343) 0%, var(--project-success, #00ff8c) 100%)",
-  },
-  colors: {
-    neonLime: "var(--project-accent, #bfff00)",
-    esportsOrange: "var(--project-warning, #ff6a00)",
-    criticalRed: "var(--project-danger, #ff003c)",
-    cleanWhite: "var(--project-text-primary, #ffffff)",
-    dimGray: "var(--project-text-secondary, rgba(255, 255, 255, 0.45))",
-    chassisFrame: "var(--project-border, rgba(255, 255, 255, 0.05))",
-    glowShadow: "rgba(0, 0, 0, 0.85)",
-  },
-} as const;
+const getPlayerStatus = (player: PlayerData): PlayerStatus => {
+  if (getPlayerHpPercent(player) <= 0) return "dead";
+  if (player.hasRecalled) return "recalled";
+  if (player.status === "dead") return "dead";
+  if (player.status === "knocked" || player.isKnocked) return "knocked";
+  return "alive";
+};
 
-/* ==========================================================================
-   DYNAMIC REFRESH HUD TELEMETRY ANIMATIONS
-   ========================================================================== */
+const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
+  const { broadcastSettings } = useProjectTheme();
 
-const lowHpPulseAlert = keyframes`
-  0%, 100% { 
-    opacity: 0.5; 
-    filter: drop-shadow(0 0 1px ${BROADCAST_THEME.colors.criticalRed}); 
-  }
-  50% { 
-    opacity: 1; 
-    filter: drop-shadow(0 0 8px ${BROADCAST_THEME.colors.criticalRed}); 
-  }
-`;
+  const activeTeams = [...teams]
+    .filter((team) => Number(team.playersAlive ?? 0) > 0 && !team.is_eliminated && !team.isEliminated)
+    .sort((left, right) => left.rank - right.rank);
 
-const globalLightSweep = keyframes`
-  0% { transform: translateX(-160%) skewX(-25deg); }
-  100% { transform: translateX(220%) skewX(-25deg); }
-`;
+  const activeTopFour = activeTeams.length > 0 && activeTeams.length <= 4 ? activeTeams : [];
 
-/* ==========================================================================
-   HUD STRUCTURAL CHASSIS HOUSING
-   ========================================================================== */
+  const colors = {
+    base: broadcastSettings.liveStandings2Color1,
+    bar: broadcastSettings.liveStandings2Color2,
+    logo: broadcastSettings.liveStandings2Color5,
+    dark: broadcastSettings.liveStandings2Color4,
+    text: broadcastSettings.liveStandings2TextColor4,
+    textDark: broadcastSettings.liveStandings2TextColor2,
+  };
 
-const EndgameHUDContainer = styled.div`
+  return (
+    <Overlay>
+      <AnimatePresence mode="popLayout">
+        {activeTopFour.map((team) => {
+          const players = Array.from({ length: 4 }, (_, index) => {
+            return team.players?.[index] || { status: "dead" as PlayerStatus, hpPercent: 0, isKnocked: false, hasRecalled: false };
+          });
+
+          return (
+            <Card
+              key={team.id || team.name}
+              layout
+              initial={{ opacity: 0, y: -40, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{
+                opacity: 0,
+                y: -50,
+                scale: 0.82,
+                transition: { duration: 0.2, ease: "easeInOut" },
+              }}
+              transition={{ type: "spring", stiffness: 180, damping: 22 }}
+            >
+              <Body $base={colors.base} $dark={colors.dark}>
+                <LogoPanel $logo={colors.logo}>
+                  {team.logoUrl ? <Logo src={team.logoUrl} alt={team.name} /> : <LogoFallback>LOGO</LogoFallback>}
+                </LogoPanel>
+
+                <HealthZone $base={colors.base}>
+                  <HealthBars>
+                    {players.map((player, index) => {
+                      const status = getPlayerStatus(player);
+                      const percent = getPlayerHpPercent(player);
+                      const isDead = status === "dead";
+                      const isKnocked = status === "knocked";
+                      const hasRecalled = status === "recalled";
+                      const isLow = (status === "alive" || status === "recalled") && percent > 0 && percent < 30;
+
+                      return (
+                        <HealthBar
+                          key={index}
+                          $isDead={isDead}
+                          $isKnocked={isKnocked}
+                          $isLow={isLow}
+                          $hasRecalled={hasRecalled}
+                          $dark={colors.dark}
+                        >
+                          <HealthFill $percent={percent} $status={status} />
+                        </HealthBar>
+                      );
+                    })}
+                  </HealthBars>
+                </HealthZone>
+              </Body>
+
+              <Footer $bar={colors.bar} $text={colors.textDark}>
+                <FooterText>{`WIN RATE - ${formatWinRate(team.winRate ?? team.win_rate)}`}</FooterText>
+              </Footer>
+            </Card>
+          );
+        })}
+      </AnimatePresence>
+    </Overlay>
+  );
+};
+
+export default LastFourTeam2;
+
+const Overlay = styled.div`
   position: fixed;
-  top: 28px;
+  top: 24px;
   left: 50%;
+  display: flex;
+  gap: 22px;
   transform: translateX(-50%);
-  display: flex;
-  gap: 14px;
-  z-index: 999999;
+  z-index: 9999;
   pointer-events: none;
-`;
 
-const CardWrapper = styled(motion.div)`
-  position: relative;
-  width: 325px;
-  height: 74px;
-  pointer-events: auto;
-  filter: drop-shadow(0 16px 26px ${BROADCAST_THEME.colors.glowShadow});
-`;
-
-const SolidChassisHull = styled.div`
-  position: absolute;
-  inset: 0;
-  background: ${BROADCAST_THEME.gradients.mainCarbon};
-  clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%);
-  border: 1px solid ${BROADCAST_THEME.colors.chassisFrame};
-  border-left: 3px solid ${BROADCAST_THEME.colors.neonLime};
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    width: 60%;
-    background: ${BROADCAST_THEME.gradients.shineOverlay};
-    animation: ${globalLightSweep} 5s cubic-bezier(0.25, 1, 0.5, 1) infinite;
-    pointer-events: none;
-    z-index: 1;
+  @media (min-width: 2560px) {
+    top: 24px;
+    transform: translateX(-50%) scale(1.96);
+    transform-origin: top center;
   }
 `;
 
-/* ==========================================================================
-   VISUAL LANE 1: THE TEAM SHIELD (BRANDING PANEL)
-   ========================================================================== */
+const Card = styled(motion.div)`
+  position: relative;
+  width: ${CARD_WIDTH}px;
+  height: ${CARD_HEIGHT + FOOTER_HEIGHT}px;
+  pointer-events: auto;
+`;
 
-const BrandingShield = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 66px;
-  height: 100%;
-  background: ${BROADCAST_THEME.gradients.brandAegis};
-  clip-path: polygon(0 0, 100% 0, 84% 100%, 0 100%);
+const Body = styled.div<{ $base: string; $dark: string }>`
+  position: relative;
+  display: grid;
+  grid-template-columns: ${LOGO_WIDTH}px 1fr;
+  width: ${CARD_WIDTH}px;
+  height: ${CARD_HEIGHT}px;
+  overflow: hidden;
+  background: ${({ $base }) => $base};
+`;
+
+const LogoPanel = styled.div<{ $logo: string }>`
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-right: 4px;
-  z-index: 2;
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  background: ${({ $logo }) => $logo};
 `;
 
-const TeamLogoImage = styled.img`
+const Logo = styled.img`
   width: 38px;
   height: 38px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+  filter: none;
 `;
 
-/* ==========================================================================
-   VISUAL LANE 2: DATA REGISTRY WORKSPACE (IDENTITY & METRICS)
-   ========================================================================== */
+const LogoFallback = styled.span`
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+`;
 
-const DataMetricsWorkspace = styled.div`
-  position: absolute;
-  left: 76px;
-  right: 92px;
-  top: 0;
-  bottom: 0;
+const HealthZone = styled.div<{ $base: string }>`
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 3px;
-  z-index: 3;
+  background: ${({ $base }) => $base};
 `;
 
-const IdentityBlock = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const CountryFlagImg = styled.img`
-  width: 18px;
-  height: 11px;
-  object-fit: cover;
-  border-radius: 1px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-`;
-
-const TeamShortText = styled.span`
-  font-family: "Impact", "Arial Black", sans-serif;
-  font-size: 20px;
-  font-weight: 900;
-  text-transform: uppercase;
-  color: ${BROADCAST_THEME.colors.cleanWhite};
-  letter-spacing: 0.6px;
-  font-style: italic;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
-`;
-
-const AnalyticsBlock = styled.div`
+const HealthBars = styled.div`
   display: flex;
   align-items: center;
   gap: 5px;
 `;
 
-const WrLabelText = styled.span`
-  font-family: "Arial Black", sans-serif;
-  font-size: 10px;
-  font-weight: 900;
-  color: ${BROADCAST_THEME.colors.dimGray};
-  letter-spacing: 0.5px;
-`;
-
-const WinRateValueText = styled.span`
-  font-family: "Impact", sans-serif;
-  font-size: 15px;
-  font-weight: 900;
-  color: ${BROADCAST_THEME.colors.esportsOrange};
-  font-style: italic;
-  letter-spacing: 0.2px;
-`;
-
-/* ==========================================================================
-   VISUAL LANE 3: PREMIUM HIGH-FIDELITY VERTICAL LIFELINE DECK
-   ========================================================================== */
-
-const VerticalLifelineDeck = styled.div`
-  position: absolute;
-  right: 22px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  gap: 5px;
-  height: 48px;
-  z-index: 4;
-`;
-
-interface HPBlockProps {
+const HealthBar = styled.i<{
   $isDead: boolean;
-  $isLow: boolean;
   $isKnocked: boolean;
-}
-
-const HPBlock = styled.div<HPBlockProps>`
-  width: 11px;
-  height: 100%;
+  $isLow: boolean;
+  $hasRecalled: boolean;
+  $dark: string;
+}>`
   position: relative;
-  background: ${BROADCAST_THEME.gradients.barBacktrack};
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.6);
-  border-radius: 1.5px;
+  width: 10px;
+  height: 30px;
   overflow: hidden;
-
-  ${({ $isDead }) =>
-    $isDead &&
-    css`
-      background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.03);
-      box-shadow: none;
-    `}
-
-  ${({ $isKnocked }) =>
-    $isKnocked &&
-    css`
-      border-color: ${BROADCAST_THEME.colors.criticalRed};
-    `}
+  background: ${({ $isDead, $dark }) => ($isDead ? "#ffffff" : withOpacity($dark, 0.4))};
+  border: 1px solid
+    ${({ $isDead, $isKnocked, $isLow, $hasRecalled }) => {
+      if ($isDead) return "rgba(255,255,255,0.28)";
+      if ($isKnocked) return "#ff3c14";
+      if ($isLow) return "#ffd54a";
+      if ($hasRecalled) return RECALLED_BLUE;
+      return "rgba(255,255,255,0.18)";
+    }};
 
   ${({ $isLow, $isDead }) =>
     $isLow &&
     !$isDead &&
     css`
-      animation: ${lowHpPulseAlert} 0.45s ease-in-out infinite alternate;
-      border-color: ${BROADCAST_THEME.colors.criticalRed};
+      box-shadow: 0 0 8px rgba(255, 213, 74, 0.35);
     `}
 `;
 
-interface ActiveVerticalFillProps {
-  $percent: number;
-  $isKnocked: boolean;
-  $hasRecalled: boolean;
-}
-
-const ActiveVerticalFill = styled.div<ActiveVerticalFillProps>`
+const HealthFill = styled.span<{ $percent: number; $status: PlayerStatus }>`
   position: absolute;
-  bottom: 0;
   left: 0;
+  bottom: 0;
   width: 100%;
-  height: ${({ $percent }) => $percent}%;
-  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  background: ${({ $isKnocked, $hasRecalled }) => {
-    if ($hasRecalled) return BROADCAST_THEME.gradients.hpActiveRecalled;
-    if ($isKnocked) return BROADCAST_THEME.gradients.hpActiveKnocked;
-    return BROADCAST_THEME.gradients.hpActiveNormal;
+  height: ${({ $status, $percent }) => ($status === "dead" ? 0 : $percent)}%;
+  background: ${({ $status }) => {
+    if ($status === "knocked") return "#ff3c14";
+    if ($status === "recalled") return RECALLED_BLUE;
+    return "#24fe5b";
   }};
-  border-top: 1px solid rgba(255, 255, 255, 0.4);
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to top,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.15) 100__%
-    );
-    pointer-events: none;
-  }
 `;
 
-/* ==========================================================================
-   MASTER TRANSMISSION CONTROLLER ENGINE
-   ========================================================================== */
+const Footer = styled.div<{ $bar: string; $text: string }>`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: ${FOOTER_HEIGHT}px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 72%, transparent 100%),
+    ${({ $bar }) => $bar};
+  color: ${({ $text }) => $text};
+`;
 
-const CRITICAL_DEFAULT_FLAG = "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg";
-
-const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
-  const activeTopFour = useMemo(() => {
-    return [...teams]
-      .filter((team) => team.playersAlive > 0 && !team.is_eliminated)
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, 4);
-  }, [teams]);
-
-  const formatWinRate = (val?: string | number): string => {
-    if (!val) return "0%";
-    const numericStr = String(val).replace(/[^0-9]/g, "");
-    return numericStr ? `${numericStr}%` : "0%";
-  };
-
-  return (
-    <EndgameHUDContainer>
-      <AnimatePresence mode="popLayout">
-        {activeTopFour.map((team) => {
-          const telemetryTeamKey = team.id || team.name;
-
-          // Locks the layout to exactly 4 structural player profile vertical streams
-          const structuredSquadSlots = Array.from({ length: 4 }, (_, i) => {
-            return (
-              team.players?.[i] || {
-                status: "dead" as PlayerStatus,
-                hpPercent: 0,
-                isKnocked: false,
-                hasRecalled: false,
-              }
-            );
-          });
-
-          return (
-            <CardWrapper
-              key={telemetryTeamKey}
-              layout
-              initial={{ opacity: 0, y: -20, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{
-                opacity: 0,
-                y: -35,
-                scale: 0.9,
-                transition: { duration: 0.2, ease: "easeIn" },
-              }}
-              transition={{ type: "spring", stiffness: 250, damping: 27 }}
-            >
-              <SolidChassisHull>
-                
-                {/* Visual Lane 1: Team Shield Frame Anchor */}
-                <BrandingShield>
-                  <TeamLogoImage src={team.logoUrl} alt={`${team.name} Logo`} />
-                </BrandingShield>
-
-                {/* Visual Lane 2: Data Registry Text Grid */}
-                <DataMetricsWorkspace>
-                  <IdentityBlock>
-                    <CountryFlagImg src={team.countryFlag || CRITICAL_DEFAULT_FLAG} alt="Country Flag" />
-                    <TeamShortText>
-                      {team.shortName || team.name?.substring(0, 4)}
-                    </TeamShortText>
-                  </IdentityBlock>
-
-                  <AnalyticsBlock>
-                    <WrLabelText>WR</WrLabelText>
-                    <WinRateValueText>{formatWinRate(team.winRate)}</WinRateValueText>
-                  </AnalyticsBlock>
-                </DataMetricsWorkspace>
-
-                {/* Visual Lane 3: High-Fidelity Vertical Player Track Deck */}
-                <VerticalLifelineDeck>
-                  {structuredSquadSlots.map((player, index) => {
-                    const isDead = player.status === "dead" && !player.hasRecalled;
-                    const isLow = player.hpPercent > 0 && player.hpPercent < 30;
-
-                    return (
-                      <HPBlock
-                        key={`vertical-track-${telemetryTeamKey}-${index}`}
-                        $isDead={isDead}
-                        $isLow={isLow}
-                        $isKnocked={player.isKnocked}
-                      >
-                        {(!isDead || player.hasRecalled) && (
-                          <ActiveVerticalFill
-                            $percent={player.hpPercent}
-                            $isKnocked={player.isKnocked}
-                            $hasRecalled={player.hasRecalled}
-                          />
-                        )}
-                      </HPBlock>
-                    );
-                  })}
-                </VerticalLifelineDeck>
-
-              </SolidChassisHull>
-            </CardWrapper>
-          );
-        })}
-      </AnimatePresence>
-    </EndgameHUDContainer>
-  );
-};
-
-export default EndgameTopHUD;
+const FooterText = styled.span`
+  font-family: "Orbitron", "Rajdhani", "Teko", sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: none;
+  line-height: 1;
+  transform: skewX(-8deg);
+`;

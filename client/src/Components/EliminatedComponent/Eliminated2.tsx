@@ -238,13 +238,12 @@ const EliminatedText = styled.h1`
 `;
 
 // --- MAIN COMPONENT ---
-const TeamNotificationCard = () => {
-  const players = [
-    "https://i.ibb.co/6wX88Ym/p1.png",
-    "https://i.ibb.co/6wX88Ym/p1.png",
-    "https://i.ibb.co/6wX88Ym/p1.png",
-    "https://i.ibb.co/6wX88Ym/p1.png",
-  ];
+const TeamNotificationCard = ({ team }: { team?: any }) => {
+  const fallbackPlayer = "https://i.ibb.co/6wX88Ym/p1.png";
+  const players = Array.from({ length: 4 }, (_, index) => {
+    const player = team?.players?.[index];
+    return player?.playerPic || player?.avatarUrl || player?.photoUrl || fallbackPlayer;
+  });
 
   return (
     <ScreenContainer>
@@ -252,7 +251,7 @@ const TeamNotificationCard = () => {
         <EnvironmentOverlay />
 
         {/* Placement Rank */}
-        <RankBadge>#7</RankBadge>
+        <RankBadge>#{String(team?.rank ?? "--").padStart(2, "0")}</RankBadge>
 
         {/* Purple background shape */}
         <PurpleGeometry />
@@ -268,11 +267,11 @@ const TeamNotificationCard = () => {
         <BannerRow>
           <LogoBlock>
             <CountryFlag
-              src="https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg"
+              src={team?.countryFlag || team?.countryUrl || "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg"}
               alt="BD Flag"
             />
             <TeamLogo
-              src="https://i.postimg.co/g0g6Xv3S/green-x-logo.png"
+              src={team?.logoUrl || "https://i.postimg.co/g0g6Xv3S/green-x-logo.png"}
               alt="Team Logo"
             />
           </LogoBlock>

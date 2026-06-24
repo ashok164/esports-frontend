@@ -1,13 +1,26 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  memo,
+} from "react";
 import styled, { css, keyframes } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef } from "react";
+import {
+  BROADCAST_DISPLAY_SETTINGS_KEY,
+  BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
+  getBroadcastDisplaySettings,
+} from "../../Theme/projectTheme";
 
-const ELIMINATION_BANNER_MS = 1800;
+const ELIMINATION_BANNER_MS = 2000;
+const ELIMINATION_SWAP_DELAY_MS = 1000;
 
-type PlayerStatus = "alive" | "knocked" | "dead";
+type PlayerStatus = "alive" | "knocked" | "recalled" | "dead";
 
 interface Player {
+  hp?: number;
   hpPercent?: number;
   isKnocked?: boolean;
   status?: PlayerStatus;
@@ -31,32 +44,36 @@ interface Team {
   rankingScore?: number;
   totalPoints?: number;
   isEliminated?: boolean;
+  is_eliminated?: boolean;
+  isPlaying?: boolean;
   players?: Player[];
 }
 
 interface StandingsTableProps {
   teams?: Team[];
   maxRows?: number;
+  championBannerUrl?: string;
+  championRushTeamKeys?: string[];
 }
 
 /* ================= THEME & DESIGN SYSTEM ================= */
 const Theme = {
-  green: "var(--project-primary, #62df63)",
-  greenRgb: "var(--project-primary-rgb, 98, 223, 99)",
+  green: "#62df63",
+  greenDeep: "#2fbf4a",
   aliveYellow: "#ffd35a",
   aliveBlue: "#2575fc",
-  ink: "var(--project-text-primary, #0e120f)",
-  panel: "var(--project-background, #060f0a)",
-  panel2: "var(--project-surface, #0a1910)",
+  ink: "#0e120f",
+  panel: "#060f0a",
+  panel2: "#0a1910",
   rowA: "rgba(255,255,255,0.02)",
   rowB: "rgba(0,0,0,0.18)",
-  border: "rgba(var(--project-accent-rgb, 98, 223, 99), 0.14)",
-  pipeLine: "rgba(var(--project-accent-rgb, 98, 223, 99), 0.35)",
-  muted: "var(--project-text-secondary, #3d4741)",
+  border: "rgba(98,223,99,0.14)",
+  pipeLine: "rgba(98,223,99,0.35)",
+  muted: "#3d4741",
   danger: "#e52e45",
   dangerDeep: "#1a0305",
   dangerGlow: "rgba(229, 46, 69, 0.6)",
-  headerText: "var(--project-primary, #b3ffd7)",
+  headerText: "#b3ffd7",
   white: "#ffffff",
 };
 
@@ -83,34 +100,63 @@ const eliminatedTextSwap = keyframes`
   100% { transform: translateX(120%) skewX(-10deg); opacity: 0; }
 `;
 
-/* ================= UNIFIED GRID ENGINE LAYOUT ================= */
+/* ================= LAYOUT CONSTANTS ================= */
 const BASE_ROW_HEIGHT = 64;
 const SINGLE_ELIMINATION_ROW_HEIGHT = 112;
-const MULTI_ELIMINATION_ROW_HEIGHT = 88;
+const MULTI_ELIMINATION_ROW_HEIGHT = 96;
 const MIN_COMPACT_ROW_HEIGHT = 42;
 
-const GRID_LAYOUT = css`
+const GRID_LAYOUT = css<{ $showFlags: boolean; $showPoints: boolean }>`
   display: grid;
-  grid-template-columns: 62px 58px 58px minmax(
-      120px,
-      1fr
-    ) 96px 18px 66px 18px 66px;
+  grid-template-columns: ${({ $showFlags, $showPoints }) =>
+    [
+      "62px",
+      $showFlags ? "58px" : "",
+      $showFlags ? "58px" : "48px",
+      "minmax(120px, 1fr)",
+      "96px",
+      $showPoints ? "18px 66px" : "",
+      "18px 66px",
+    ]
+      .filter(Boolean)
+      .join(" ")};
   align-items: center;
 `;
 
+const lowHealthPulse = keyframes`
+  0%, 100% {
+    background: #ff334d;
+    box-shadow: 0 0 3px rgba(255, 51, 77, 0.55);
+    opacity: 0.72;
+  }
+  50% {
+    background: #ff001f;
+    box-shadow: 0 0 10px rgba(255, 0, 31, 0.95);
+    opacity: 1;
+  }
+`;
+
 /* ================= CONTAINER COMPONENTS ================= */
-const Board = styled.div`
+const Board = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
   position: fixed;
   top: 50%;
   right: 26px;
-  transform: translateY(-50%);
-  width: 580px;
+  transform: translateY(-50%) scale(0.51);
+  transform-origin: right center;
+  width: ${({ $showFlags, $showPoints }) => 580 - ($showFlags ? 0 : 68) - ($showPoints ? 0 : 84)}px;
   font-family: "Orbitron", "Oswald", "Inter", sans-serif;
   filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.85))
     drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
   pointer-events: auto;
   user-select: none;
   z-index: 999;
+
+  /* Match Style 2: compact at 1K and full broadcast size at 2K. */
+  @media (min-width: 2560px) {
+    right: 26px;
+    transform: translateY(-50%) scale(1);
+    transform-origin: right center;
+  }
 `;
 
 const Frame = styled.div`
@@ -120,19 +166,19 @@ const Frame = styled.div`
   background: linear-gradient(180deg, ${Theme.panel}, ${Theme.panel2});
   border: 1px solid ${Theme.border};
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
 `;
 
 /* ================= HUD TABLE HEADER ================= */
-const HeaderRow = styled.div`
+const HeaderRow = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
   ${GRID_LAYOUT}
   height: 44px;
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(${Theme.greenRgb}, 0.96),
-    rgba(${Theme.greenRgb}, 0.82),
-    rgba(${Theme.greenRgb}, 0.96)
+    rgba(204, 255, 209, 0.96),
+    rgba(112, 255, 143, 0.94),
+    rgba(190, 255, 202, 0.96)
   );
   border-bottom: 2px solid rgba(0, 0, 0, 0.28);
   color: ${Theme.ink};
@@ -163,12 +209,26 @@ const HeaderCell = styled.div<{ $center?: boolean }>`
 
 const RowsContainer = styled.div`
   position: relative;
+  flex: 1;
+  overflow: visible;
 `;
 
-const RowHeightStabilizer = styled(motion.div)<{ $height: number }>`
-  height: ${(p) => p.$height}px;
+const RowSlot = styled(motion.div)<{ $height: number }>`
   position: relative;
-  overflow: hidden;
+  height: ${(p) => p.$height}px;
+`;
+
+const ChampionBanner = styled.img`
+  position: absolute;
+  left: -82px;
+  top: 50%;
+  width: 72px;
+  max-height: calc(100% + 18px);
+  object-fit: contain;
+  transform: translateY(-50%);
+  z-index: 40;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.65));
 `;
 
 interface LiveRowProps {
@@ -177,26 +237,26 @@ interface LiveRowProps {
   $top: boolean;
   $height: number;
   $phase: "alive" | "flash_wipe" | "settled_normal";
+  $showFlags: boolean;
+  $showPoints: boolean;
 }
 
 const LiveRow = styled(motion.div)<LiveRowProps>`
   ${GRID_LAYOUT}
-  position: relative;
+  position: absolute;
+  width: 100%;
   height: ${(p) => p.$height}px;
   overflow: hidden;
-  border-bottom: 1px solid rgba(${Theme.greenRgb}, 0.06);
+  border-bottom: 1px solid rgba(98, 223, 99, 0.06);
   background: ${(p) => (p.$odd ? Theme.rowA : Theme.rowB)};
 
-  /* Gradual post-elimination aesthetic fade */
-  transition:
-    opacity 0.8s ease,
-    filter 0.8s ease;
+  transition: opacity 0.8s ease;
   ${(p) =>
     p.$phase === "settled_normal" &&
     p.$dead &&
     css`
       opacity: 0.45;
-      filter: grayscale(0.8) brightness(0.7);
+      filter: grayscale(0.8);
     `}
 
   ${(p) =>
@@ -204,7 +264,7 @@ const LiveRow = styled(motion.div)<LiveRowProps>`
     !p.$dead &&
     css`
       background:
-        linear-gradient(90deg, rgba(${Theme.greenRgb}, 0.07), transparent 45%),
+        linear-gradient(90deg, rgba(98, 223, 99, 0.07), transparent 45%),
         ${p.$odd ? Theme.rowA : Theme.rowB};
     `}
 `;
@@ -259,17 +319,13 @@ const GrandPlayerFrame = styled(motion.div)`
   justify-content: center;
 `;
 
-const PlayerPortrait = styled.img.attrs({
-  loading: "eager",
-  decoding: "async",
-  fetchPriority: "high",
-})`
+const PlayerPortrait = styled.img`
   width: 100%;
   height: 100%;
-  display: block;
-  object-fit: contain;
-  object-position: center bottom;
-  opacity: 0.66;
+  object-fit: cover;
+  object-position: center top;
+  filter: grayscale(1) brightness(0.34) contrast(1.16);
+  will-change: auto;
 `;
 
 const SkullIndicator = styled.div`
@@ -335,7 +391,7 @@ const PipeDivider = styled.div`
   font-family: system-ui, sans-serif;
   font-weight: 500;
   font-size: 28px;
-  color: rgba(${Theme.greenRgb}, 0.65);
+  color: rgba(98, 223, 99, 0.65);
   text-align: center;
   line-height: 1;
   transform: scaleY(1.35);
@@ -348,14 +404,14 @@ const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
   justify-content: center;
   font-size: 26px;
   font-weight: 900;
-  z-index: 25; /* Always on top to preserve clear standing numbering */
+  z-index: 25;
 
   background: ${(p) =>
     p.$dead
       ? "linear-gradient(135deg, #a6323f, #4d0b13)"
       : p.$rank === 1
         ? "linear-gradient(135deg, #ffd35a, #b87917)"
-        : `linear-gradient(135deg, rgba(${Theme.greenRgb}, 0.96), rgba(${Theme.greenRgb}, 0.82), rgba(${Theme.greenRgb}, 0.96))`};
+        : "linear-gradient(135deg, #ccffd1, #70ff8f, #beffca)"};
 
   color: ${(p) => (p.$dead ? Theme.white : Theme.ink)};
   clip-path: polygon(
@@ -372,6 +428,7 @@ const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
   );
   border-right: 1px solid rgba(0, 0, 0, 0.25);
   animation: ${paperShake} 4.2s infinite ease-in-out;
+  will-change: transform;
 `;
 
 const CellWrap = styled.div`
@@ -379,14 +436,18 @@ const CellWrap = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 3px;
+`;
+
+const LogoCellWrap = styled(CellWrap)<{ $showFlags: boolean }>`
+  transform: translateX(${({ $showFlags }) => ($showFlags ? "0" : "6px")});
 `;
 
 const CountryBox = styled.div`
   width: 38px;
   height: 25px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(${Theme.greenRgb}, 0.12);
+  border: 1px solid rgba(98, 223, 99, 0.12);
   border-radius: 2px;
   overflow: hidden;
 `;
@@ -395,7 +456,7 @@ const LogoBox = styled.div`
   width: 39px;
   height: 31px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(${Theme.greenRgb}, 0.12);
+  border: 1px solid rgba(98, 223, 99, 0.12);
   border-radius: 3px;
   overflow: hidden;
   display: flex;
@@ -403,31 +464,25 @@ const LogoBox = styled.div`
   justify-content: center;
 `;
 
-const Img = styled.img.attrs({
-  loading: "eager",
-  decoding: "async",
-  fetchPriority: "auto",
-})`
+const Img = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+  will-change: auto;
 `;
 
-const Logo = styled.img.attrs({
-  loading: "eager",
-  decoding: "async",
-  fetchPriority: "auto",
-})`
+const Logo = styled.img`
   width: 150%;
   height: 150%;
   object-fit: contain;
+  will-change: auto;
 `;
 
 const TeamName = styled.div<{ $dead?: boolean }>`
   font-size: 20px;
   font-weight: 800;
   text-transform: uppercase;
-  color: ${(p) => (p.$dead ? Theme.muted : Theme.headerText)};
+  color: ${(p) => (p.$dead ? Theme.muted : "#c6ffcf")};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -440,7 +495,7 @@ const Num = styled.div`
   text-align: center;
   font-size: 25px;
   font-weight: 800;
-  color: ${Theme.green};
+  color: #a6ffbe;
   height: 100%;
   display: flex;
   align-items: center;
@@ -461,9 +516,10 @@ const Bar = styled.div`
   width: 8px;
   height: 32px;
   background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(${Theme.greenRgb}, 0.1);
+  border: 1px solid rgba(98, 223, 99, 0.1);
   overflow: hidden;
   position: relative;
+  will-change: auto;
 `;
 
 const Fill = styled.div<{ $hp: number; $status: PlayerStatus | "empty" }>`
@@ -472,14 +528,24 @@ const Fill = styled.div<{ $hp: number; $status: PlayerStatus | "empty" }>`
   left: 0;
   width: 100%;
   height: ${(p) => (p.$status === "empty" ? "0%" : `${p.$hp}%`)};
-  transition: height 0.25s ease;
+  transition: height 0.15s ease;
+  will-change: height;
 
   background: ${(p) => {
+    if (p.$status === "alive" && p.$hp <= 25) return Theme.danger;
     if (p.$status === "alive") return Theme.aliveYellow;
     if (p.$status === "knocked") return Theme.danger;
-    if (p.$status === "dead") return Theme.aliveBlue;
+    if (p.$status === "recalled") return Theme.aliveBlue;
     return "transparent";
   }};
+
+  ${(p) =>
+    p.$status === "alive" &&
+    p.$hp > 0 &&
+    p.$hp <= 25 &&
+    css`
+      animation: ${lowHealthPulse} 700ms ease-in-out infinite;
+    `}
 `;
 
 /* ================= FOOTER COMPONENT ================= */
@@ -488,9 +554,9 @@ const Footer = styled.div`
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(${Theme.greenRgb}, 0.96),
-    rgba(${Theme.greenRgb}, 0.82),
-    rgba(${Theme.greenRgb}, 0.96)
+    rgba(204, 255, 209, 0.96),
+    rgba(112, 255, 143, 0.94),
+    rgba(190, 255, 202, 0.96)
   );
   border-top: 2px solid rgba(0, 0, 0, 0.28);
   display: flex;
@@ -553,16 +619,38 @@ const getPoints = (t: Team) =>
 const getTag = (t: Team) => t.teamTag || t.shortName || t.tag || t.name;
 const getPlayers = (team: Team): Array<Player | null> =>
   Array.from({ length: 4 }, (_, i) => team.players?.[i] ?? null);
+const getPlayerHpPercent = (p: Player | null) => {
+  if (!p) return 0;
+  return Math.max(0, Math.min(100, toNumber(p.hpPercent ?? p.hp ?? 100)));
+};
 const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
   if (!p) return "empty";
-  if (p.status === "dead" || p.hasRecalled) return "dead";
+  if (getPlayerHpPercent(p) <= 0) return "dead";
+  if (p.hasRecalled) return "recalled";
+  if (p.status === "dead") return "dead";
   if (p.status === "knocked" || p.isKnocked) return "knocked";
   return "alive";
 };
 const isTeamDead = (t: Team) =>
-  Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0;
+  t.isPlaying !== false &&
+  (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
+const normalizeChampionKey = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+const getChampionKeys = (team: Team) =>
+  [team.id, team.teamTag, team.shortName, team.tag, team.name].map(normalizeChampionKey).filter(Boolean);
+const hideBrokenImage = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.style.display = "none";
+};
+
+const hideBrokenImageFrame = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  const frame = event.currentTarget.parentElement;
+  if (frame) frame.style.display = "none";
+  hideBrokenImage(event);
+};
 
 const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
   const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
@@ -599,79 +687,116 @@ const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
   );
 };
 
-/* ================= LOCALIZED CELL RE-ROUTING COMPONENT ================= */
-function TeamRow({
-  team,
-  index,
-  rowHeight,
-}: {
-  team: Team;
+// ================= OPTIMIZED MEMOIZED TEAM ROW =================
+interface TeamRowData {
+  teams: Team[];
+  championBannerUrl?: string;
+  championRushEnabled: boolean;
+  championRushTeamKeySet: Set<string>;
+}
+
+interface TeamRowProps extends TeamRowData {
   index: number;
   rowHeight: number;
-}) {
+  style: React.CSSProperties;
+  showFlags: boolean;
+  showPoints: boolean;
+}
+
+const TeamRowComponent = memo(function TeamRow({
+  index,
+  rowHeight,
+  style,
+  teams,
+  championBannerUrl,
+  championRushEnabled,
+  championRushTeamKeySet,
+  showFlags,
+  showPoints,
+}: TeamRowProps) {
+  const team = teams[index];
+  if (!team) return null;
+
   const isDead = isTeamDead(team);
   const players = getPlayers(team);
 
   const [phase, setPhase] = useState<"alive" | "flash_wipe" | "settled_normal">(
-    "alive",
+    isDead ? "settled_normal" : "alive",
   );
+  const [showElimText, setShowElimText] = useState(false);
+  const phaseRef = useRef(phase);
 
   useEffect(() => {
     if (isDead) {
-      if (phase === "alive") {
+      if (phaseRef.current === "alive") {
         setPhase("flash_wipe");
+        phaseRef.current = "flash_wipe";
 
-        const timer = setTimeout(() => {
+        const timer1 = setTimeout(() => {
+          setShowElimText(true);
+        }, ELIMINATION_SWAP_DELAY_MS);
+
+        const timer2 = setTimeout(() => {
           setPhase("settled_normal");
+          phaseRef.current = "settled_normal";
         }, ELIMINATION_BANNER_MS);
 
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+        };
       }
     } else {
       setPhase("alive");
+      phaseRef.current = "alive";
+      setShowElimText(false);
     }
   }, [isDead]);
 
+  const rank = team.rank ?? team.rankingScore ?? index + 1;
+  const showChampionBanner =
+    championRushEnabled &&
+    Boolean(championBannerUrl) &&
+    getChampionKeys(team).some((key) => championRushTeamKeySet.has(key));
+
   return (
-    <RowHeightStabilizer
-      layout
-      $height={rowHeight}
-      animate={{ height: rowHeight }}
-      transition={{ duration: 0.24, ease: "easeOut" }}
-      style={{ originY: 0.5 }}
-    >
+    <div style={style}>
+      {showChampionBanner && (
+        <ChampionBanner src={championBannerUrl} alt="Champion banner" onError={hideBrokenImage} />
+      )}
       <LiveRow
         $dead={isDead}
         $odd={index % 2 === 1}
-        $top={team.rank === 1}
+        $top={rank === 1}
         $height={rowHeight}
         $phase={phase}
+        $showFlags={showFlags}
+        $showPoints={showPoints}
         animate={{ height: rowHeight }}
         transition={{ duration: 0.24, ease: "easeOut" }}
+        layout={false}
       >
-        {/* Cinematic red flash swipe overlay running above everything */}
-        {phase === "flash_wipe" && <CinematicWipeOverlay />}
+        {phase === "flash_wipe" && showElimText && <CinematicWipeOverlay />}
 
-        {/* Column 1: Stays safely readable */}
-        <RankCell $rank={team.rank ?? index + 1} $dead={isDead}>
-          {formatRank(team.rank ?? index + 1)}
-        </RankCell>
-
-        {/* Full row wide player portrait injection block */}
-        <AnimatePresence>
+        {/* Player portraits overlay */}
+        <AnimatePresence mode="wait">
           {phase === "flash_wipe" && (
             <FullRowRosterOverlay
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
+              layout={false}
             >
-              <EliminatedTextOverlay
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-              />
+              {showElimText && (
+                <EliminatedTextOverlay
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                  layout={false}
+                />
+              )}
 
               {players.map((player, pIdx) => (
                 <GrandPlayerFrame
@@ -679,14 +804,16 @@ function TeamRow({
                   initial={{ scale: 0.8, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   transition={{
-                    delay: pIdx * 0.05,
+                    delay: pIdx * 0.04,
                     type: "spring",
-                    stiffness: 220,
+                    stiffness: 240,
+                    damping: 18,
                   }}
+                  layout={false}
                 >
                   <SkullIndicator>☠</SkullIndicator>
                   {player?.playerPic ? (
-                    <PlayerPortrait src={player.playerPic} alt="" />
+                    <PlayerPortrait src={player.playerPic} alt="" onError={hideBrokenImage} />
                   ) : (
                     <div style={{ color: "#222", fontSize: "14px" }}>☠</div>
                   )}
@@ -696,58 +823,70 @@ function TeamRow({
           )}
         </AnimatePresence>
 
-        {/* Base Content Fields: Instantly hides when phase turns to wipe */}
+        {/* Base content */}
         <BaseContentGroup $hidden={phase === "flash_wipe"}>
-          {/* Columns 2-4: Identity Elements */}
-          <CellWrap>
-            <CountryBox>
-              {team.countryUrl && <Img src={team.countryUrl} alt="Country flag" />}
-            </CountryBox>
-          </CellWrap>
+          <RankCell $rank={rank} $dead={isDead}>
+            {formatRank(rank)}
+          </RankCell>
 
-          <CellWrap>
-            <LogoBox>
-              {team.logoUrl && <Logo src={team.logoUrl} alt="" />}
-            </LogoBox>
-          </CellWrap>
+          {showFlags && (
+            <CellWrap>
+              {team.countryUrl && (
+                <CountryBox>
+                  <Img src={team.countryUrl} alt="Country flag" onError={hideBrokenImageFrame} />
+                </CountryBox>
+              )}
+            </CellWrap>
+          )}
+
+          {team.logoUrl ? (
+            <LogoCellWrap $showFlags={showFlags}>
+              <LogoBox>
+                <Logo src={team.logoUrl} alt="Team logo" onError={hideBrokenImageFrame} />
+              </LogoBox>
+            </LogoCellWrap>
+          ) : (
+            <LogoCellWrap $showFlags={showFlags} />
+          )}
 
           <TeamName $dead={isDead}>{getTag(team)}</TeamName>
 
-          {/* Columns 5-9: Stats Indicators */}
-          <div>
-            <AliveWrap>
-              {players.map((player, pIdx) => {
-                const st = getPlayerStatus(player);
-                return (
-                  <Bar key={pIdx}>
-                    <Fill
-                      $hp={
-                        st === "dead" ? 100 : toNumber(player?.hpPercent ?? 100)
-                      }
-                      $status={st}
-                    />
-                  </Bar>
-                );
-              })}
-            </AliveWrap>
-          </div>
+          <AliveWrap layout={false}>
+            {players.map((player, pIdx) => {
+              const st = getPlayerStatus(player);
+              return (
+                <Bar key={pIdx}>
+                  <Fill $hp={getPlayerHpPercent(player)} $status={st} />
+                </Bar>
+              );
+            })}
+          </AliveWrap>
 
-          <PipeDivider>|</PipeDivider>
-          <Num>{getPoints(team)}</Num>
+          {showPoints && (
+            <>
+              <PipeDivider>|</PipeDivider>
+              <Num>{getPoints(team)}</Num>
+            </>
+          )}
 
           <PipeDivider>|</PipeDivider>
           <Num>{toNumber(team.kills)}</Num>
         </BaseContentGroup>
       </LiveRow>
-    </RowHeightStabilizer>
+    </div>
   );
-}
+});
 
-/* ================= CORE ESPORTS ENGINE LAYER ================= */
+/* ================= MAIN COMPONENT ================= */
 export default function StandingsTable({
   teams = [],
   maxRows = 12,
+  championBannerUrl = "",
+  championRushTeamKeys = [],
 }: StandingsTableProps) {
+  const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
+  console.log("Want to see api Call for realtime api? lol you cant track api");
+  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousDeadIdsRef = useRef<Set<string>>(new Set());
   const hasDeadBaselineRef = useRef(false);
@@ -768,6 +907,50 @@ export default function StandingsTable({
         rank: index + 1,
       }));
   }, [teams, maxRows]);
+
+  const aliveTeamsCount = useMemo(
+    () =>
+      teams.filter(
+        (team) =>
+          Number(team?.playersAlive ?? 0) > 0 &&
+          !team?.isEliminated &&
+          !team?.is_eliminated,
+      ).length,
+    [teams],
+  );
+
+  useEffect(() => {
+    if (aliveTeamsCount === 4) {
+      setIsFinalPhaseLocked(true);
+      return;
+    }
+
+    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
+      setIsFinalPhaseLocked(false);
+    }
+  }, [aliveTeamsCount]);
+
+  useEffect(() => {
+    const syncDisplaySettings = () => setDisplaySettings(getBroadcastDisplaySettings());
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === BROADCAST_DISPLAY_SETTINGS_KEY) syncDisplaySettings();
+    };
+
+    window.addEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, syncDisplaySettings);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, syncDisplaySettings);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  const showFlags = displaySettings.showCountryFlags;
+  const showPoints = displaySettings.showLiveStandingsPoints;
+  const championRushEnabled = displaySettings.championRushEnabled;
+  const championRushTeamKeySet = useMemo(
+    () => new Set(championRushTeamKeys.map(normalizeChampionKey).filter(Boolean)),
+    [championRushTeamKeys],
+  );
 
   useEffect(() => {
     const currentDeadIds = new Set(
@@ -834,53 +1017,109 @@ export default function StandingsTable({
     [sortedTeams, flashingIds],
   );
 
+  // Batch image preloading
   useEffect(() => {
     const urls = new Set<string>();
-
     sortedTeams.forEach((team) => {
       team.players?.forEach((player) => {
-        if (player?.playerPic) {
-          urls.add(player.playerPic);
-        }
+        if (player?.playerPic) urls.add(player.playerPic);
       });
     });
 
-    urls.forEach((url) => {
-      const img = new Image();
-      img.decoding = "async";
-      img.src = url;
-    });
+    // Use requestIdleCallback for non-blocking preloading
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(() => {
+        urls.forEach((url) => {
+          const link = document.createElement("link");
+          link.rel = "preload";
+          link.as = "image";
+          link.href = url;
+          document.head.appendChild(link);
+        });
+      });
+    }
   }, [sortedTeams]);
 
+  if (isFinalPhaseLocked) {
+    return null;
+  }
+
+  if (sortedTeams.length === 0) {
+    return (
+      <Board $showFlags={showFlags} $showPoints={showPoints}>
+        <Frame>
+          <HeaderRow $showFlags={showFlags} $showPoints={showPoints}>
+            <HeaderCell $center>#</HeaderCell>
+            {showFlags && <HeaderCell />}
+            <HeaderCell />
+            <HeaderCell $center>TEAM</HeaderCell>
+            <HeaderCell $center>ALIVE</HeaderCell>
+            {showPoints && (
+              <>
+                <PipeDivider>|</PipeDivider>
+                <HeaderCell $center>PTS</HeaderCell>
+              </>
+            )}
+            <PipeDivider>|</PipeDivider>
+            <HeaderCell $center>KILL</HeaderCell>
+          </HeaderRow>
+          <EmptyState>No Teams Active</EmptyState>
+        </Frame>
+      </Board>
+    );
+  }
+
   return (
-    <Board>
+    <Board $showFlags={showFlags} $showPoints={showPoints}>
       <Frame>
-        <HeaderRow>
+        <HeaderRow $showFlags={showFlags} $showPoints={showPoints}>
           <HeaderCell $center>#</HeaderCell>
-          <HeaderCell />
+          {showFlags && <HeaderCell />}
           <HeaderCell />
           <HeaderCell $center>TEAM</HeaderCell>
           <HeaderCell $center>ALIVE</HeaderCell>
-          <PipeDivider>|</PipeDivider>
-          <HeaderCell $center>PTS</HeaderCell>
+          {showPoints && (
+            <>
+              <PipeDivider>|</PipeDivider>
+              <HeaderCell $center>PTS</HeaderCell>
+            </>
+          )}
           <PipeDivider>|</PipeDivider>
           <HeaderCell $center>KILL</HeaderCell>
         </HeaderRow>
 
         <RowsContainer>
           <AnimatePresence mode="popLayout">
-            {sortedTeams.length === 0 ? (
-              <EmptyState>No Teams Active</EmptyState>
-            ) : (
-              sortedTeams.map((team, index) => (
-                <TeamRow
-                  key={team.id}
-                  team={team}
+            {sortedTeams.map((team, index) => (
+              <RowSlot
+                key={getTeamId(team)}
+                $height={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
+                }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TeamRowComponent
                   index={index}
                   rowHeight={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
+                  teams={sortedTeams}
+                  championBannerUrl={championBannerUrl}
+                  championRushEnabled={championRushEnabled}
+                  championRushTeamKeySet={championRushTeamKeySet}
+                  showFlags={showFlags}
+                  showPoints={showPoints}
+                  style={{
+                    height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
+                    width: "100%",
+                  }}
                 />
-              ))
-            )}
+              </RowSlot>
+            ))}
           </AnimatePresence>
         </RowsContainer>
 
@@ -896,8 +1135,7 @@ export default function StandingsTable({
               <ColorSquare $color={Theme.danger} /> KNOCKED
             </LegendItem>
             <LegendItem>
-              <ColorSquare $color="transparent" $border="rgba(0,0,0,0.3)" />{" "}
-              ELIMINATED
+              <ColorSquare $color="transparent" /> ELIMINATED
             </LegendItem>
           </Legend>
         </Footer>

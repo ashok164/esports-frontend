@@ -1,5 +1,7 @@
 import React from "react";
 import BooyahTeamStatsPage from "../../Result/view/BooyahTeamStatsPage";
+import MatchNumberImageSettingsView from "../../BroadcastImageSettings/View/MatchNumberImageSettingsView";
+import TeamEliminationImageSettingsView from "../../BroadcastImageSettings/View/TeamEliminationImageSettingsView";
 import BroadcastThemeView from "../../BroadcastTheme/View";
 import CircleAnalysis from "../../CircleAnalysis/View";
 import CircleAnalysisAdmin from "../../CircleAnalysis/View/CircleAnalysisAdmin";
@@ -53,6 +55,8 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/tournaments", element: <TournamentManagerView />, isProtected: true },
   { path: "/roles", element: <TournamentRolesView />, isProtected: true },
   { path: "/broadcast-theme", element: <BroadcastThemeView />, isProtected: true },
+  { path: "/broadcast-image-match-number", element: <MatchNumberImageSettingsView />, isProtected: true },
+  { path: "/broadcast-image-team-elimination", element: <TeamEliminationImageSettingsView />, isProtected: true },
   { path: "/live-standings", element: <LiveStandingsView />, isBroadcast: true },
   { path: "/players-mode", element: <PlayersModeView />, isBroadcast: true },
   { path: "/team-eliminated", element: <TeamEliminatedView />, isBroadcast: true },

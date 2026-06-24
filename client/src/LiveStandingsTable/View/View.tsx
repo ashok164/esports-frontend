@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import useLiveStandingsController from "../Controller/useLiveStandingsController";
-import StandingsTable from "./LiveStandings2";
+import StyleOneStandingsTable from "./LiveStandings1";
+import StyleTwoStandingsTable from "./LiveStandings2";
+import StyleThreeStandingsTable from "./LiveStandings3";
+import { useProjectTheme } from "../../Theme";
 
 const SINGLE_ELIMINATION_TEST_PARAM = "testSingleElimination";
 
@@ -43,6 +46,7 @@ const forceTeamEliminated = (team: any) => ({
 
 const LiveStandingsView: React.FC = () => {
   const { standings, championBannerUrl, championRushTeamKeys, loading } = useLiveStandingsController();
+  const { broadcastSettings } = useProjectTheme();
   const [testTeamId, setTestTeamId] = useState<string | number | null>(null);
   const [testEliminated, setTestEliminated] = useState(false);
   const isSingleEliminationTest =
@@ -99,13 +103,15 @@ const LiveStandingsView: React.FC = () => {
 
   if (loading || shouldHideStandingsTable) return null;
 
-  return (
-    <StandingsTable
-      teams={displayStandings}
-      championBannerUrl={championBannerUrl}
-      championRushTeamKeys={championRushTeamKeys}
-    />
-  );
+  if (broadcastSettings.selectedBroadcastStyle === "theme2") {
+    return <StyleTwoStandingsTable teams={displayStandings} />;
+  }
+
+  if (broadcastSettings.selectedBroadcastStyle === "theme3") {
+    return <StyleThreeStandingsTable teams={displayStandings} />;
+  }
+
+  return <StyleOneStandingsTable teams={displayStandings} championBannerUrl={championBannerUrl} championRushTeamKeys={championRushTeamKeys} />;
 };
 
 export default LiveStandingsView;

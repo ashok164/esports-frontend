@@ -21,38 +21,163 @@ export type ProjectColorTheme = {
   danger: string;
 };
 
+export type BroadcastThemePreset = "theme1" | "theme2" | "theme3";
+
+export type MatchNumberImageEntry = {
+  id: string;
+  gameNumber: string;
+  name: string;
+  imageUrl: string;
+};
+
+export type TeamEliminationImageEntry = {
+  id: string;
+  teamId: string;
+  teamName: string;
+  imageUrl: string;
+};
+
 type ProjectThemeContextValue = {
   theme: ProjectColorTheme;
   isCustomTheme: boolean;
   isLoading: boolean;
+  broadcastSettings: BroadcastDisplaySettings;
 };
 
 export type BroadcastDisplaySettings = {
   broadcastThemeEnabled: boolean;
+  selectedBroadcastTheme: BroadcastThemePreset;
+  selectedBroadcastStyle: BroadcastThemePreset;
   championRushEnabled: boolean;
+  matchNumberImageEnabled: boolean;
+  teamEliminationImageEnabled: boolean;
+  matchNumberImageUrl: string;
+  teamEliminationImageUrl: string;
+  matchNumberImageEntries: MatchNumberImageEntry[];
+  teamEliminationImageEntries: TeamEliminationImageEntry[];
   showCountryFlags: boolean;
   showLiveStandingsPoints: boolean;
   showRosterTeamLogos: boolean;
   rosterPageSwitch: boolean;
+  liveStandings2Color1: string;
+  liveStandings2Color2: string;
+  liveStandings2Color3: string;
+  liveStandings2Color4: string;
+  liveStandings2Color5: string;
+  liveStandings2TextColor1: string;
+  liveStandings2TextColor2: string;
+  liveStandings2TextColor3: string;
+  liveStandings2TextColor4: string;
 };
 
 export const BROADCAST_DISPLAY_SETTINGS_KEY = "broadcast_display_settings";
 export const BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT = "broadcast-display-settings-updated";
 export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
   broadcastThemeEnabled: true,
+  selectedBroadcastTheme: "theme1",
+  selectedBroadcastStyle: "theme1",
   championRushEnabled: true,
+  matchNumberImageEnabled: false,
+  teamEliminationImageEnabled: false,
+  matchNumberImageUrl: "",
+  teamEliminationImageUrl: "",
+  matchNumberImageEntries: [],
+  teamEliminationImageEntries: [],
   showCountryFlags: true,
   showLiveStandingsPoints: true,
   showRosterTeamLogos: true,
   rosterPageSwitch: false,
+  liveStandings2Color1: "#022024",
+  liveStandings2Color2: "#ffffff",
+  liveStandings2Color3: "#044b52",
+  liveStandings2Color4: "#011316",
+  liveStandings2Color5: "#f04a18",
+  liveStandings2TextColor1: "#ffffff",
+  liveStandings2TextColor2: "#0a1719",
+  liveStandings2TextColor3: "#01e6f1",
+  liveStandings2TextColor4: "#ffffff",
+};
+
+const isBroadcastStyle = (value: unknown): value is BroadcastThemePreset =>
+  value === "theme1" || value === "theme2" || value === "theme3";
+
+const normalizeMatchNumberImageEntries = (value: unknown): MatchNumberImageEntry[] =>
+  Array.isArray(value)
+    ? value
+        .map((item, index) => {
+          const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+          const gameNumber = String(row.gameNumber ?? "").trim();
+          const imageUrl = String(row.imageUrl ?? "").trim();
+          const name = String(row.name ?? "").trim();
+
+          if (!gameNumber || !imageUrl) return null;
+
+          return {
+            id: String(row.id ?? `match-number-${index}`),
+            gameNumber,
+            name,
+            imageUrl,
+          };
+        })
+        .filter((item): item is MatchNumberImageEntry => Boolean(item))
+    : [];
+
+const normalizeTeamEliminationImageEntries = (value: unknown): TeamEliminationImageEntry[] =>
+  Array.isArray(value)
+    ? value
+        .map((item, index) => {
+          const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+          const teamId = String(row.teamId ?? "").trim();
+          const teamName = String(row.teamName ?? "").trim();
+          const imageUrl = String(row.imageUrl ?? "").trim();
+
+          if ((!teamId && !teamName) || !imageUrl) return null;
+
+          return {
+            id: String(row.id ?? `team-elimination-${index}`),
+            teamId,
+            teamName,
+            imageUrl,
+          };
+        })
+        .filter((item): item is TeamEliminationImageEntry => Boolean(item))
+    : [];
+
+export const normalizeBroadcastDisplaySettings = (value: unknown): BroadcastDisplaySettings => {
+  const settings = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const selectedStyle = settings.selectedBroadcastStyle ?? settings.selectedBroadcastTheme;
+  const style = isBroadcastStyle(selectedStyle) ? selectedStyle : "theme1";
+  return {
+    ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
+    ...settings,
+    selectedBroadcastTheme: style,
+    selectedBroadcastStyle: style,
+    matchNumberImageEntries: normalizeMatchNumberImageEntries(settings.matchNumberImageEntries),
+    teamEliminationImageEntries: normalizeTeamEliminationImageEntries(settings.teamEliminationImageEntries),
+  } as BroadcastDisplaySettings;
+};
+
+export const mergeBroadcastDisplaySettings = (
+  savedSettings: BroadcastDisplaySettings,
+  responseSettings: unknown,
+): BroadcastDisplaySettings => {
+  const remote = responseSettings && typeof responseSettings === "object"
+    ? responseSettings as Record<string, unknown>
+    : {};
+  const remoteStyle = remote.selectedBroadcastStyle ?? remote.selectedBroadcastTheme;
+
+  return normalizeBroadcastDisplaySettings({
+    ...savedSettings,
+    ...remote,
+    ...(isBroadcastStyle(remoteStyle)
+      ? { selectedBroadcastStyle: remoteStyle, selectedBroadcastTheme: remoteStyle }
+      : {}),
+  });
 };
 
 export const getBroadcastDisplaySettings = (): BroadcastDisplaySettings => {
   try {
-    return {
-      ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
-      ...JSON.parse(localStorage.getItem(BROADCAST_DISPLAY_SETTINGS_KEY) || "{}"),
-    };
+    return normalizeBroadcastDisplaySettings(JSON.parse(localStorage.getItem(BROADCAST_DISPLAY_SETTINGS_KEY) || "{}"));
   } catch {
     return DEFAULT_BROADCAST_DISPLAY_SETTINGS;
   }
@@ -80,10 +205,62 @@ export const DEFAULT_PROJECT_THEME: ProjectColorTheme = {
   danger: "#ef4444",
 };
 
+export const BROADCAST_THEME_PRESETS: Record<BroadcastThemePreset, ProjectColorTheme> = {
+  theme1: {
+    useDefaultColors: false,
+    primary: "#007f86",
+    secondary: "#ff3d0d",
+    accent: "#57f06a",
+    background: "#071817",
+    surface: "#102f34",
+    surfaceAlt: "#f4f7ef",
+    textPrimary: "#ffffff",
+    textSecondary: "#d6ece8",
+    textInverse: "#111827",
+    border: "#1bc3b7",
+    success: "#57f06a",
+    warning: "#ffb000",
+    danger: "#ff3d0d",
+  },
+  theme2: {
+    useDefaultColors: false,
+    primary: "#7c3aed",
+    secondary: "#14b8a6",
+    accent: "#facc15",
+    background: "#090518",
+    surface: "#1b1038",
+    surfaceAlt: "#2e1b5b",
+    textPrimary: "#ffffff",
+    textSecondary: "#c4b5fd",
+    textInverse: "#08020f",
+    border: "#6d28d9",
+    success: "#22c55e",
+    warning: "#f59e0b",
+    danger: "#ef4444",
+  },
+  theme3: {
+    useDefaultColors: false,
+    primary: "#0ea5e9",
+    secondary: "#111827",
+    accent: "#f97316",
+    background: "#020617",
+    surface: "#0f172a",
+    surfaceAlt: "#1e293b",
+    textPrimary: "#f8fafc",
+    textSecondary: "#bae6fd",
+    textInverse: "#020617",
+    border: "#38bdf8",
+    success: "#10b981",
+    warning: "#f97316",
+    danger: "#dc2626",
+  },
+};
+
 const ProjectThemeContext = createContext<ProjectThemeContextValue>({
   theme: DEFAULT_PROJECT_THEME,
   isCustomTheme: false,
   isLoading: false,
+  broadcastSettings: DEFAULT_BROADCAST_DISPLAY_SETTINGS,
 });
 
 const isHexColor = (value: unknown): value is string =>
@@ -142,12 +319,14 @@ const ProjectThemeGlobalStyle = createGlobalStyle<{ $theme: ProjectColorTheme; $
     --project-primary: ${({ $theme }) => $theme.primary};
     --project-secondary: ${({ $theme }) => $theme.secondary};
     --project-accent: ${({ $theme }) => $theme.accent};
+    --project-tertiary: ${({ $theme }) => $theme.accent};
     --project-background: ${({ $theme }) => $theme.background};
     --project-surface: ${({ $theme }) => $theme.surface};
     --project-surface-alt: ${({ $theme }) => $theme.surfaceAlt};
     --project-text-primary: ${({ $theme }) => $theme.textPrimary};
     --project-text-secondary: ${({ $theme }) => $theme.textSecondary};
     --project-text-inverse: ${({ $theme }) => $theme.textInverse};
+    --project-text-tertiary: ${({ $theme }) => $theme.textInverse};
     --project-border: ${({ $theme }) => $theme.border};
     --project-success: ${({ $theme }) => $theme.success};
     --project-warning: ${({ $theme }) => $theme.warning};
@@ -332,8 +511,9 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
       theme,
       isCustomTheme: theme.useDefaultColors === false,
       isLoading,
+      broadcastSettings,
     }),
-    [theme, isLoading]
+    [theme, isLoading, broadcastSettings]
   );
 
   useEffect(() => {
@@ -349,6 +529,7 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const settings = getBroadcastDisplaySettings();
       setBroadcastSettings(settings);
       document.body.dataset.broadcastThemeEnabled = String(settings.broadcastThemeEnabled);
+      document.body.dataset.broadcastThemePreset = settings.selectedBroadcastStyle || "theme1";
       document.body.dataset.championRushEnabled = String(settings.championRushEnabled);
       document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
       document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
@@ -365,10 +546,10 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
     http
       .get(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || GET_BROADCAST_DISPLAY_SETTINGS)
       .then((response) => {
-        const nextSettings = {
-          ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
-          ...(response.data?.settings || response.data || {}),
-        };
+        const nextSettings = mergeBroadcastDisplaySettings(
+          getBroadcastDisplaySettings(),
+          response.data?.settings || response.data,
+        );
         setBroadcastDisplaySettings(nextSettings);
         applySettings();
       })

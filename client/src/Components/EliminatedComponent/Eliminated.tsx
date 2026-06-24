@@ -116,7 +116,7 @@ const RankBadge = styled.div`
   position: absolute;
   top: 20px;
   left: 60px;
-  background-color: var(--project-primary, #ff003c);
+  background-color: var(--project-secondary, #ff003c);
   color: var(--project-text-primary, #ffffff);
   padding: 6px 24px;
   font-size: 24px;
@@ -138,7 +138,7 @@ const RedEliminatedGeometry = styled.div`
   width: 500px;
   height: 240px;
   background: linear-gradient(135deg, rgba(var(--project-primary-rgb, 122, 9, 26), 0.72) 0%, var(--project-surface, #3a0209) 100%);
-  border: 4px solid var(--project-primary, #ff003c);
+  border: 4px solid var(--project-secondary, #ff003c);
   z-index: 1;
 
   animation: ${slamDown} 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
@@ -218,7 +218,7 @@ const LogoBlock = styled.div`
   align-items: center;
   justify-content: center;
   border-radius: 2px;
-  border-bottom: 4px solid var(--project-primary, #ff003c);
+  border-bottom: 4px solid var(--project-secondary, #ff003c);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.6);
   transform: skewX(-12deg);
   margin-right: -10px;
@@ -252,7 +252,7 @@ const TeamLogo = styled.img.attrs({
 `;
 
 const EliminatedBanner = styled.div`
-  background: linear-gradient(90deg, var(--project-primary, #ff003c) 0%, var(--project-danger, #b30024) 100%);
+  background: linear-gradient(90deg, var(--project-secondary, #ff003c) 0%, var(--project-danger, #b30024) 100%);
   padding: 12px 60px 12px 40px;
   transform: skewX(-12deg);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);

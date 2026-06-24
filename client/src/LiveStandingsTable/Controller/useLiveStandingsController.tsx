@@ -3,7 +3,8 @@ import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import { mapTeamData, mergeHistoricalWithLiveStandings, Team } from "../Datamapper/liveStandingsMapper";
 import { createStandingsSocket } from "../../GlobalWebsocket/remote";
 import {
-  DEFAULT_BROADCAST_DISPLAY_SETTINGS,
+  getBroadcastDisplaySettings,
+  mergeBroadcastDisplaySettings,
   setBroadcastDisplaySettings,
 } from "../../Theme/projectTheme";
 import {
@@ -283,15 +284,33 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
 
     const nextSettings = collectBroadcastSettings(result);
     if (nextSettings) {
-      setBroadcastDisplaySettings({
-        ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
-        broadcastThemeEnabled: Boolean(nextSettings.broadcastThemeEnabled ?? nextSettings.broadcast_theme_enabled ?? true),
-        championRushEnabled: Boolean(nextSettings.championRushEnabled ?? nextSettings.champion_rush_enabled ?? true),
-        showCountryFlags: Boolean(nextSettings.showCountryFlags ?? nextSettings.show_country_flags ?? true),
-        showLiveStandingsPoints: Boolean(
-          nextSettings.showLiveStandingsPoints ?? nextSettings.show_live_standings_points ?? true,
-        ),
-      });
+      const currentDisplaySettings = getBroadcastDisplaySettings();
+      setBroadcastDisplaySettings(
+        mergeBroadcastDisplaySettings(currentDisplaySettings, {
+          broadcastThemeEnabled: Boolean(
+            nextSettings.broadcastThemeEnabled ?? nextSettings.broadcast_theme_enabled ?? true,
+          ),
+          championRushEnabled: Boolean(
+            nextSettings.championRushEnabled ?? nextSettings.champion_rush_enabled ?? true,
+          ),
+          showCountryFlags: Boolean(
+            nextSettings.showCountryFlags ?? nextSettings.show_country_flags ?? true,
+          ),
+          showLiveStandingsPoints: Boolean(
+            nextSettings.showLiveStandingsPoints ?? nextSettings.show_live_standings_points ?? true,
+          ),
+          showRosterTeamLogos: Boolean(
+            nextSettings.showRosterTeamLogos ??
+            nextSettings.show_roster_team_logos ??
+            currentDisplaySettings.showRosterTeamLogos,
+          ),
+          rosterPageSwitch: Boolean(
+            nextSettings.rosterPageSwitch ??
+            nextSettings.roster_page_switch ??
+            currentDisplaySettings.rosterPageSwitch,
+          ),
+        }),
+      );
     }
 
     const correctionMatchId = String(result?.data?.matchId ?? result?.matchId ?? matchId ?? "");

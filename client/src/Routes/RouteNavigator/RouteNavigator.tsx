@@ -123,6 +123,18 @@ const routeGroups: RouteGroup[] = [
         note: "Manage broadcast colors, country flag visibility, and live standings points.",
         type: "Admin",
       },
+      {
+        title: "Match Number Image",
+        path: "/broadcast-image-match-number",
+        note: "Upload and switch the Match Number route to image mode.",
+        type: "Admin",
+      },
+      {
+        title: "Team Elimination Image",
+        path: "/broadcast-image-team-elimination",
+        note: "Upload and switch the Team Elimination route to image mode.",
+        type: "Admin",
+      },
     ],
   },
   {

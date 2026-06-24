@@ -1,1137 +1,542 @@
-﻿import React, {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
-  memo,
-} from "react";
-import styled, { css, keyframes } from "styled-components";
-import { AnimatePresence, motion } from "framer-motion";
+﻿import React, { useEffect, useMemo, useState } from "react";
+import styled, { css } from "styled-components";
 import {
   BROADCAST_DISPLAY_SETTINGS_KEY,
   BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
   getBroadcastDisplaySettings,
 } from "../../Theme/projectTheme";
 
-const ELIMINATION_BANNER_MS = 2000;
-const ELIMINATION_SWAP_DELAY_MS = 1000;
-
-type PlayerStatus = "alive" | "knocked" | "recalled" | "dead";
-
-interface Player {
+type Player = {
   hp?: number;
   hpPercent?: number;
   isKnocked?: boolean;
-  status?: PlayerStatus;
+  status?: "alive" | "knocked" | "recalled" | "dead";
   hasRecalled?: boolean;
   playerPic?: string;
-  name?: string;
-}
+};
 
-interface Team {
+type Team = {
   id: string | number;
-  rank?: number;
   name: string;
+  rank?: number;
   teamTag?: string;
   shortName?: string;
   tag?: string;
   logoUrl?: string;
   countryUrl?: string;
-  kills: number;
-  playersAlive: number;
-  placementPoints?: number;
-  rankingScore?: number;
+  kills?: number;
   totalPoints?: number;
+  rankingScore?: number;
+  placementPoints?: number;
+  playersAlive?: number;
   isEliminated?: boolean;
   is_eliminated?: boolean;
-  isPlaying?: boolean;
   players?: Player[];
-}
-
-interface StandingsTableProps {
-  teams?: Team[];
-  maxRows?: number;
-  championBannerUrl?: string;
-  championRushTeamKeys?: string[];
-}
-
-/* ================= THEME & DESIGN SYSTEM ================= */
-const Theme = {
-  green: "#62df63",
-  greenDeep: "#2fbf4a",
-  aliveYellow: "#ffd35a",
-  aliveBlue: "#2575fc",
-  ink: "#0e120f",
-  panel: "#060f0a",
-  panel2: "#0a1910",
-  rowA: "rgba(255,255,255,0.02)",
-  rowB: "rgba(0,0,0,0.18)",
-  border: "rgba(98,223,99,0.14)",
-  pipeLine: "rgba(98,223,99,0.35)",
-  muted: "#3d4741",
-  danger: "#e52e45",
-  dangerDeep: "#1a0305",
-  dangerGlow: "rgba(229, 46, 69, 0.6)",
-  headerText: "#b3ffd7",
-  white: "#ffffff",
 };
 
-/* ================= ANIMATION CORE ================= */
-const paperShake = keyframes`
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-0.5deg); }
-  50% { transform: rotate(0.4deg); }
-  75% { transform: rotate(-0.3deg); }
-`;
+const PANEL_WIDTH = 296;
+const RANK_WIDTH = 42;
+const FLAG_WIDTH = 26;
+const STATUS_WIDTH = 77;
+const FIN_WIDTH = 32;
+const PTS_WIDTH = 45;
+const STATUS_BAR_WIDTH = 5;
+const STATUS_BAR_GAP = 3;
+const HEADER_HEIGHT = 32;
+const ROW_HEIGHT = 34;
+const FOOTER_HEIGHT = 28;
+const MAX_ROWS = 16;
+const ELIMINATION_SWAP_DELAY_MS = 700;
+const ELIMINATION_BANNER_MS = 1800;
+const HEADER_BG = "var(--live2-color-3)";
+const PANEL_BG = "transparent";
+const ROW_BG = "var(--live2-color-2)";
+const RANK_BG = "var(--live2-color-2)";
 
-const redWipeEffect = keyframes`
-  0% { transform: translateX(-100%); opacity: 0; }
-  25% { opacity: 1; }
-  75% { opacity: 1; }
-  100% { transform: translateX(100%); opacity: 0; }
-`;
+type LayoutProps = { $showFlags: boolean; $showPoints: boolean };
 
-const eliminatedTextSwap = keyframes`
-  0% { transform: translateX(-120%) skewX(-10deg); opacity: 0; }
-  18% { opacity: 1; }
-  48% { transform: translateX(0) skewX(-10deg); opacity: 1; }
-  82% { opacity: 1; }
-  100% { transform: translateX(120%) skewX(-10deg); opacity: 0; }
-`;
+const gridTemplate = ({ $showFlags, $showPoints }: LayoutProps) =>
+  [
+    `${RANK_WIDTH}px`,
+    $showFlags ? `${FLAG_WIDTH}px` : "",
+    "100px",
+    `${STATUS_WIDTH}px`,
+    `${FIN_WIDTH}px`,
+    $showPoints ? `${PTS_WIDTH}px` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-/* ================= LAYOUT CONSTANTS ================= */
-const BASE_ROW_HEIGHT = 64;
-const SINGLE_ELIMINATION_ROW_HEIGHT = 112;
-const MULTI_ELIMINATION_ROW_HEIGHT = 96;
-const MIN_COMPACT_ROW_HEIGHT = 42;
+const panelWidth = ({ $showFlags, $showPoints }: LayoutProps) =>
+  RANK_WIDTH + 100 + STATUS_WIDTH + FIN_WIDTH + ($showFlags ? FLAG_WIDTH : 0) + ($showPoints ? PTS_WIDTH : 0);
 
-const GRID_LAYOUT = css<{ $showFlags: boolean; $showPoints: boolean }>`
-  display: grid;
-  grid-template-columns: ${({ $showFlags, $showPoints }) =>
-    [
-      "62px",
-      $showFlags ? "58px" : "",
-      $showFlags ? "58px" : "48px",
-      "minmax(120px, 1fr)",
-      "96px",
-      $showPoints ? "18px 66px" : "",
-      "18px 66px",
-    ]
-      .filter(Boolean)
-      .join(" ")};
-  align-items: center;
-`;
-
-const lowHealthPulse = keyframes`
-  0%, 100% {
-    background: #ff334d;
-    box-shadow: 0 0 3px rgba(255, 51, 77, 0.55);
-    opacity: 0.72;
-  }
-  50% {
-    background: #ff001f;
-    box-shadow: 0 0 10px rgba(255, 0, 31, 0.95);
-    opacity: 1;
-  }
-`;
-
-/* ================= CONTAINER COMPONENTS ================= */
-const Board = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
+const Panel = styled.div<LayoutProps>`
   position: fixed;
   top: 50%;
   right: 26px;
   transform: translateY(-50%);
-  width: ${({ $showFlags, $showPoints }) => 580 - ($showFlags ? 0 : 68) - ($showPoints ? 0 : 84)}px;
-  font-family: "Orbitron", "Oswald", "Inter", sans-serif;
-  filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.85))
-    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
-  pointer-events: auto;
-  user-select: none;
-  z-index: 999;
-`;
-
-const Frame = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(180deg, ${Theme.panel}, ${Theme.panel2});
-  border: 1px solid ${Theme.border};
-  border-radius: 8px;
-  overflow: visible;
-`;
-
-/* ================= HUD TABLE HEADER ================= */
-const HeaderRow = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
-  ${GRID_LAYOUT}
-  height: 44px;
-  position: relative;
-  background: linear-gradient(
-    135deg,
-    rgba(204, 255, 209, 0.96),
-    rgba(112, 255, 143, 0.94),
-    rgba(190, 255, 202, 0.96)
-  );
-  border-bottom: 2px solid rgba(0, 0, 0, 0.28);
-  color: ${Theme.ink};
-  font-weight: 900;
-  font-size: 13px;
+  width: ${panelWidth}px;
+  color: #ffffff;
+  font-family: "Oswald", "Arial Narrow", sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  flex-shrink: 0;
-  clip-path: polygon(
-    0 0,
-    98% 0,
-    100% 18%,
-    98% 34%,
-    100% 50%,
-    98% 66%,
-    100% 100%,
-    0 100%
-  );
-`;
-
-const HeaderCell = styled.div<{ $center?: boolean }>`
-  text-align: ${(p) => (p.$center ? "center" : "left")};
-  display: flex;
-  align-items: center;
-  justify-content: ${(p) => (p.$center ? "center" : "flex-start")};
-  padding: 0 2px;
-`;
-
-const RowsContainer = styled.div`
-  position: relative;
-  flex: 1;
-  overflow: visible;
-`;
-
-const RowSlot = styled(motion.div)<{ $height: number }>`
-  position: relative;
-  height: ${(p) => p.$height}px;
-`;
-
-const ChampionBanner = styled.img`
-  position: absolute;
-  left: -82px;
-  top: 50%;
-  width: 72px;
-  max-height: calc(100% + 18px);
-  object-fit: contain;
-  transform: translateY(-50%);
-  z-index: 40;
-  pointer-events: none;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.65));
-`;
-
-interface LiveRowProps {
-  $dead: boolean;
-  $odd: boolean;
-  $top: boolean;
-  $height: number;
-  $phase: "alive" | "flash_wipe" | "settled_normal";
-  $showFlags: boolean;
-  $showPoints: boolean;
-}
-
-const LiveRow = styled(motion.div)<LiveRowProps>`
-  ${GRID_LAYOUT}
-  position: absolute;
-  width: 100%;
-  height: ${(p) => p.$height}px;
   overflow: hidden;
-  border-bottom: 1px solid rgba(98, 223, 99, 0.06);
-  background: ${(p) => (p.$odd ? Theme.rowA : Theme.rowB)};
+  background: ${PANEL_BG};
+  border: 1px solid var(--live2-color-4);
+  box-shadow: none;
 
-  transition: opacity 0.8s ease;
-  ${(p) =>
-    p.$phase === "settled_normal" &&
-    p.$dead &&
-    css`
-      opacity: 0.45;
-      filter: grayscale(0.8);
-    `}
-
-  ${(p) =>
-    p.$top &&
-    !p.$dead &&
-    css`
-      background:
-        linear-gradient(90deg, rgba(98, 223, 99, 0.07), transparent 45%),
-        ${p.$odd ? Theme.rowA : Theme.rowB};
-    `}
-`;
-
-/* ================= CINEMATIC LAYER WIPE (SLIDES ABOVE ENTIRE ROW) ================= */
-const CinematicWipeOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    ${Theme.danger} 25%,
-    #ff7388 50%,
-    ${Theme.danger} 75%,
-    transparent
-  );
-  mix-blend-mode: screen;
-  z-index: 20;
-  pointer-events: none;
-  animation: ${redWipeEffect} 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-`;
-
-/* Master absolute overlay container for large portraits spanning across the entire row data cells */
-const FullRowRosterOverlay = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 62px; /* Starts right after the Rank badge container */
-  right: 0;
-  bottom: 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 5px 12px;
-  background: linear-gradient(90deg, #1f0205 0%, #0a0102 60%, #000000 100%);
-  box-shadow: inset 0 0 20px rgba(229, 46, 69, 0.4);
-  z-index: 10;
-`;
-
-const GrandPlayerFrame = styled(motion.div)`
-  position: relative;
-  height: 100%;
-  background: #020503;
-  border: 1.5px solid ${Theme.danger};
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(229, 46, 69, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const PlayerPortrait = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  filter: grayscale(1) brightness(0.34) contrast(1.16);
-  will-change: auto;
-`;
-
-const SkullIndicator = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: ${Theme.danger};
-  font-weight: 900;
-  z-index: 3;
-  text-shadow:
-    0 0 6px #000000,
-    0 0 2px #000000;
-`;
-
-const EliminatedTextOverlay = styled(motion.div)`
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  overflow: hidden;
-
-  &::before {
-    content: "ELIMINATED";
-    min-width: 92%;
-    padding: 4px 18px 6px;
-    color: ${Theme.white};
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(229, 46, 69, 0.98) 16%,
-      #ff7388 50%,
-      rgba(229, 46, 69, 0.98) 84%,
-      transparent 100%
-    );
-    border-top: 1px solid rgba(255, 255, 255, 0.35);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.65);
-    font-size: 25px;
-    font-weight: 900;
-    letter-spacing: 7px;
-    text-align: center;
-    text-shadow:
-      0 2px 0 rgba(0, 0, 0, 0.75),
-      0 0 12px rgba(255, 255, 255, 0.35);
-    animation: ${eliminatedTextSwap} 1.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* The compact reference design expands to Style 1's broadcast footprint at 2K. */
+  @media (min-width: 2560px) {
+    right: 26px;
+    transform: translateY(-50%) scale(1.96);
+    transform-origin: right center;
   }
 `;
 
-/* Wrapper to easily control overall transparency of base stats content layout */
-const BaseContentGroup = styled.div<{ $hidden: boolean }>`
-  display: contents;
-  opacity: ${(p) => (p.$hidden ? 0 : 1)};
-  visibility: ${(p) => (p.$hidden ? "hidden" : "visible")};
+const Header = styled.div<LayoutProps>`
+  display: grid;
+  grid-template-columns: ${gridTemplate};
+  align-items: center;
+  height: ${HEADER_HEIGHT}px;
+  background: ${HEADER_BG};
+  border-bottom: 1px solid #000000;
+  color: var(--live2-text-color-3);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 `;
 
-/* ================= GRID DATA CELLS ================= */
-const PipeDivider = styled.div`
-  font-family: system-ui, sans-serif;
-  font-weight: 500;
-  font-size: 28px;
-  color: rgba(98, 223, 99, 0.65);
-  text-align: center;
-  line-height: 1;
-  transform: scaleY(1.35);
-`;
-
-const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
-  height: 100%;
+const HeaderCell = styled.div<{ $rank?: boolean; $center?: boolean }>`
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  font-weight: 900;
-  z-index: 25;
-
-  background: ${(p) =>
-    p.$dead
-      ? "linear-gradient(135deg, #a6323f, #4d0b13)"
-      : p.$rank === 1
-        ? "linear-gradient(135deg, #ffd35a, #b87917)"
-        : "linear-gradient(135deg, #ccffd1, #70ff8f, #beffca)"};
-
-  color: ${(p) => (p.$dead ? Theme.white : Theme.ink)};
-  clip-path: polygon(
-    0 0,
-    90% 0,
-    100% 10%,
-    92% 24%,
-    100% 36%,
-    91% 50%,
-    100% 64%,
-    92% 78%,
-    100% 100%,
-    0 100%
-  );
-  border-right: 1px solid rgba(0, 0, 0, 0.25);
-  animation: ${paperShake} 4.2s infinite ease-in-out;
-  will-change: transform;
-`;
-
-const CellWrap = styled.div`
+  justify-content: ${({ $center }) => ($center ? "center" : "flex-start")};
   height: 100%;
-  display: flex;
+  padding: 0;
+
+  ${({ $rank }) =>
+    $rank &&
+    css`
+      justify-content: center;
+      background: transparent;
+      border: 0;
+    `}
+`;
+
+const TableBody = styled.div`
+  background: ${PANEL_BG};
+`;
+
+const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean } & LayoutProps>`
+  display: grid;
+  grid-template-columns: ${gridTemplate};
   align-items: center;
-  justify-content: center;
-  padding: 0 3px;
+  height: ${ROW_HEIGHT}px;
+  border-bottom: 1px solid #000000;
+  background: var(--live2-color-1-70);
+  transition: opacity 220ms ease;
 `;
 
-const LogoCellWrap = styled(CellWrap)<{ $showFlags: boolean }>`
-  transform: translateX(${({ $showFlags }) => ($showFlags ? "0" : "6px")});
-`;
-
-const CountryBox = styled.div`
-  width: 38px;
-  height: 25px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(98, 223, 99, 0.12);
-  border-radius: 2px;
+const RowShell = styled.div`
+  position: relative;
+  height: ${ROW_HEIGHT}px;
   overflow: hidden;
 `;
 
-const LogoBox = styled.div`
-  width: 39px;
-  height: 31px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(98, 223, 99, 0.12);
-  border-radius: 3px;
-  overflow: hidden;
+const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
+  background: var(--live2-color-2);
+  color: var(--live2-text-color-2);
+  font-family: "Roboto Condensed", "Arial Narrow", sans-serif;
+  font-size: 19px;
+  font-style: italic;
+  font-weight: 700;
+  border-right: 1px solid #000000;
 `;
 
-const Img = styled.img`
-  width: 100%;
+const TeamCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
   height: 100%;
+  min-width: 0;
+  padding: 0 0 0 8px;
+  background: var(--live2-color-2);
+  color: var(--live2-text-color-2);
+  border-right: 1px solid #000000;
+`;
+
+const FlagCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--live2-color-2);
+`;
+
+const Flag = styled.img`
+  width: 16px;
+  height: 12px;
   object-fit: cover;
-  will-change: auto;
+`;
+
+const LogoWrap = styled.div<{ $eliminated: boolean }>`
+  width: 16px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  opacity: 0.8;
 `;
 
 const Logo = styled.img`
-  width: 150%;
-  height: 150%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  will-change: auto;
 `;
 
-const TeamName = styled.div<{ $dead?: boolean }>`
-  font-size: 20px;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: ${(p) => (p.$dead ? Theme.muted : "#c6ffcf")};
+const TeamName = styled.span`
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0 8px;
-  text-align: center;
-  width: 100%;
-`;
-
-const Num = styled.div`
-  text-align: center;
-  font-size: 25px;
-  font-weight: 800;
-  color: #a6ffbe;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-/* ================= MINI COMPACT HUD INTERFACES ================= */
-const AliveWrap = styled(motion.div)`
-  display: flex;
-  gap: 3px;
-  justify-content: center;
-  height: 100%;
-  align-items: center;
-  width: 96px;
-`;
-
-const Bar = styled.div`
-  width: 8px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(98, 223, 99, 0.1);
-  overflow: hidden;
-  position: relative;
-  will-change: auto;
-`;
-
-const Fill = styled.div<{ $hp: number; $status: PlayerStatus | "empty" }>`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: ${(p) => (p.$status === "empty" ? "0%" : `${p.$hp}%`)};
-  transition: height 0.15s ease;
-  will-change: height;
-
-  background: ${(p) => {
-    if (p.$status === "alive" && p.$hp <= 25) return Theme.danger;
-    if (p.$status === "alive") return Theme.aliveYellow;
-    if (p.$status === "knocked") return Theme.danger;
-    if (p.$status === "recalled") return Theme.aliveBlue;
-    return "transparent";
-  }};
-
-  ${(p) =>
-    p.$status === "alive" &&
-    p.$hp > 0 &&
-    p.$hp <= 25 &&
-    css`
-      animation: ${lowHealthPulse} 700ms ease-in-out infinite;
-    `}
-`;
-
-/* ================= FOOTER COMPONENT ================= */
-const Footer = styled.div`
-  height: 40px;
-  position: relative;
-  background: linear-gradient(
-    135deg,
-    rgba(204, 255, 209, 0.96),
-    rgba(112, 255, 143, 0.94),
-    rgba(190, 255, 202, 0.96)
-  );
-  border-top: 2px solid rgba(0, 0, 0, 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    100% 100%,
-    2% 100%,
-    0 82%,
-    2% 66%,
-    0 50%,
-    2% 34%,
-    0 18%
-  );
-`;
-
-const Legend = styled.div`
-  display: flex;
-  gap: 14px;
-  align-items: center;
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: ${Theme.ink};
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-`;
-
-const ColorSquare = styled.div<{ $color: string; $border?: string }>`
-  width: 10px;
-  height: 10px;
-  background: ${(p) => p.$color};
-  border: 1px solid ${(p) => p.$border || "rgba(0,0,0,0.5)"};
-`;
-
-const EmptyState = styled.div`
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${Theme.muted};
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
+  letter-spacing: -0.5px;
+  text-shadow: none;
+`;
+
+const StatusCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: ${STATUS_BAR_GAP}px;
+  background: transparent;
+`;
+
+const StatusBar = styled.i<{ $state: "alive" | "knocked" | "dead" }>`
+  display: block;
+  width: ${STATUS_BAR_WIDTH}px;
+  height: 20px;
+  background: ${({ $state }) =>
+    $state === "alive"
+      ? "#24fe5b"
+      : $state === "knocked"
+        ? "#ff3c14"
+        : "#ffffff"};
+`;
+
+const NumberCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: transparent;
+  color: var(--live2-text-color-1);
+  font-size: 18px;
+  font-weight: 700;
+`;
+
+const FlashOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 60, 20, 0.9), transparent);
+  z-index: 6;
+`;
+
+const RosterOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(8, 8, 8, 0.96);
+  z-index: 4;
+`;
+
+const PortraitFrame = styled.div`
+  position: relative;
+  overflow: hidden;
+  background: #121212;
+  border: 1px solid rgba(255, 60, 20, 0.65);
+`;
+
+const Portrait = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) brightness(0.36);
+`;
+
+const Skull = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff3c14;
+  font-size: 14px;
+  font-weight: 700;
+`;
+
+const ElimBannerWrap = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+const ElimBanner = styled.div`
+  padding: 4px 14px;
+  background: rgba(255, 60, 20, 0.94);
+  color: #ffffff;
+  font-family: "Oswald", "Arial Narrow", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
 `;
 
-/* ================= CONVERSION PARSERS ================= */
-const toNumber = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const getPoints = (t: Team) =>
-  typeof t.totalPoints === "number"
-    ? t.totalPoints
-    : toNumber(t.rankingScore ?? t.placementPoints) + toNumber(t.kills);
-const getTag = (t: Team) => t.teamTag || t.shortName || t.tag || t.name;
-const getPlayers = (team: Team): Array<Player | null> =>
-  Array.from({ length: 4 }, (_, i) => team.players?.[i] ?? null);
-const getPlayerHpPercent = (p: Player | null) => {
-  if (!p) return 0;
-  return Math.max(0, Math.min(100, toNumber(p.hpPercent ?? p.hp ?? 100)));
+const Footer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: ${FOOTER_HEIGHT}px;
+  background: var(--live2-color-4);
+  border: 0;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--live2-text-color-4);
+  letter-spacing: 0.5px;
+`;
+
+const LegendItem = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const LegendSwatch = styled.i<{ $color: string }>`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: ${({ $color }) => $color};
+`;
+
+const numberOf = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 };
-const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
-  if (!p) return "empty";
-  if (getPlayerHpPercent(p) <= 0) return "dead";
-  if (p.hasRecalled) return "recalled";
-  if (p.status === "dead") return "dead";
-  if (p.status === "knocked" || p.isKnocked) return "knocked";
-  return "alive";
+
+const withOpacity = (color: string, opacity: number) => {
+  const normalized = color.replace("#", "").trim();
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return color;
+
+  const value = Number.parseInt(normalized, 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${opacity})`;
 };
-const isTeamDead = (t: Team) =>
-  t.isPlaying !== false &&
-  (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
-const formatRank = (rank: number) => `0${rank}`.slice(-2);
-const getTeamId = (team: Team) => String(team.id);
-const normalizeChampionKey = (value: unknown) =>
-  String(value ?? "")
-    .trim()
-    .toLowerCase();
-const getChampionKeys = (team: Team) =>
-  [team.id, team.teamTag, team.shortName, team.tag, team.name].map(normalizeChampionKey).filter(Boolean);
-const hideBrokenImage = (event: React.SyntheticEvent<HTMLImageElement>) => {
+
+const pointsOf = (team: Team) =>
+  numberOf(team.totalPoints ?? team.rankingScore ?? team.placementPoints) + numberOf(team.kills);
+
+const tagOf = (team: Team) => team.teamTag || team.shortName || team.tag || team.name;
+
+const hideBrokenLogo = (event: React.SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.style.display = "none";
 };
 
-const hideBrokenImageFrame = (event: React.SyntheticEvent<HTMLImageElement>) => {
-  const frame = event.currentTarget.parentElement;
-  if (frame) frame.style.display = "none";
-  hideBrokenImage(event);
-};
-
-const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
-  const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
-  const totalHeight = teams.length * BASE_ROW_HEIGHT;
-
-  if (teams.length === 0 || activeCount === 0) {
-    return new Map(teams.map((team) => [getTeamId(team), BASE_ROW_HEIGHT]));
+const statusOf = (player?: Player): "alive" | "knocked" | "dead" => {
+  if (!player || player.status === "dead" || player.hasRecalled || numberOf(player.hpPercent ?? player.hp) <= 0) {
+    return "dead";
   }
 
-  let eliminationHeight =
-    activeCount === 1
-      ? SINGLE_ELIMINATION_ROW_HEIGHT
-      : MULTI_ELIMINATION_ROW_HEIGHT;
-
-  const compactCount = teams.length - activeCount;
-  if (compactCount > 0) {
-    const maxEliminationHeight =
-      (totalHeight - compactCount * MIN_COMPACT_ROW_HEIGHT) / activeCount;
-    eliminationHeight = Math.min(eliminationHeight, maxEliminationHeight);
-  } else {
-    eliminationHeight = totalHeight / activeCount;
+  if (player.status === "knocked" || player.isKnocked) {
+    return "knocked";
   }
 
-  const compactHeight =
-    compactCount > 0
-      ? (totalHeight - eliminationHeight * activeCount) / compactCount
-      : eliminationHeight;
-
-  return new Map(
-    teams.map((team) => [
-      getTeamId(team),
-      flashingIds.has(getTeamId(team)) ? eliminationHeight : compactHeight,
-    ]),
-  );
+  return "alive";
 };
 
-// ================= OPTIMIZED MEMOIZED TEAM ROW =================
-interface TeamRowData {
-  teams: Team[];
-  championBannerUrl?: string;
-  championRushEnabled: boolean;
-  championRushTeamKeySet: Set<string>;
-}
+// The live feed can report zero players before a roster update, so only an
+// explicit elimination flag is allowed to remove the white team background.
+const isEliminated = (team: Team) => Boolean(team.isEliminated || team.is_eliminated);
 
-interface TeamRowProps extends TeamRowData {
-  index: number;
-  rowHeight: number;
-  style: React.CSSProperties;
+const LiveStandings2Row: React.FC<{
+  team: Team;
+  rank: number;
   showFlags: boolean;
   showPoints: boolean;
-}
-
-const TeamRowComponent = memo(function TeamRow({
-  index,
-  rowHeight,
-  style,
-  teams,
-  championBannerUrl,
-  championRushEnabled,
-  championRushTeamKeySet,
-  showFlags,
-  showPoints,
-}: TeamRowProps) {
-  const team = teams[index];
-  if (!team) return null;
-
-  const isDead = isTeamDead(team);
-  const players = getPlayers(team);
-
-  const [phase, setPhase] = useState<"alive" | "flash_wipe" | "settled_normal">(
-    isDead ? "settled_normal" : "alive",
-  );
+}> = ({ team, rank, showFlags, showPoints }) => {
+  const eliminated = isEliminated(team);
+  const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
+  const [phase, setPhase] = useState<"idle" | "flash_wipe">("idle");
   const [showElimText, setShowElimText] = useState(false);
-  const phaseRef = useRef(phase);
+  const [hasTriggered, setHasTriggered] = useState(eliminated);
 
   useEffect(() => {
-    if (isDead) {
-      if (phaseRef.current === "alive") {
-        setPhase("flash_wipe");
-        phaseRef.current = "flash_wipe";
-
-        const timer1 = setTimeout(() => {
-          setShowElimText(true);
-        }, ELIMINATION_SWAP_DELAY_MS);
-
-        const timer2 = setTimeout(() => {
-          setPhase("settled_normal");
-          phaseRef.current = "settled_normal";
-        }, ELIMINATION_BANNER_MS);
-
-        return () => {
-          clearTimeout(timer1);
-          clearTimeout(timer2);
-        };
-      }
-    } else {
-      setPhase("alive");
-      phaseRef.current = "alive";
-      setShowElimText(false);
+    if (eliminated && !hasTriggered) {
+      setHasTriggered(true);
+      setPhase("flash_wipe");
+      const timer1 = window.setTimeout(() => setShowElimText(true), ELIMINATION_SWAP_DELAY_MS);
+      const timer2 = window.setTimeout(() => {
+        setPhase("idle");
+        setShowElimText(false);
+      }, ELIMINATION_BANNER_MS);
+      return () => {
+        window.clearTimeout(timer1);
+        window.clearTimeout(timer2);
+      };
     }
-  }, [isDead]);
 
-  const rank = team.rank ?? team.rankingScore ?? index + 1;
-  const showChampionBanner =
-    championRushEnabled &&
-    Boolean(championBannerUrl) &&
-    getChampionKeys(team).some((key) => championRushTeamKeySet.has(key));
+    if (!eliminated) {
+      setPhase("idle");
+      setShowElimText(false);
+      setHasTriggered(false);
+    }
+  }, [eliminated, hasTriggered]);
 
   return (
-    <div style={style}>
-      {showChampionBanner && (
-        <ChampionBanner src={championBannerUrl} alt="Champion banner" onError={hideBrokenImage} />
+    <RowShell>
+      {phase === "flash_wipe" && (
+        <>
+          <RosterOverlay>
+            {players.map((player, playerIndex) => (
+              <PortraitFrame key={playerIndex}>
+                {player?.playerPic ? <Portrait src={player.playerPic} alt="" /> : null}
+                <Skull>☠</Skull>
+              </PortraitFrame>
+            ))}
+          </RosterOverlay>
+          <FlashOverlay />
+          {showElimText && (
+            <ElimBannerWrap>
+              <ElimBanner>Eliminated</ElimBanner>
+            </ElimBannerWrap>
+          )}
+        </>
       )}
-      <LiveRow
-        $dead={isDead}
-        $odd={index % 2 === 1}
-        $top={rank === 1}
-        $height={rowHeight}
-        $phase={phase}
+
+      <Row
+        $highlighted={false}
+        $eliminated={eliminated}
         $showFlags={showFlags}
         $showPoints={showPoints}
-        animate={{ height: rowHeight }}
-        transition={{ duration: 0.24, ease: "easeOut" }}
-        layout={false}
+        style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
       >
-        {phase === "flash_wipe" && showElimText && <CinematicWipeOverlay />}
+        <RankCell $highlighted={false} $eliminated={eliminated}>{rank}</RankCell>
 
-        {/* Player portraits overlay */}
-        <AnimatePresence mode="wait">
-          {phase === "flash_wipe" && (
-            <FullRowRosterOverlay
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              layout={false}
-            >
-              {showElimText && (
-                <EliminatedTextOverlay
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.12 }}
-                  layout={false}
-                />
-              )}
+        {showFlags && (
+          <FlagCell>
+            {team.countryUrl ? <Flag src={team.countryUrl} alt="" onError={hideBrokenLogo} /> : null}
+          </FlagCell>
+        )}
 
-              {players.map((player, pIdx) => (
-                <GrandPlayerFrame
-                  key={pIdx}
-                  initial={{ scale: 0.8, opacity: 0, y: 10 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  transition={{
-                    delay: pIdx * 0.04,
-                    type: "spring",
-                    stiffness: 240,
-                    damping: 18,
-                  }}
-                  layout={false}
-                >
-                  <SkullIndicator>☠</SkullIndicator>
-                  {player?.playerPic ? (
-                    <PlayerPortrait src={player.playerPic} alt="" onError={hideBrokenImage} />
-                  ) : (
-                    <div style={{ color: "#222", fontSize: "14px" }}>☠</div>
-                  )}
-                </GrandPlayerFrame>
-              ))}
-            </FullRowRosterOverlay>
-          )}
-        </AnimatePresence>
+        <TeamCell $highlighted={false} $eliminated={eliminated}>
+          <LogoWrap $eliminated={eliminated}>
+            {team.logoUrl ? <Logo src={team.logoUrl} alt="" onError={hideBrokenLogo} /> : null}
+          </LogoWrap>
+          <TeamName>{tagOf(team)}</TeamName>
+        </TeamCell>
 
-        {/* Base content */}
-        <BaseContentGroup $hidden={phase === "flash_wipe"}>
-          <RankCell $rank={rank} $dead={isDead}>
-            {formatRank(rank)}
-          </RankCell>
+        <StatusCell>
+          {players.map((player, playerIndex) => (
+            <StatusBar key={playerIndex} $state={statusOf(player)} />
+          ))}
+        </StatusCell>
 
-          {showFlags && (
-            <CellWrap>
-              {team.countryUrl && (
-                <CountryBox>
-                  <Img src={team.countryUrl} alt="Country flag" onError={hideBrokenImageFrame} />
-                </CountryBox>
-              )}
-            </CellWrap>
-          )}
-
-          {team.logoUrl ? (
-            <LogoCellWrap $showFlags={showFlags}>
-              <LogoBox>
-                <Logo src={team.logoUrl} alt="Team logo" onError={hideBrokenImageFrame} />
-              </LogoBox>
-            </LogoCellWrap>
-          ) : (
-            <LogoCellWrap $showFlags={showFlags} />
-          )}
-
-          <TeamName $dead={isDead}>{getTag(team)}</TeamName>
-
-          <AliveWrap layout={false}>
-            {players.map((player, pIdx) => {
-              const st = getPlayerStatus(player);
-              return (
-                <Bar key={pIdx}>
-                  <Fill $hp={getPlayerHpPercent(player)} $status={st} />
-                </Bar>
-              );
-            })}
-          </AliveWrap>
-
-          {showPoints && (
-            <>
-              <PipeDivider>|</PipeDivider>
-              <Num>{getPoints(team)}</Num>
-            </>
-          )}
-
-          <PipeDivider>|</PipeDivider>
-          <Num>{toNumber(team.kills)}</Num>
-        </BaseContentGroup>
-      </LiveRow>
-    </div>
+        <NumberCell $highlighted={false} $eliminated={eliminated}>{numberOf(team.kills)}</NumberCell>
+        {showPoints && (
+          <NumberCell $highlighted={false} $eliminated={eliminated}>{pointsOf(team)}</NumberCell>
+        )}
+      </Row>
+    </RowShell>
   );
-});
+};
 
-/* ================= MAIN COMPONENT ================= */
-export default function StandingsTable({
-  teams = [],
-  maxRows = 12,
-  championBannerUrl = "",
-  championRushTeamKeys = [],
-}: StandingsTableProps) {
+const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
-  console.log("Want to see api Call for realtime api? lol you cant track api");
-  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
-  const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
-  const previousDeadIdsRef = useRef<Set<string>>(new Set());
-  const hasDeadBaselineRef = useRef(false);
-  const flashingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map(),
-  );
-
-  const sortedTeams = useMemo(() => {
-    return [...teams]
-      .sort((a, b) => {
-        const pointDiff = getPoints(b) - getPoints(a);
-        if (pointDiff !== 0) return pointDiff;
-        return toNumber(b.kills) - toNumber(a.kills);
-      })
-      .slice(0, maxRows)
-      .map((team, index) => ({
-        ...team,
-        rank: index + 1,
-      }));
-  }, [teams, maxRows]);
-
-  const aliveTeamsCount = useMemo(
-    () =>
-      teams.filter(
-        (team) =>
-          Number(team?.playersAlive ?? 0) > 0 &&
-          !team?.isEliminated &&
-          !team?.is_eliminated,
-      ).length,
-    [teams],
-  );
 
   useEffect(() => {
-    if (aliveTeamsCount === 4) {
-      setIsFinalPhaseLocked(true);
-      return;
-    }
-
-    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
-      setIsFinalPhaseLocked(false);
-    }
-  }, [aliveTeamsCount]);
-
-  useEffect(() => {
-    const syncDisplaySettings = () => setDisplaySettings(getBroadcastDisplaySettings());
+    const syncSettings = () => setDisplaySettings(getBroadcastDisplaySettings());
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === BROADCAST_DISPLAY_SETTINGS_KEY) syncDisplaySettings();
+      if (event.key === BROADCAST_DISPLAY_SETTINGS_KEY) syncSettings();
     };
 
-    window.addEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, syncDisplaySettings);
+    window.addEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, syncSettings);
     window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, syncDisplaySettings);
+      window.removeEventListener(BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT, syncSettings);
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
   const showFlags = displaySettings.showCountryFlags;
   const showPoints = displaySettings.showLiveStandingsPoints;
-  const championRushEnabled = displaySettings.championRushEnabled;
-  const championRushTeamKeySet = useMemo(
-    () => new Set(championRushTeamKeys.map(normalizeChampionKey).filter(Boolean)),
-    [championRushTeamKeys],
+  const overlayColors = {
+    "--live2-color-1": displaySettings.liveStandings2Color1,
+    "--live2-color-1-70": withOpacity(displaySettings.liveStandings2Color1, 0.7),
+    "--live2-color-2": displaySettings.liveStandings2Color2,
+    "--live2-color-3": displaySettings.liveStandings2Color3,
+    "--live2-color-4": displaySettings.liveStandings2Color4,
+    "--live2-text-color-1": displaySettings.liveStandings2TextColor1,
+    "--live2-text-color-2": displaySettings.liveStandings2TextColor2,
+    "--live2-text-color-3": displaySettings.liveStandings2TextColor3,
+    "--live2-text-color-4": displaySettings.liveStandings2TextColor4,
+  } as React.CSSProperties;
+  const rankedTeams = useMemo(
+    () =>
+      [...teams]
+        .sort((left, right) => {
+          const pointDiff = pointsOf(right) - pointsOf(left);
+          if (pointDiff !== 0) return pointDiff;
+          return numberOf(right.kills) - numberOf(left.kills);
+        })
+        .slice(0, MAX_ROWS),
+    [teams],
   );
-
-  useEffect(() => {
-    const currentDeadIds = new Set(
-      sortedTeams.filter(isTeamDead).map((team) => getTeamId(team)),
-    );
-    const visibleIds = new Set(sortedTeams.map((team) => getTeamId(team)));
-
-    if (!hasDeadBaselineRef.current) {
-      previousDeadIdsRef.current = currentDeadIds;
-      hasDeadBaselineRef.current = true;
-      return;
-    }
-
-    flashingTimersRef.current.forEach((timer, id) => {
-      if (!currentDeadIds.has(id) || !visibleIds.has(id)) {
-        clearTimeout(timer);
-        flashingTimersRef.current.delete(id);
-        setFlashingIds((prev) => {
-          if (!prev.has(id)) return prev;
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-      }
-    });
-
-    currentDeadIds.forEach((id) => {
-      if (previousDeadIdsRef.current.has(id) || flashingTimersRef.current.has(id)) {
-        return;
-      }
-
-      setFlashingIds((prev) => {
-        if (prev.has(id)) return prev;
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-
-      const timer = setTimeout(() => {
-        flashingTimersRef.current.delete(id);
-        setFlashingIds((prev) => {
-          if (!prev.has(id)) return prev;
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-      }, ELIMINATION_BANNER_MS);
-
-      flashingTimersRef.current.set(id, timer);
-    });
-
-    previousDeadIdsRef.current = currentDeadIds;
-  }, [sortedTeams]);
-
-  useEffect(() => {
-    return () => {
-      flashingTimersRef.current.forEach((timer) => clearTimeout(timer));
-      flashingTimersRef.current.clear();
-    };
-  }, []);
-
-  const rowHeights = useMemo(
-    () => getRowHeightMap(sortedTeams, flashingIds),
-    [sortedTeams, flashingIds],
-  );
-
-  // Batch image preloading
-  useEffect(() => {
-    const urls = new Set<string>();
-    sortedTeams.forEach((team) => {
-      team.players?.forEach((player) => {
-        if (player?.playerPic) urls.add(player.playerPic);
-      });
-    });
-
-    // Use requestIdleCallback for non-blocking preloading
-    if (typeof requestIdleCallback !== "undefined") {
-      requestIdleCallback(() => {
-        urls.forEach((url) => {
-          const link = document.createElement("link");
-          link.rel = "preload";
-          link.as = "image";
-          link.href = url;
-          document.head.appendChild(link);
-        });
-      });
-    }
-  }, [sortedTeams]);
-
-  if (isFinalPhaseLocked) {
-    return null;
-  }
-
-  if (sortedTeams.length === 0) {
-    return (
-      <Board $showFlags={showFlags} $showPoints={showPoints}>
-        <Frame>
-          <HeaderRow $showFlags={showFlags} $showPoints={showPoints}>
-            <HeaderCell $center>#</HeaderCell>
-            {showFlags && <HeaderCell />}
-            <HeaderCell />
-            <HeaderCell $center>TEAM</HeaderCell>
-            <HeaderCell $center>ALIVE</HeaderCell>
-            {showPoints && (
-              <>
-                <PipeDivider>|</PipeDivider>
-                <HeaderCell $center>PTS</HeaderCell>
-              </>
-            )}
-            <PipeDivider>|</PipeDivider>
-            <HeaderCell $center>KILL</HeaderCell>
-          </HeaderRow>
-          <EmptyState>No Teams Active</EmptyState>
-        </Frame>
-      </Board>
-    );
-  }
 
   return (
-    <Board $showFlags={showFlags} $showPoints={showPoints}>
-      <Frame>
-        <HeaderRow $showFlags={showFlags} $showPoints={showPoints}>
-          <HeaderCell $center>#</HeaderCell>
-          {showFlags && <HeaderCell />}
-          <HeaderCell />
-          <HeaderCell $center>TEAM</HeaderCell>
-          <HeaderCell $center>ALIVE</HeaderCell>
-          {showPoints && (
-            <>
-              <PipeDivider>|</PipeDivider>
-              <HeaderCell $center>PTS</HeaderCell>
-            </>
-          )}
-          <PipeDivider>|</PipeDivider>
-          <HeaderCell $center>KILL</HeaderCell>
-        </HeaderRow>
+    <Panel $showFlags={showFlags} $showPoints={showPoints} style={overlayColors}>
+      <Header $showFlags={showFlags} $showPoints={showPoints}>
+        <HeaderCell $rank>#</HeaderCell>
+        {showFlags && <HeaderCell $center />}
+        <HeaderCell>Teams</HeaderCell>
+        <HeaderCell $center>Status</HeaderCell>
+        <HeaderCell $center>ELIM</HeaderCell>
+        {showPoints && <HeaderCell $center>Pts</HeaderCell>}
+      </Header>
 
-        <RowsContainer>
-          <AnimatePresence mode="popLayout">
-            {sortedTeams.map((team, index) => (
-              <RowSlot
-                key={getTeamId(team)}
-                $height={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
-                }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <TeamRowComponent
-                  index={index}
-                  rowHeight={rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT}
-                  teams={sortedTeams}
-                  championBannerUrl={championBannerUrl}
-                  championRushEnabled={championRushEnabled}
-                  championRushTeamKeySet={championRushTeamKeySet}
-                  showFlags={showFlags}
-                  showPoints={showPoints}
-                  style={{
-                    height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
-                    width: "100%",
-                  }}
-                />
-              </RowSlot>
-            ))}
-          </AnimatePresence>
-        </RowsContainer>
+      <TableBody>
+        {rankedTeams.map((team, index) => {
+          const rank = index + 1;
+          return <LiveStandings2Row key={team.id} team={team} rank={rank} showFlags={showFlags} showPoints={showPoints} />;
+        })}
+      </TableBody>
 
-        <Footer>
-          <Legend>
-            <LegendItem>
-              <ColorSquare $color={Theme.aliveYellow} />
-              <ColorSquare $color={Theme.aliveBlue} />
-              ALIVE
-            </LegendItem>
-
-            <LegendItem>
-              <ColorSquare $color={Theme.danger} /> KNOCKED
-            </LegendItem>
-            <LegendItem>
-              <ColorSquare $color="transparent" /> ELIMINATED
-            </LegendItem>
-          </Legend>
-        </Footer>
-      </Frame>
-    </Board>
+      <Footer>
+        <LegendItem>
+          <LegendSwatch $color="#24fe5b" />
+          Alive
+        </LegendItem>
+        <LegendItem>
+          <LegendSwatch $color="#ff3c14" />
+          Knocked
+        </LegendItem>
+        <LegendItem>
+          <LegendSwatch $color="#4b5d60" />
+          Eliminated
+        </LegendItem>
+      </Footer>
+    </Panel>
   );
-}
+};
+
+export default LiveStandings2;

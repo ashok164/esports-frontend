@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import EndgameTopFourHUD from "./Components/LastFourTeam1";
+import StyleTwoTopFourHUD from "./Components/LastFourTeam2";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
 
@@ -7,7 +8,7 @@ const LastTeamNotification = () => {
   const { standings, loading } = useLiveStandingsController({
     forceLiveMatchStandings: true,
   });
-  const { isLoading: isThemeLoading } = useProjectTheme();
+  const { isLoading: isThemeLoading, broadcastSettings } = useProjectTheme();
 
   const aliveTeamsCount = useMemo(
     () =>
@@ -26,7 +27,11 @@ const LastTeamNotification = () => {
   if (loading || isThemeLoading || !shouldShowFinalTeamsOverlay) return null;
   return (
     <>
-      <EndgameTopFourHUD teams={standings} />
+      {broadcastSettings.selectedBroadcastStyle === "theme2" ? (
+        <StyleTwoTopFourHUD teams={standings} />
+      ) : (
+        <EndgameTopFourHUD teams={standings} />
+      )}
     </>
   );
 };

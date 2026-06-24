@@ -215,8 +215,7 @@ const App: React.FC = () => {
             const isTournamentScoped = routeVariant.path.startsWith(
               `${TOURNAMENT_ROUTE_PREFIX}/:tournamentSlug`,
             );
-            const usesBroadcastTheme =
-              route.path === "/broadcast-theme" || routeVariant.isBroadcast === true;
+            const usesBroadcastTheme = routeVariant.isBroadcast === true;
             const innerElement = isTournamentScoped ? (
               <TournamentSlugScope>{routeVariant.element}</TournamentSlugScope>
             ) : (
