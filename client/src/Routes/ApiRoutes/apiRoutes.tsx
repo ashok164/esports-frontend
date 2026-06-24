@@ -1,7 +1,7 @@
 // export const API_BASE_URL = "http://82.29.155.252:3000";
-export const API_BASE_URL = "http://127.0.0.1:3000";
-// export const API_BASE_URL =
-//   process.env.REACT_APP_API_BASE_URL || "https://api.freefireesportsnepal.com";
+// export const API_BASE_URL = "http://127.0.0.1:3000";
+export const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || "https://api.freefireesportsnepal.com";
 export const REAL_TIME_API = "/tablestandings";
 export const GET_REALTIME_SETTINGS = "/settings";
 export const UPDATE_REALTIME_SETTINGS = "/settings";
@@ -41,7 +41,8 @@ export const UPDATE_FULL_TEAM_BANNER = (id: string | number) =>
   `/api/fullTeamBanner/update/${id}`;
 export const DELETE_FULL_TEAM_BANNER = (id: string | number) =>
   `/api/fullTeamBanner/delete/${id}`;
-export const CREATE_NOTIFICATION_TEAM_BANNER = "/api/notificationTeamBanner/create";
+export const CREATE_NOTIFICATION_TEAM_BANNER =
+  "/api/notificationTeamBanner/create";
 export const GET_NOTIFICATION_TEAM_BANNERS = "/api/notificationTeamBanner/all";
 export const UPDATE_NOTIFICATION_TEAM_BANNER = (id: string | number) =>
   `/api/notificationTeamBanner/update/${id}`;
@@ -86,10 +87,13 @@ export const REGISTER_ADMIN = "/api/auth/register";
 export const GET_AUTH_ME = "/api/auth/me";
 export const GET_TOURNAMENTS = "/api/auth/tournaments";
 export const CREATE_TOURNAMENT = "/api/auth/tournaments";
-export const UPDATE_TOURNAMENT = (id: string | number) => `/api/auth/tournaments/${id}`;
-export const DELETE_TOURNAMENT = (id: string | number) => `/api/auth/tournaments/${id}`;
+export const UPDATE_TOURNAMENT = (id: string | number) =>
+  `/api/auth/tournaments/${id}`;
+export const DELETE_TOURNAMENT = (id: string | number) =>
+  `/api/auth/tournaments/${id}`;
 export const GET_AUTH_USERS = "/api/auth/users";
-export const UPDATE_AUTH_USER = (id: string | number) => `/api/auth/users/${id}`;
+export const UPDATE_AUTH_USER = (id: string | number) =>
+  `/api/auth/users/${id}`;
 export const ASSIGN_USER_TOURNAMENT = (id: string | number) =>
   `/api/auth/users/${id}/tournaments`;
 export const CREATE_WEAPON_UPLOAD = "/api/weapons/create";
@@ -132,7 +136,8 @@ export const GET_CIRCLE_ANALYSIS = "/api/circle-analysis";
 export const UPDATE_CIRCLE_ANALYSIS = "/api/circle-analysis";
 export const FETCH_MATCH_RESULT_DATA = "/api/match_stats/match_data";
 export const CREATE_RESULT = "/api/results/create";
-export const SAVE_REALTIME_RESULT_BY_MATCH_IDS = "/api/results/from-realtime/by-match-ids";
+export const SAVE_REALTIME_RESULT_BY_MATCH_IDS =
+  "/api/results/from-realtime/by-match-ids";
 export const GET_RESULT_BY_MATCH_ID = (matchId: string | number) =>
   `/api/results/${matchId}`;
 export const GET_RESULT_TEAM_STATS = (matchId: string | number) =>
