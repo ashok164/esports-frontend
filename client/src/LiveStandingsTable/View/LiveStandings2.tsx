@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import {
   BROADCAST_DISPLAY_SETTINGS_KEY,
   BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
@@ -44,6 +44,8 @@ const STATUS_BAR_WIDTH = 5;
 const STATUS_BAR_GAP = 3;
 const HEADER_HEIGHT = 32;
 const ROW_HEIGHT = 34;
+const ELIMINATION_ROW_HEIGHT = 58;
+const MIN_COMPACT_ROW_HEIGHT = 24;
 const FOOTER_HEIGHT = 28;
 const MAX_ROWS = 16;
 const ELIMINATION_SWAP_DELAY_MS = 700;
@@ -54,6 +56,19 @@ const ROW_BG = "var(--live2-color-2)";
 const RANK_BG = "var(--live2-color-2)";
 
 type LayoutProps = { $showFlags: boolean; $showPoints: boolean };
+
+const lowHealthPulse = keyframes`
+  0%, 100% {
+    background: #ff3c14;
+    box-shadow: 0 0 3px rgba(255, 60, 20, 0.55);
+    opacity: 0.75;
+  }
+  50% {
+    background: #ff1600;
+    box-shadow: 0 0 9px rgba(255, 22, 0, 0.9);
+    opacity: 1;
+  }
+`;
 
 const gridTemplate = ({ $showFlags, $showPoints }: LayoutProps) =>
   [
@@ -125,20 +140,21 @@ const TableBody = styled.div`
   background: ${PANEL_BG};
 `;
 
-const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean } & LayoutProps>`
+const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean; $height: number } & LayoutProps>`
   display: grid;
   grid-template-columns: ${gridTemplate};
   align-items: center;
-  height: ${ROW_HEIGHT}px;
+  height: ${({ $height }) => $height}px;
   border-bottom: 1px solid #000000;
   background: var(--live2-color-1-70);
-  transition: opacity 220ms ease;
+  transition: height 240ms ease, opacity 220ms ease;
 `;
 
-const RowShell = styled.div`
+const RowShell = styled.div<{ $height: number }>`
   position: relative;
-  height: ${ROW_HEIGHT}px;
+  height: ${({ $height }) => $height}px;
   overflow: hidden;
+  transition: height 240ms ease;
 `;
 
 const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
@@ -217,16 +233,36 @@ const StatusCell = styled.div`
   background: transparent;
 `;
 
-const StatusBar = styled.i<{ $state: "alive" | "knocked" | "dead" }>`
+const StatusBar = styled.i`
   display: block;
   width: ${STATUS_BAR_WIDTH}px;
   height: 20px;
-  background: ${({ $state }) =>
-    $state === "alive"
-      ? "#24fe5b"
-      : $state === "knocked"
-        ? "#ff3c14"
-        : "#ffffff"};
+  background: rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+  position: relative;
+`;
+
+const StatusFill = styled.span<{ $hp: number; $state: "alive" | "knocked" | "recalled" | "dead" }>`
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: ${({ $state, $hp }) => ($state === "dead" ? "0%" : `${$hp}%`)};
+  background: ${({ $state, $hp }) => {
+    if ($state === "dead") return "transparent";
+    if ($state === "recalled") return "#2575fc";
+    if ($state === "knocked" || $hp <= 25) return "#ff3c14";
+    return "#24fe5b";
+  }};
+  transition: height 160ms ease, background-color 160ms ease;
+
+  ${({ $state, $hp }) =>
+    $state === "alive" &&
+    $hp > 0 &&
+    $hp <= 25 &&
+    css`
+      animation: ${lowHealthPulse} 700ms ease-in-out infinite;
+    `}
 `;
 
 const NumberCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
@@ -336,6 +372,8 @@ const numberOf = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const getTeamId = (team: Team) => String(team.id);
+
 const withOpacity = (color: string, opacity: number) => {
   const normalized = color.replace("#", "").trim();
   if (!/^[0-9a-f]{6}$/i.test(normalized)) return color;
@@ -353,8 +391,21 @@ const hideBrokenLogo = (event: React.SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.style.display = "none";
 };
 
-const statusOf = (player?: Player): "alive" | "knocked" | "dead" => {
-  if (!player || player.status === "dead" || player.hasRecalled || numberOf(player.hpPercent ?? player.hp) <= 0) {
+const hpPercentOf = (player?: Player) => {
+  if (!player) return 0;
+  return Math.max(0, Math.min(100, numberOf(player.hpPercent ?? player.hp ?? 100)));
+};
+
+const statusOf = (player?: Player): "alive" | "knocked" | "recalled" | "dead" => {
+  if (!player || hpPercentOf(player) <= 0) {
+    return "dead";
+  }
+
+  if (player.hasRecalled || player.status === "recalled") {
+    return "recalled";
+  }
+
+  if (player.status === "dead") {
     return "dead";
   }
 
@@ -369,12 +420,45 @@ const statusOf = (player?: Player): "alive" | "knocked" | "dead" => {
 // explicit elimination flag is allowed to remove the white team background.
 const isEliminated = (team: Team) => Boolean(team.isEliminated || team.is_eliminated);
 
+const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
+  const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
+  const totalHeight = teams.length * ROW_HEIGHT;
+
+  if (teams.length === 0 || activeCount === 0) {
+    return new Map(teams.map((team) => [getTeamId(team), ROW_HEIGHT]));
+  }
+
+  let eliminationHeight = ELIMINATION_ROW_HEIGHT;
+  const compactCount = teams.length - activeCount;
+
+  if (compactCount > 0) {
+    const maxEliminationHeight =
+      (totalHeight - compactCount * MIN_COMPACT_ROW_HEIGHT) / activeCount;
+    eliminationHeight = Math.min(eliminationHeight, maxEliminationHeight);
+  } else {
+    eliminationHeight = totalHeight / activeCount;
+  }
+
+  const compactHeight =
+    compactCount > 0
+      ? (totalHeight - eliminationHeight * activeCount) / compactCount
+      : eliminationHeight;
+
+  return new Map(
+    teams.map((team) => [
+      getTeamId(team),
+      flashingIds.has(getTeamId(team)) ? eliminationHeight : compactHeight,
+    ]),
+  );
+};
+
 const LiveStandings2Row: React.FC<{
   team: Team;
   rank: number;
+  rowHeight: number;
   showFlags: boolean;
   showPoints: boolean;
-}> = ({ team, rank, showFlags, showPoints }) => {
+}> = ({ team, rank, rowHeight, showFlags, showPoints }) => {
   const eliminated = isEliminated(team);
   const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
   const [phase, setPhase] = useState<"idle" | "flash_wipe">("idle");
@@ -404,7 +488,7 @@ const LiveStandings2Row: React.FC<{
   }, [eliminated, hasTriggered]);
 
   return (
-    <RowShell>
+    <RowShell $height={rowHeight}>
       {phase === "flash_wipe" && (
         <>
           <RosterOverlay>
@@ -427,6 +511,7 @@ const LiveStandings2Row: React.FC<{
       <Row
         $highlighted={false}
         $eliminated={eliminated}
+        $height={rowHeight}
         $showFlags={showFlags}
         $showPoints={showPoints}
         style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
@@ -447,9 +532,14 @@ const LiveStandings2Row: React.FC<{
         </TeamCell>
 
         <StatusCell>
-          {players.map((player, playerIndex) => (
-            <StatusBar key={playerIndex} $state={statusOf(player)} />
-          ))}
+          {players.map((player, playerIndex) => {
+            const state = statusOf(player);
+            return (
+              <StatusBar key={playerIndex}>
+                <StatusFill $hp={hpPercentOf(player)} $state={state} />
+              </StatusBar>
+            );
+          })}
         </StatusCell>
 
         <NumberCell $highlighted={false} $eliminated={eliminated}>{numberOf(team.kills)}</NumberCell>
@@ -463,6 +553,10 @@ const LiveStandings2Row: React.FC<{
 
 const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
+  const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
+  const previousEliminatedIdsRef = React.useRef<Set<string>>(new Set());
+  const hasEliminationBaselineRef = React.useRef(false);
+  const flashingTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     const syncSettings = () => setDisplaySettings(getBroadcastDisplaySettings());
@@ -503,6 +597,66 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
     [teams],
   );
 
+  useEffect(() => {
+    const currentEliminatedIds = new Set(
+      rankedTeams.filter(isEliminated).map((team) => getTeamId(team)),
+    );
+    const visibleIds = new Set(rankedTeams.map((team) => getTeamId(team)));
+
+    if (!hasEliminationBaselineRef.current) {
+      previousEliminatedIdsRef.current = currentEliminatedIds;
+      hasEliminationBaselineRef.current = true;
+      return;
+    }
+
+    flashingTimersRef.current.forEach((timer, id) => {
+      if (!currentEliminatedIds.has(id) || !visibleIds.has(id)) {
+        clearTimeout(timer);
+        flashingTimersRef.current.delete(id);
+        setFlashingIds((previous) => {
+          if (!previous.has(id)) return previous;
+          const next = new Set(previous);
+          next.delete(id);
+          return next;
+        });
+      }
+    });
+
+    currentEliminatedIds.forEach((id) => {
+      if (previousEliminatedIdsRef.current.has(id) || flashingTimersRef.current.has(id)) return;
+
+      setFlashingIds((previous) => {
+        if (previous.has(id)) return previous;
+        const next = new Set(previous);
+        next.add(id);
+        return next;
+      });
+
+      const timer = setTimeout(() => {
+        flashingTimersRef.current.delete(id);
+        setFlashingIds((previous) => {
+          if (!previous.has(id)) return previous;
+          const next = new Set(previous);
+          next.delete(id);
+          return next;
+        });
+      }, ELIMINATION_BANNER_MS);
+
+      flashingTimersRef.current.set(id, timer);
+    });
+
+    previousEliminatedIdsRef.current = currentEliminatedIds;
+  }, [rankedTeams]);
+
+  useEffect(() => {
+    return () => {
+      flashingTimersRef.current.forEach((timer) => clearTimeout(timer));
+      flashingTimersRef.current.clear();
+    };
+  }, []);
+
+  const rowHeights = useMemo(() => getRowHeightMap(rankedTeams, flashingIds), [rankedTeams, flashingIds]);
+
   return (
     <Panel $showFlags={showFlags} $showPoints={showPoints} style={overlayColors}>
       <Header $showFlags={showFlags} $showPoints={showPoints}>
@@ -517,7 +671,16 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
       <TableBody>
         {rankedTeams.map((team, index) => {
           const rank = index + 1;
-          return <LiveStandings2Row key={team.id} team={team} rank={rank} showFlags={showFlags} showPoints={showPoints} />;
+          return (
+            <LiveStandings2Row
+              key={team.id}
+              team={team}
+              rank={rank}
+              rowHeight={rowHeights.get(getTeamId(team)) ?? ROW_HEIGHT}
+              showFlags={showFlags}
+              showPoints={showPoints}
+            />
+          );
         })}
       </TableBody>
 

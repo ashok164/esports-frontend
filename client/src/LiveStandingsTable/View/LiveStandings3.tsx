@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { useProjectTheme } from "../../Theme";
 import {
   BROADCAST_DISPLAY_SETTINGS_KEY,
@@ -40,6 +40,8 @@ const PANEL_WIDTH_NO_POINTS_NO_FLAGS = 454;
 const PANEL_WIDTH_WITH_FLAGS_NO_POINTS = 488;
 const PANEL_WIDTH_WITH_FLAGS = 564;
 const ROW_HEIGHT = 64;
+const ELIMINATION_ROW_HEIGHT = 96;
+const MIN_COMPACT_ROW_HEIGHT = 42;
 const ROW_GAP = 4;
 const FOOTER_HEIGHT = 34;
 const MAX_ROWS = 12;
@@ -48,6 +50,19 @@ const ELIMINATION_BANNER_MS = 1800;
 const ELIMS_WIDTH = 76;
 const POINTS_WIDTH = 76;
 const HEALTH_WIDTH = 96;
+
+const lowHealthPulse = keyframes`
+  0%, 100% {
+    background: #ff3c14;
+    box-shadow: 0 0 4px rgba(255, 60, 20, 0.55);
+    opacity: 0.76;
+  }
+  50% {
+    background: #ff1600;
+    box-shadow: 0 0 11px rgba(255, 22, 0, 0.92);
+    opacity: 1;
+  }
+`;
 
 const numberOf = (value: unknown) => {
   const parsed = Number(value);
@@ -59,18 +74,74 @@ const pointsOf = (team: Team) =>
 
 const tagOf = (team: Team) => team.teamTag || team.shortName || team.tag || team.name;
 
-const statusOf = (player?: Player): "alive" | "dead" => {
-  if (!player || player.status === "dead" || player.hasRecalled || numberOf(player.hpPercent ?? player.hp) <= 0) {
+const getTeamId = (team: Team) => String(team.id);
+
+const hpPercentOf = (player?: Player) => {
+  if (!player) return 0;
+  return Math.max(0, Math.min(100, numberOf(player.hpPercent ?? player.hp ?? 100)));
+};
+
+const statusOf = (player?: Player): "alive" | "knocked" | "recalled" | "dead" => {
+  if (!player || hpPercentOf(player) <= 0) {
     return "dead";
   }
+
+  if (player.hasRecalled || player.status === "recalled") {
+    return "recalled";
+  }
+
+  if (player.status === "dead") {
+    return "dead";
+  }
+
+  if (player.status === "knocked" || player.isKnocked) {
+    return "knocked";
+  }
+
   return "alive";
 };
 
 const isEliminated = (team: Team) => Boolean(team.isEliminated || team.is_eliminated);
 
+const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
+  const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
+  const totalHeight = teams.length * ROW_HEIGHT + Math.max(0, teams.length - 1) * ROW_GAP;
+
+  if (teams.length === 0 || activeCount === 0) {
+    return new Map(teams.map((team) => [getTeamId(team), ROW_HEIGHT]));
+  }
+
+  let eliminationHeight = ELIMINATION_ROW_HEIGHT;
+  const compactCount = teams.length - activeCount;
+
+  if (compactCount > 0) {
+    const maxEliminationHeight =
+      (totalHeight - Math.max(0, teams.length - 1) * ROW_GAP - compactCount * MIN_COMPACT_ROW_HEIGHT) / activeCount;
+    eliminationHeight = Math.min(eliminationHeight, maxEliminationHeight);
+  } else {
+    eliminationHeight = (totalHeight - Math.max(0, teams.length - 1) * ROW_GAP) / activeCount;
+  }
+
+  const compactHeight =
+    compactCount > 0
+      ? (totalHeight - Math.max(0, teams.length - 1) * ROW_GAP - eliminationHeight * activeCount) / compactCount
+      : eliminationHeight;
+
+  return new Map(
+    teams.map((team) => [
+      getTeamId(team),
+      flashingIds.has(getTeamId(team)) ? eliminationHeight : compactHeight,
+    ]),
+  );
+};
+
 const LiveStandings3: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
   const { theme } = useProjectTheme();
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
+  const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
+  const previousEliminatedIdsRef = useRef<Set<string>>(new Set());
+  const hasEliminationBaselineRef = useRef(false);
+  const flashingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     const syncSettings = () => setDisplaySettings(getBroadcastDisplaySettings());
@@ -118,6 +189,66 @@ const LiveStandings3: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
     "--live3-dead": "rgba(0, 0, 0, 0.08)",
   } as React.CSSProperties;
 
+  useEffect(() => {
+    const currentEliminatedIds = new Set(
+      rankedTeams.filter(isEliminated).map((team) => getTeamId(team)),
+    );
+    const visibleIds = new Set(rankedTeams.map((team) => getTeamId(team)));
+
+    if (!hasEliminationBaselineRef.current) {
+      previousEliminatedIdsRef.current = currentEliminatedIds;
+      hasEliminationBaselineRef.current = true;
+      return;
+    }
+
+    flashingTimersRef.current.forEach((timer, id) => {
+      if (!currentEliminatedIds.has(id) || !visibleIds.has(id)) {
+        clearTimeout(timer);
+        flashingTimersRef.current.delete(id);
+        setFlashingIds((previous) => {
+          if (!previous.has(id)) return previous;
+          const next = new Set(previous);
+          next.delete(id);
+          return next;
+        });
+      }
+    });
+
+    currentEliminatedIds.forEach((id) => {
+      if (previousEliminatedIdsRef.current.has(id) || flashingTimersRef.current.has(id)) return;
+
+      setFlashingIds((previous) => {
+        if (previous.has(id)) return previous;
+        const next = new Set(previous);
+        next.add(id);
+        return next;
+      });
+
+      const timer = setTimeout(() => {
+        flashingTimersRef.current.delete(id);
+        setFlashingIds((previous) => {
+          if (!previous.has(id)) return previous;
+          const next = new Set(previous);
+          next.delete(id);
+          return next;
+        });
+      }, ELIMINATION_BANNER_MS);
+
+      flashingTimersRef.current.set(id, timer);
+    });
+
+    previousEliminatedIdsRef.current = currentEliminatedIds;
+  }, [rankedTeams]);
+
+  useEffect(() => {
+    return () => {
+      flashingTimersRef.current.forEach((timer) => clearTimeout(timer));
+      flashingTimersRef.current.clear();
+    };
+  }, []);
+
+  const rowHeights = useMemo(() => getRowHeightMap(rankedTeams, flashingIds), [rankedTeams, flashingIds]);
+
   return (
     <Board $width={boardWidth} style={styles}>
       <BoardHeader $width={headerWidth}>
@@ -128,7 +259,14 @@ const LiveStandings3: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
 
       <Rows>
         {rankedTeams.map((team, index) => (
-          <LiveStandings3Row key={team.id} team={team} rank={index + 1} showFlags={showFlags} showPoints={showPoints} />
+          <LiveStandings3Row
+            key={team.id}
+            team={team}
+            rank={index + 1}
+            rowHeight={rowHeights.get(getTeamId(team)) ?? ROW_HEIGHT}
+            showFlags={showFlags}
+            showPoints={showPoints}
+          />
         ))}
       </Rows>
 
@@ -155,9 +293,10 @@ export default LiveStandings3;
 const LiveStandings3Row: React.FC<{
   team: Team;
   rank: number;
+  rowHeight: number;
   showFlags: boolean;
   showPoints: boolean;
-}> = ({ team, rank, showFlags, showPoints }) => {
+}> = ({ team, rank, rowHeight, showFlags, showPoints }) => {
   const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
   const eliminated = isEliminated(team);
   const previousEliminated = useRef(eliminated);
@@ -192,7 +331,7 @@ const LiveStandings3Row: React.FC<{
   }, [eliminated]);
 
   return (
-    <RowShell>
+    <RowShell $height={rowHeight}>
       {phase === "flash_wipe" && (
         <>
           <RosterOverlay>
@@ -214,6 +353,7 @@ const LiveStandings3Row: React.FC<{
 
       <Row
         $eliminated={eliminated}
+        $height={rowHeight}
         style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
       >
         <RankLogoArea>
@@ -241,9 +381,14 @@ const LiveStandings3Row: React.FC<{
           )}
 
           <HealthPanel $width={HEALTH_WIDTH}>
-            {players.map((player, playerIndex) => (
-              <HealthBar key={playerIndex} $dead={statusOf(player) === "dead"} />
-            ))}
+            {players.map((player, playerIndex) => {
+              const state = statusOf(player);
+              return (
+                <HealthBar key={playerIndex}>
+                  <HealthFill $hp={hpPercentOf(player)} $state={state} />
+                </HealthBar>
+              );
+            })}
           </HealthPanel>
         </Stats>
       </Row>
@@ -302,21 +447,22 @@ const Rows = styled.div`
   gap: ${ROW_GAP}px;
 `;
 
-const RowShell = styled.div`
+const RowShell = styled.div<{ $height: number }>`
   position: relative;
-  height: ${ROW_HEIGHT}px;
+  height: ${({ $height }) => $height}px;
   overflow: hidden;
+  transition: height 240ms ease;
 `;
 
-const Row = styled.div<{ $eliminated: boolean }>`
+const Row = styled.div<{ $eliminated: boolean; $height: number }>`
   display: flex;
   align-items: center;
-  height: ${ROW_HEIGHT}px;
+  height: ${({ $height }) => $height}px;
   overflow: hidden;
   background: var(--live3-stats);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   opacity: ${({ $eliminated }) => ($eliminated ? 0.72 : 1)};
-  transition: opacity 220ms ease;
+  transition: height 240ms ease, opacity 220ms ease;
 `;
 
 const RankLogoArea = styled.div`
@@ -444,11 +590,36 @@ const HealthPanel = styled.div<{ $width: number }>`
   flex: 0 0 ${({ $width }) => $width}px;
 `;
 
-const HealthBar = styled.div<{ $dead: boolean }>`
+const HealthBar = styled.div`
   width: 10px;
   height: 100%;
   border-radius: 1px;
-  background: ${({ $dead }) => ($dead ? "var(--live3-dead)" : "var(--live3-health)")};
+  background: var(--live3-dead);
+  overflow: hidden;
+  position: relative;
+`;
+
+const HealthFill = styled.span<{ $hp: number; $state: "alive" | "knocked" | "recalled" | "dead" }>`
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: ${({ $state, $hp }) => ($state === "dead" ? "0%" : `${$hp}%`)};
+  background: ${({ $state, $hp }) => {
+    if ($state === "dead") return "transparent";
+    if ($state === "recalled") return "#2575fc";
+    if ($state === "knocked" || $hp <= 25) return "#ff3c14";
+    return "var(--live3-health)";
+  }};
+  transition: height 160ms ease, background-color 160ms ease;
+
+  ${({ $state, $hp }) =>
+    $state === "alive" &&
+    $hp > 0 &&
+    $hp <= 25 &&
+    css`
+      animation: ${lowHealthPulse} 700ms ease-in-out infinite;
+    `}
 `;
 
 const RosterOverlay = styled.div`
