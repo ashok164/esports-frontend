@@ -29,6 +29,7 @@ type Team = {
   rankingScore?: number;
   placementPoints?: number;
   playersAlive?: number;
+  isPlaying?: boolean;
   isEliminated?: boolean;
   is_eliminated?: boolean;
   players?: Player[];
@@ -382,8 +383,13 @@ const withOpacity = (color: string, opacity: number) => {
   return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${opacity})`;
 };
 
-const pointsOf = (team: Team) =>
-  numberOf(team.totalPoints ?? team.rankingScore ?? team.placementPoints) + numberOf(team.kills);
+const pointsOf = (team: Team) => {
+  if (team.totalPoints !== undefined && team.totalPoints !== null) {
+    return numberOf(team.totalPoints);
+  }
+
+  return numberOf(team.rankingScore ?? team.placementPoints) + numberOf(team.kills);
+};
 
 const tagOf = (team: Team) => team.teamTag || team.shortName || team.tag || team.name;
 
@@ -416,9 +422,9 @@ const statusOf = (player?: Player): "alive" | "knocked" | "recalled" | "dead" =>
   return "alive";
 };
 
-// The live feed can report zero players before a roster update, so only an
-// explicit elimination flag is allowed to remove the white team background.
-const isEliminated = (team: Team) => Boolean(team.isEliminated || team.is_eliminated);
+const isEliminated = (team: Team) =>
+  Boolean(team.isEliminated || team.is_eliminated) ||
+  (team.isPlaying !== false && numberOf(team.playersAlive) <= 0);
 
 const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
   const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;

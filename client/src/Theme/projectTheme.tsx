@@ -58,6 +58,7 @@ export type BroadcastDisplaySettings = {
   teamEliminationImageEntries: TeamEliminationImageEntry[];
   showCountryFlags: boolean;
   showLiveStandingsPoints: boolean;
+  showResultStandings: boolean;
   showRosterTeamLogos: boolean;
   rosterPageSwitch: boolean;
   liveStandings2Color1: string;
@@ -87,6 +88,7 @@ export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
   teamEliminationImageEntries: [],
   showCountryFlags: true,
   showLiveStandingsPoints: true,
+  showResultStandings: true,
   showRosterTeamLogos: true,
   rosterPageSwitch: false,
   liveStandings2Color1: "#022024",
@@ -535,6 +537,7 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
       document.body.dataset.championRushEnabled = String(settings.championRushEnabled);
       document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
       document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
+      document.body.dataset.showResultStandings = String(settings.showResultStandings);
       document.body.dataset.showRosterTeamLogos = String(settings.showRosterTeamLogos);
       document.body.dataset.rosterPageSwitch = String(settings.rosterPageSwitch);
     };

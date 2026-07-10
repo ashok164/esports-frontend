@@ -299,6 +299,11 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
           showLiveStandingsPoints: Boolean(
             nextSettings.showLiveStandingsPoints ?? nextSettings.show_live_standings_points ?? true,
           ),
+          showResultStandings: Boolean(
+            nextSettings.showResultStandings ??
+            nextSettings.show_result_standings ??
+            currentDisplaySettings.showResultStandings,
+          ),
           showRosterTeamLogos: Boolean(
             nextSettings.showRosterTeamLogos ??
             nextSettings.show_roster_team_logos ??

@@ -71,19 +71,42 @@ const getMatchIdFromPayload = (payload: any) =>
     ),
   );
 
+const firstNonEmptyArray = (...values: any[]) =>
+  values.find((value) => Array.isArray(value) && value.length > 0) || [];
+
 const getStandingsFromPayload = (payload: any) => {
-  if (Array.isArray(payload?.data?.standings)) return payload.data.standings;
-  if (Array.isArray(payload?.data?.liveMatchStandings)) return payload.data.liveMatchStandings;
-  if (Array.isArray(payload?.data?.liveStandings2)) return payload.data.liveStandings2;
-  if (Array.isArray(payload?.data?.team_stats)) return payload.data.team_stats;
-  if (Array.isArray(payload?.data?.results)) return payload.data.results;
-  if (Array.isArray(payload?.standings)) return payload.standings;
-  if (Array.isArray(payload?.liveMatchStandings)) return payload.liveMatchStandings;
-  if (Array.isArray(payload?.liveStandings2)) return payload.liveStandings2;
-  if (Array.isArray(payload?.team_stats)) return payload.team_stats;
-  if (Array.isArray(payload?.results)) return payload.results;
-  if (Array.isArray(payload?.data)) return payload.data;
-  return [];
+  const data = payload?.data;
+  const nestedData = data?.data;
+
+  return firstNonEmptyArray(
+    data?.standings,
+    data?.results,
+    data?.liveOverall,
+    data?.live_overall,
+    data?.overallLeaderboard,
+    data?.overall_leaderboard,
+    data?.liveMatchStandings,
+    data?.live_match_standings,
+    data?.liveStandings2,
+    data?.team_stats,
+    nestedData?.standings,
+    nestedData?.results,
+    nestedData?.liveOverall,
+    nestedData?.live_overall,
+    nestedData?.liveMatchStandings,
+    nestedData?.live_match_standings,
+    payload?.standings,
+    payload?.results,
+    payload?.liveOverall,
+    payload?.live_overall,
+    payload?.overallLeaderboard,
+    payload?.overall_leaderboard,
+    payload?.liveMatchStandings,
+    payload?.live_match_standings,
+    payload?.liveStandings2,
+    payload?.team_stats,
+    Array.isArray(data) ? data : [],
+  );
 };
 
 const getRoomTeamId = (team: any) =>
@@ -107,7 +130,7 @@ const getKills = (team: any) =>
   toNumber(firstValue(team.killing_score, team.killingScore, team.kill_count, team.killCount, team.kills));
 
 const getPlacement = (team: any) =>
-  toNumber(firstValue(team.ranking_score, team.rankingScore, team.placement, team.placement_points));
+  toNumber(firstValue(team.ranking_score, team.rankingScore, team.placement, team.placement_points, team.rank));
 
 const getTotalKills = (team: any, kills: number, placement: number) =>
   toNumber(

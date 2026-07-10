@@ -613,8 +613,8 @@ const EmptyState = styled.div`
 /* ================= CONVERSION PARSERS ================= */
 const toNumber = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const getPoints = (t: Team) =>
-  typeof t.totalPoints === "number"
-    ? t.totalPoints
+  t.totalPoints !== undefined && t.totalPoints !== null
+    ? toNumber(t.totalPoints)
     : toNumber(t.rankingScore ?? t.placementPoints) + toNumber(t.kills);
 const getTag = (t: Team) => t.teamTag || t.shortName || t.tag || t.name;
 const getPlayers = (team: Team): Array<Player | null> =>

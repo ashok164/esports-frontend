@@ -185,6 +185,7 @@ const App: React.FC = () => {
       const settings = getBroadcastDisplaySettings();
       document.body.dataset.showCountryFlags = String(settings.showCountryFlags);
       document.body.dataset.showLiveStandingsPoints = String(settings.showLiveStandingsPoints);
+      document.body.dataset.showResultStandings = String(settings.showResultStandings);
       document.body.dataset.showRosterTeamLogos = String(settings.showRosterTeamLogos);
       document.body.dataset.rosterPageSwitch = String(settings.rosterPageSwitch);
     };

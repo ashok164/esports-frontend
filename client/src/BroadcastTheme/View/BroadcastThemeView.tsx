@@ -38,14 +38,14 @@ type LiveStandings2ColorKey =
   | "liveStandings2TextColor4";
 
 const liveStandings2ColorFields: Array<{ key: LiveStandings2ColorKey; label: string; description: string }> = [
-  { key: "liveStandings2Color1", label: "Color 1", description: "Status, FIN, and PTS channel background." },
-  { key: "liveStandings2Color2", label: "Color 2", description: "Rank, flag, logo, and team-name background." },
-  { key: "liveStandings2Color3", label: "Color 3", description: "Live standings header background." },
-  { key: "liveStandings2Color4", label: "Color 4", description: "Footer / legend background." },
-  { key: "liveStandings2Color5", label: "Color 5", description: "Style 2 match-number logo background." },
-  { key: "liveStandings2TextColor1", label: "Text Color 1", description: "FIN and PTS text on the right." },
-  { key: "liveStandings2TextColor2", label: "Text Color 2", description: "Rank and team text on the left." },
-  { key: "liveStandings2TextColor3", label: "Text Color 3", description: "Header text." },
+  { key: "liveStandings2Color1", label: "Color 1", description: "Result board base panel and live status/stat channel." },
+  { key: "liveStandings2Color2", label: "Color 2", description: "Result row team strip, rank cells, flag/logo cells, and live team-name cells." },
+  { key: "liveStandings2Color3", label: "Color 3", description: "Result board header and live standings header." },
+  { key: "liveStandings2Color4", label: "Color 4", description: "Result board outer frame/gutters and footer/legend background." },
+  { key: "liveStandings2Color5", label: "Color 5", description: "Result total points highlight and Style 2 match-number logo background." },
+  { key: "liveStandings2TextColor1", label: "Text Color 1", description: "Result ELIMS text and live FIN/PTS text on dark channels." },
+  { key: "liveStandings2TextColor2", label: "Text Color 2", description: "Result rank/team text and live rank/team text." },
+  { key: "liveStandings2TextColor3", label: "Text Color 3", description: "Result title/header text and live header text." },
   { key: "liveStandings2TextColor4", label: "Text Color 4", description: "Footer / legend text." },
 ];
 
@@ -374,6 +374,18 @@ const BroadcastThemeView: React.FC = () => {
                 <ToggleCopy>
                   <strong>Show live standings points</strong>
                   <small>Hides the points column only in the live standings overlay.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
+                  checked={displaySettings.showResultStandings}
+                  onChange={(event) => updateDisplaySetting("showResultStandings", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Show result standings</strong>
+                  <small>Controls the game and overall result broadcast table.</small>
                 </ToggleCopy>
               </SwitchToggle>
               <SwitchToggle>
