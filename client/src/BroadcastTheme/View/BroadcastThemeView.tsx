@@ -441,20 +441,20 @@ const BroadcastThemeView: React.FC = () => {
               <NumberSetting>
                 <ToggleCopy>
                   <strong>Circle analysis speed</strong>
-                  <small>Free decimal speed. Use 1 for normal speed, 0.1 for very slow.</small>
+                  <small>Free numeric speed. Use 0 for instant, 1 for normal, decimals for slower/faster tuning.</small>
                 </ToggleCopy>
                 <NumberInput
                   type="number"
-                  min="0.01"
-                  max="10"
-                  step="0.01"
+                  min="0"
+                  step="any"
                   value={displaySettings.circleAnalysisAnimationSpeed}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const nextValue = Number(event.target.value);
                     updateDisplayNumberSetting(
                       "circleAnalysisAnimationSpeed",
-                      Math.min(10, Math.max(0.01, Number(event.target.value) || 1)),
-                    )
-                  }
+                      Number.isFinite(nextValue) ? Math.max(0, nextValue) : 1,
+                    );
+                  }}
                 />
               </NumberSetting>
               <SwitchToggle>

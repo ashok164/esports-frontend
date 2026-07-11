@@ -221,6 +221,7 @@ const CircleAnalysisAdmin: React.FC = () => {
                         <KillInput
                           type="number"
                           min="0"
+                          step="any"
                           value={team.killsPerCircle[circle] || 0}
                           onChange={(event) => updateCircleKills(team.teamId, circle, event.target.value)}
                           aria-label={`${team.teamName} circle ${circle} kills`}

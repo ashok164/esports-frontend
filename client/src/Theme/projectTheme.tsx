@@ -159,7 +159,7 @@ export const normalizeBroadcastDisplaySettings = (value: unknown): BroadcastDisp
   return {
     ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
     ...settings,
-    circleAnalysisAnimationSpeed: Number.isFinite(speed) ? Math.min(10, Math.max(0.01, speed)) : 1,
+    circleAnalysisAnimationSpeed: Number.isFinite(speed) ? Math.max(0, speed) : 1,
     selectedBroadcastTheme: style,
     selectedBroadcastStyle: style,
     matchNumberImageEntries: normalizeMatchNumberImageEntries(settings.matchNumberImageEntries),
