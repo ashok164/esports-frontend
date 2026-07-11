@@ -403,10 +403,13 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
           const startX = 0;
           const logoX = getCircleX(clampedFinishCircle);
           const rowDelay = 320;
-          const baseDuration = 1300 + Math.max(1, clampedFinishCircle - 1) * 360;
-          const travelDuration = Math.round(
+          const circleStepDuration = 900;
+          const baseDuration = circleStepDuration * visibleCircles.length;
+          const fullTimelineDuration = Math.round(
             effectiveAnimationSpeed > 0 ? baseDuration / effectiveAnimationSpeed : 0,
           );
+          const circleProgress = logoX / 100;
+          const travelDuration = Math.round(fullTimelineDuration * circleProgress);
           const pathLength = Math.max(1, logoX - startX);
 
           return (
