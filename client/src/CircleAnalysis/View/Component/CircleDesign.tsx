@@ -350,7 +350,8 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
 
   const visibleCircles = circles.length ? circles.slice(0, 8) : [1, 2, 3, 4, 5, 6, 7, 8];
   const animationEnabled = displaySettings.circleAnalysisAnimationEnabled;
-  const animationSpeed = Math.min(4, Math.max(0.25, Number(displaySettings.circleAnalysisAnimationSpeed) || 1));
+  const animationSpeed = Math.min(10, Math.max(0.01, Number(displaySettings.circleAnalysisAnimationSpeed) || 1));
+  const effectiveAnimationSpeed = animationSpeed * 0.1;
   const overlayColors = {
     "--circle-panel-bg": withOpacity(displaySettings.liveStandings2Color2, 0.88),
     "--circle-header-bg": displaySettings.liveStandings2Color1,
@@ -402,7 +403,7 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
           const logoX = getCircleX(clampedFinishCircle);
           const rowDelay = 320;
           const travelDuration = Math.round(
-            (1300 + Math.max(1, clampedFinishCircle - 1) * 360) / animationSpeed,
+            (1300 + Math.max(1, clampedFinishCircle - 1) * 360) / effectiveAnimationSpeed,
           );
           const pathLength = Math.max(1, logoX - startX);
 
