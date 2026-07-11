@@ -236,17 +236,17 @@ const KillCountText = styled.span`
 const BooyahReveal = styled.div<{ $x: number; $delay: number }>`
   position: absolute;
   left: ${({ $x }) => `${$x}%`};
-  top: 50%;
+  top: 0;
   z-index: 7;
-  transform: translate(-50%, -86%) scale(0);
+  transform: translate(-50%, -72%) scale(0);
   opacity: 0;
   animation: ${popNode} 240ms ease-out forwards;
   animation-delay: ${({ $delay }) => `${$delay}ms`};
 `;
 
 const BooyahAsset = styled.img`
-  width: 112px;
-  height: 70px;
+  width: 98px;
+  height: 54px;
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.7));
@@ -350,6 +350,7 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
 
   const visibleCircles = circles.length ? circles.slice(0, 8) : [1, 2, 3, 4, 5, 6, 7, 8];
   const animationEnabled = displaySettings.circleAnalysisAnimationEnabled;
+  const animationSpeed = Math.min(4, Math.max(0.25, Number(displaySettings.circleAnalysisAnimationSpeed) || 1));
   const overlayColors = {
     "--circle-panel-bg": withOpacity(displaySettings.liveStandings2Color2, 0.88),
     "--circle-header-bg": displaySettings.liveStandings2Color1,
@@ -400,7 +401,9 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
           const startX = 0;
           const logoX = getCircleX(clampedFinishCircle);
           const rowDelay = 320;
-          const travelDuration = 1300 + Math.max(1, clampedFinishCircle - 1) * 360;
+          const travelDuration = Math.round(
+            (1300 + Math.max(1, clampedFinishCircle - 1) * 360) / animationSpeed,
+          );
           const pathLength = Math.max(1, logoX - startX);
 
           return (

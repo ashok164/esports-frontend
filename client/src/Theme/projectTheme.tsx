@@ -62,6 +62,7 @@ export type BroadcastDisplaySettings = {
   showRosterTeamLogos: boolean;
   rosterPageSwitch: boolean;
   circleAnalysisAnimationEnabled: boolean;
+  circleAnalysisAnimationSpeed: number;
   liveStandings2Color1: string;
   liveStandings2Color2: string;
   liveStandings2Color3: string;
@@ -93,6 +94,7 @@ export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
   showRosterTeamLogos: true,
   rosterPageSwitch: false,
   circleAnalysisAnimationEnabled: false,
+  circleAnalysisAnimationSpeed: 1,
   liveStandings2Color1: "#022024",
   liveStandings2Color2: "#ffffff",
   liveStandings2Color3: "#044b52",
@@ -153,9 +155,11 @@ export const normalizeBroadcastDisplaySettings = (value: unknown): BroadcastDisp
   const settings = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const selectedStyle = settings.selectedBroadcastStyle ?? settings.selectedBroadcastTheme;
   const style = isBroadcastStyle(selectedStyle) ? selectedStyle : "theme1";
+  const speed = Number(settings.circleAnalysisAnimationSpeed ?? settings.circle_analysis_animation_speed ?? 1);
   return {
     ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
     ...settings,
+    circleAnalysisAnimationSpeed: Number.isFinite(speed) ? Math.min(4, Math.max(0.25, speed)) : 1,
     selectedBroadcastTheme: style,
     selectedBroadcastStyle: style,
     matchNumberImageEntries: normalizeMatchNumberImageEntries(settings.matchNumberImageEntries),

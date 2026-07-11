@@ -217,6 +217,20 @@ const BroadcastThemeView: React.FC = () => {
     }
   };
 
+  const updateDisplayNumberSetting = async (key: keyof typeof displaySettings, value: number) => {
+    const nextSettings = { ...displaySettings, [key]: value };
+    const selectedTournamentSlug = getSelectedTournamentSlug();
+    setDisplaySettings(nextSettings);
+    setBroadcastDisplaySettings(nextSettings);
+
+    try {
+      await http.patch(BROADCAST_DISPLAY_SETTINGS(selectedTournamentSlug) || UPDATE_BROADCAST_DISPLAY_SETTINGS, { settings: nextSettings });
+      setStatus("Broadcast settings updated.");
+    } catch {
+      setStatus("Broadcast settings saved locally. Add the backend route to sync it.");
+    }
+  };
+
   const updateLiveStandings2Color = async (key: LiveStandings2ColorKey, value: string) => {
     const nextSettings = { ...displaySettings, [key]: value };
     const selectedTournamentSlug = getSelectedTournamentSlug();
@@ -424,6 +438,25 @@ const BroadcastThemeView: React.FC = () => {
                   <small>Turn on to start the circle lines; turn off to reset the overlay to empty.</small>
                 </ToggleCopy>
               </SwitchToggle>
+              <NumberSetting>
+                <ToggleCopy>
+                  <strong>Circle analysis speed</strong>
+                  <small>Higher is faster. Use 1 for normal speed.</small>
+                </ToggleCopy>
+                <NumberInput
+                  type="number"
+                  min="0.25"
+                  max="4"
+                  step="0.25"
+                  value={displaySettings.circleAnalysisAnimationSpeed}
+                  onChange={(event) =>
+                    updateDisplayNumberSetting(
+                      "circleAnalysisAnimationSpeed",
+                      Math.min(4, Math.max(0.25, Number(event.target.value) || 1)),
+                    )
+                  }
+                />
+              </NumberSetting>
               <SwitchToggle>
                 <SwitchInput
                   type="checkbox"
@@ -647,6 +680,34 @@ const SwitchToggle = styled.label`
 const ToggleCopy = styled.span`
   display: grid;
   gap: 3px;
+`;
+
+const NumberSetting = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 280px;
+  padding: 14px;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  background: var(--project-surface, #111827);
+
+  small {
+    color: var(--project-text-secondary, #94a3b8);
+    line-height: 1.35;
+  }
+`;
+
+const NumberInput = styled.input`
+  width: 82px;
+  min-height: 36px;
+  border: 1px solid var(--project-border, #334155);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--project-background, #020617);
+  color: var(--project-text-primary, #ffffff);
+  font-weight: 900;
 `;
 
 const SwitchInput = styled.input`
