@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useProjectTheme } from "../../Theme";
 import {
+  buildCircleAnalysisFromTeams,
   getCircleAnalysisApi,
+  getCircleAnalysisTeamsApi,
   subscribeCircleAnalysisUpdates,
 } from "../Repository/remote";
 import { CircleAnalysisResponse } from "../types";
@@ -14,16 +16,30 @@ const CircleAnalysis = () => {
   useEffect(() => {
     let isMounted = true;
 
-    getCircleAnalysisApi()
-      .then((response) => {
-        if (isMounted) setAnalysis(response);
+    Promise.all([getCircleAnalysisTeamsApi(), getCircleAnalysisApi()])
+      .then(([teamRows, savedResponse]) => {
+        if (!isMounted) return;
+        setAnalysis(
+          teamRows.length
+            ? buildCircleAnalysisFromTeams(teamRows, savedResponse)
+            : savedResponse,
+        );
       })
       .catch((err) => {
         console.log("Failed to load circle analysis:", err);
       });
 
-    const unsubscribe = subscribeCircleAnalysisUpdates((response) => {
-      setAnalysis(response);
+    const unsubscribe = subscribeCircleAnalysisUpdates(async (response) => {
+      try {
+        const teamRows = await getCircleAnalysisTeamsApi();
+        setAnalysis(
+          teamRows.length
+            ? buildCircleAnalysisFromTeams(teamRows, response)
+            : response,
+        );
+      } catch {
+        setAnalysis(response);
+      }
     });
 
     return () => {

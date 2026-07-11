@@ -61,6 +61,7 @@ export type BroadcastDisplaySettings = {
   showResultStandings: boolean;
   showRosterTeamLogos: boolean;
   rosterPageSwitch: boolean;
+  circleAnalysisAnimationEnabled: boolean;
   liveStandings2Color1: string;
   liveStandings2Color2: string;
   liveStandings2Color3: string;
@@ -91,6 +92,7 @@ export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
   showResultStandings: true,
   showRosterTeamLogos: true,
   rosterPageSwitch: false,
+  circleAnalysisAnimationEnabled: false,
   liveStandings2Color1: "#022024",
   liveStandings2Color2: "#ffffff",
   liveStandings2Color3: "#044b52",
@@ -540,6 +542,7 @@ export const ProjectThemeProvider: React.FC<{ children: React.ReactNode }> = ({ 
       document.body.dataset.showResultStandings = String(settings.showResultStandings);
       document.body.dataset.showRosterTeamLogos = String(settings.showRosterTeamLogos);
       document.body.dataset.rosterPageSwitch = String(settings.rosterPageSwitch);
+      document.body.dataset.circleAnalysisAnimationEnabled = String(settings.circleAnalysisAnimationEnabled);
     };
 
     const handleStorage = (event: StorageEvent) => {

@@ -415,6 +415,18 @@ const BroadcastThemeView: React.FC = () => {
               <SwitchToggle>
                 <SwitchInput
                   type="checkbox"
+                  checked={displaySettings.circleAnalysisAnimationEnabled}
+                  onChange={(event) => updateDisplaySetting("circleAnalysisAnimationEnabled", event.target.checked)}
+                />
+                <SwitchTrack aria-hidden="true" />
+                <ToggleCopy>
+                  <strong>Circle analysis animation</strong>
+                  <small>Turn on to start the circle lines; turn off to reset the overlay to empty.</small>
+                </ToggleCopy>
+              </SwitchToggle>
+              <SwitchToggle>
+                <SwitchInput
+                  type="checkbox"
                   checked={displaySettings.matchNumberImageEnabled}
                   onChange={(event) => updateDisplaySetting("matchNumberImageEnabled", event.target.checked)}
                 />
