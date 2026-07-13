@@ -64,7 +64,7 @@ const CrosshairSvg: React.FC<{ title?: string }> = ({ title = "Elims" }) => (
 );
 
 const DashboardContainer = styled.div`
-  --circle-panel-width: 940px;
+  --circle-panel-width: 900px;
   position: fixed;
   top: 50%;
   right: 58px;
@@ -85,7 +85,7 @@ const DashboardContainer = styled.div`
 const TimelineHeaderGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  height: 42px;
+  height: 38px;
   border: 1px solid var(--circle-grid-line);
   border-bottom: 0;
 `;
@@ -114,18 +114,18 @@ const CircleHeader = styled.div<{ $index: number }>`
 
 const TrackList = styled.div`
   position: relative;
-  min-height: 696px;
+  min-height: 636px;
   border: 1px solid var(--circle-grid-line);
   background:
     linear-gradient(90deg, var(--circle-grid-line) 1px, transparent 1px) 0 0 / calc(100% / 8) 100%,
-    linear-gradient(180deg, var(--circle-row-line) 1px, transparent 1px) 0 0 / 100% 58px,
+    linear-gradient(180deg, var(--circle-row-line) 1px, transparent 1px) 0 0 / 100% 53px,
     var(--circle-panel-bg);
   overflow: hidden;
 `;
 
 const TeamRow = styled.div`
   position: relative;
-  height: 58px;
+  height: 53px;
 `;
 
 const TrackSvg = styled.svg`
@@ -140,12 +140,13 @@ const TrackPath = styled.path<{ $delay: number; $dead: boolean; $duration: numbe
   --path-length: ${({ $pathLength }) => $pathLength};
   fill: none;
   stroke: ${({ $dead }) => ($dead ? "var(--circle-elim)" : "var(--circle-line)")};
-  stroke-width: 3;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: var(--path-length);
   stroke-dashoffset: var(--path-length);
   opacity: 0;
-  filter: drop-shadow(0 0 7px ${({ $dead }) => ($dead ? "var(--circle-elim-glow)" : "var(--circle-line-glow)")});
+  stroke-opacity: 0.48;
+  filter: drop-shadow(0 0 4px ${({ $dead }) => ($dead ? "var(--circle-elim-glow)" : "var(--circle-line-glow)")});
   animation: ${growPath} ${({ $duration }) => `${$duration}ms`} linear forwards;
   animation-delay: ${({ $delay }) => `${$delay}ms`};
 `;
@@ -202,7 +203,7 @@ const KillBadge = styled.div<{ $x: number; $delay: number; $terminal: boolean }>
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-width: 42px;
+  min-width: 44px;
   padding: 2px 6px 2px 3px;
   background: var(--circle-badge-bg);
   color: var(--circle-badge-text);
@@ -213,8 +214,8 @@ const KillBadge = styled.div<{ $x: number; $delay: number; $terminal: boolean }>
 `;
 
 const IconWrap = styled.span`
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   display: inline-grid;
   place-items: center;
   color: var(--circle-accent);
@@ -228,7 +229,7 @@ const IconWrap = styled.span`
 
 const KillCountText = styled.span`
   font-family: "Roboto Condensed", "Arial Narrow", sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1;
 `;
@@ -266,15 +267,15 @@ const Footer = styled.div`
   align-items: center;
   gap: 10px;
   width: max-content;
-  min-width: 178px;
-  height: 48px;
+  min-width: 192px;
+  height: 52px;
   margin-top: 22px;
   color: var(--circle-header-text);
 `;
 
 const FooterIcon = styled.span`
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   background: var(--circle-badge-bg);
@@ -282,19 +283,19 @@ const FooterIcon = styled.span`
   clip-path: polygon(0 0, 78% 0, 100% 50%, 78% 100%, 0 100%, 14% 50%);
 
   svg {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
   }
 `;
 
 const FooterLabel = styled.span`
-  height: 48px;
+  height: 52px;
   display: flex;
   align-items: center;
   padding: 0 28px 0 20px;
   background: var(--circle-accent);
   clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%, 10% 50%);
-  font-size: 25px;
+  font-size: 28px;
   font-style: italic;
   font-weight: 900;
 `;
