@@ -11,7 +11,8 @@ const TABLE_SEQUENCE_EXIT_MS = 1200;
 type TableAnimationPhase = "entering" | "exiting";
 
 const isDeadTeam = (team: any) =>
-  Boolean(team?.isEliminated) || Number(team?.playersAlive ?? 0) <= 0;
+  Boolean(team?.isEliminated || team?.is_eliminated) ||
+  Number(team?.playersAlive ?? 0) <= 0;
 
 const forceTeamAlive = (team: any) => ({
   ...team,
@@ -93,8 +94,20 @@ const LiveStandingsView: React.FC = () => {
     });
   }, [isSingleEliminationTest, standings, testEliminated, testTeamId]);
 
+  const aliveTeamsCount = useMemo(
+    () =>
+      Array.isArray(displayStandings)
+        ? displayStandings.filter((team) => !isDeadTeam(team)).length
+        : 0,
+    [displayStandings],
+  );
+
+  const shouldHideForFinalTeams = aliveTeamsCount > 0 && aliveTeamsCount <= 4;
+
   const shouldShowStandings =
-    !loading && broadcastSettings.showResultStandings;
+    !loading &&
+    broadcastSettings.showResultStandings &&
+    !shouldHideForFinalTeams;
 
   useEffect(() => {
     if (shouldShowStandings) {

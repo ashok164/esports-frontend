@@ -94,6 +94,13 @@ const CardContainer = styled(motion.div)`
   pointer-events: auto;
 `;
 
+const CardScale = styled.div`
+  position: absolute;
+  inset: 0;
+  transform: scale(0.94);
+  transform-origin: top center;
+`;
+
 // Main aggressive angled body shape
 const MainSkelBody = styled.div`
   position: absolute;
@@ -357,6 +364,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
               }}
               transition={{ type: "spring", stiffness: 180, damping: 22 }}
             >
+              <CardScale>
               {/* Core Trapezoidal Base Hull Component */}
               <MainSkelBody>
                 
@@ -419,6 +427,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
               <OrangeWrBadge>
                 <WinRateText>{formatWinRate(team.winRate ?? team.win_rate)}</WinRateText>
               </OrangeWrBadge>
+              </CardScale>
 
             </CardContainer>
           );

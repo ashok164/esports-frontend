@@ -89,6 +89,7 @@ const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
               }}
               transition={{ type: "spring", stiffness: 180, damping: 22 }}
             >
+              <CardScale>
               <Body $base={colors.base} $dark={colors.dark}>
                 <LogoPanel $logo={colors.logo}>
                   {team.logoUrl ? <Logo src={team.logoUrl} alt={team.name} /> : <LogoFallback>LOGO</LogoFallback>}
@@ -131,6 +132,7 @@ const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
               <Footer $bar={colors.bar} $text={colors.textDark}>
                 <FooterText>{`WIN RATE - ${formatWinRate(team.winRate ?? team.win_rate)}`}</FooterText>
               </Footer>
+              </CardScale>
             </Card>
           );
         })}
@@ -168,6 +170,13 @@ const Card = styled(motion.div)`
   width: ${CARD_WIDTH}px;
   height: ${CARD_HEIGHT + FOOTER_HEIGHT}px;
   pointer-events: auto;
+`;
+
+const CardScale = styled.div`
+  position: absolute;
+  inset: 0;
+  transform: scale(0.94);
+  transform-origin: top center;
 `;
 
 const Body = styled.div<{ $base: string; $dark: string }>`
