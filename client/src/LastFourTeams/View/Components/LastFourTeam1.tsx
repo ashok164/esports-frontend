@@ -378,7 +378,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                 </LogoShield>
 
                 {/* Plain Text Header Label Descriptor Elements */}
-                <WrLabel>WS</WrLabel>
+                <WrLabel>WR</WrLabel>
 
                 {/* Embedded Esports 4-Squad Individual Teammate Monitor bars */}
                 <HealthSystemRow>

@@ -16,6 +16,8 @@ import LiveStandingsFont, {
 
 const soundPath = "/ZoneShrinkSound/shrinkSound.mp3";
 const STYLE3_ALERT_RED = "#ff1010";
+const STYLE2_MATCH_NUMBER_WIDTH = 314;
+const STYLE3_MATCH_NUMBER_WIDTH = 320;
 
 const ZoneShrinkBroadcastView: React.FC = () => {
   const { broadcastSettings, isLoading: isThemeLoading } = useProjectTheme();
@@ -367,7 +369,7 @@ const ZoneCardStyle2 = styled.section<{ $dissolving: boolean }>`
   position: absolute;
   right: 26px;
   bottom: 40px;
-  width: 348px;
+  width: ${STYLE2_MATCH_NUMBER_WIDTH}px;
   height: 108px;
   overflow: hidden;
   animation: ${({ $dissolving }) => ($dissolving ? dissolveOut : slideIn)}
@@ -387,7 +389,7 @@ const ZoneCardStyle3 = styled.section<{ $dissolving: boolean }>`
   position: absolute;
   right: 26px;
   bottom: 40px;
-  width: 320px;
+  width: ${STYLE3_MATCH_NUMBER_WIDTH}px;
   animation: ${({ $dissolving }) => ($dissolving ? dissolveOut : slideIn)}
     ${({ $dissolving }) => ($dissolving ? "700ms" : "360ms")} ease-out both;
   transform-origin: right bottom;
