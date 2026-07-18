@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import styled, { css, keyframes } from "styled-components";
 import { useProjectTheme } from "../../Theme";
 import {
@@ -53,19 +54,6 @@ const ELIMINATION_BANNER_MS = 1800;
 const ELIMS_WIDTH = 82;
 const POINTS_WIDTH = 82;
 const HEALTH_WIDTH = 104;
-
-const lowHealthPulse = keyframes`
-  0%, 100% {
-    background: #ff3c14;
-    box-shadow: 0 0 4px rgba(255, 60, 20, 0.55);
-    opacity: 0.76;
-  }
-  50% {
-    background: #ff1600;
-    box-shadow: 0 0 11px rgba(255, 22, 0, 0.92);
-    opacity: 1;
-  }
-`;
 
 const redWipeEffect = keyframes`
   0% { transform: translateX(-100%); opacity: 0; }
@@ -182,6 +170,7 @@ const LiveStandings3: React.FC<{ teams?: Team[]; animationPhase?: TableAnimation
   const { theme } = useProjectTheme();
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
+  const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const previousEliminatedIdsRef = useRef<Set<string>>(new Set());
   const hasEliminationBaselineRef = useRef(false);
   const flashingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -288,6 +277,17 @@ const LiveStandings3: React.FC<{ teams?: Team[]; animationPhase?: TableAnimation
     };
   }, []);
 
+  useEffect(() => {
+    if (animationPhase !== "entering" || hasPlayedIntro) return;
+
+    const introMs = 720 + rankedTeams.length * 75;
+    const timer = window.setTimeout(() => {
+      setHasPlayedIntro(true);
+    }, introMs);
+
+    return () => window.clearTimeout(timer);
+  }, [animationPhase, hasPlayedIntro, rankedTeams.length]);
+
   const rowHeights = useMemo(() => getRowHeightMap(rankedTeams, flashingIds), [rankedTeams, flashingIds]);
 
   return (
@@ -309,6 +309,7 @@ const LiveStandings3: React.FC<{ teams?: Team[]; animationPhase?: TableAnimation
             index={index}
             rowCount={rankedTeams.length}
             animationPhase={animationPhase}
+            enableIntroAnimation={!hasPlayedIntro}
             rowHeight={rowHeights.get(getTeamId(team)) ?? ROW_HEIGHT}
             showFlags={showFlags}
             showPoints={showPoints}
@@ -343,10 +344,21 @@ const LiveStandings3Row: React.FC<{
   index: number;
   rowCount: number;
   animationPhase?: TableAnimationPhase;
+  enableIntroAnimation: boolean;
   rowHeight: number;
   showFlags: boolean;
   showPoints: boolean;
-}> = ({ team, rank, index, rowCount, animationPhase = "entering", rowHeight, showFlags, showPoints }) => {
+}> = ({
+  team,
+  rank,
+  index,
+  rowCount,
+  animationPhase = "entering",
+  enableIntroAnimation,
+  rowHeight,
+  showFlags,
+  showPoints,
+}) => {
   const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
   const eliminated = isEliminated(team);
   const previousEliminated = useRef(eliminated);
@@ -381,7 +393,15 @@ const LiveStandings3Row: React.FC<{
   }, [eliminated]);
 
   return (
-    <RowShell $height={rowHeight} $index={index} $rowCount={rowCount} $phase={animationPhase}>
+    <RowShell
+      layout="position"
+      transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
+      $height={rowHeight}
+      $index={index}
+      $rowCount={rowCount}
+      $phase={animationPhase}
+      $animateIntro={enableIntroAnimation || animationPhase === "exiting"}
+    >
       {phase === "flash_wipe" && (
         <>
           <RosterOverlay>
@@ -502,17 +522,32 @@ const Rows = styled.div`
   gap: ${ROW_GAP}px;
 `;
 
-const RowShell = styled.div<{ $height: number; $index: number; $rowCount: number; $phase?: TableAnimationPhase }>`
+const RowShell = styled(motion.div)<{
+  $height: number;
+  $index: number;
+  $rowCount: number;
+  $phase?: TableAnimationPhase;
+  $animateIntro: boolean;
+}>`
   position: relative;
   height: ${({ $height }) => $height}px;
   overflow: hidden;
   transition: height 240ms ease;
-  opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
-  animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
-    420ms cubic-bezier(0.2, 0.8, 0.2, 1)
-    ${({ $phase, $index, $rowCount }) =>
-      $phase === "exiting" ? 150 + ($rowCount - $index - 1) * 55 : 180 + $index * 75}ms
-    both;
+  will-change: transform, height;
+
+  ${({ $phase, $animateIntro, $index, $rowCount }) =>
+    $animateIntro
+      ? css`
+          opacity: ${$phase === "exiting" ? 1 : 0};
+          animation: ${$phase === "exiting" ? tableFallOut : tableFallIn}
+            420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+            ${$phase === "exiting" ? 150 + ($rowCount - $index - 1) * 55 : 180 + $index * 75}ms
+            both;
+        `
+      : css`
+          opacity: 1;
+          animation: none;
+        `}
 `;
 
 const Row = styled.div<{ $eliminated: boolean; $height: number }>`
@@ -679,7 +714,8 @@ const HealthFill = styled.span<{ $hp: number; $state: "alive" | "knocked" | "rec
     $hp > 0 &&
     $hp <= 25 &&
     css`
-      animation: ${lowHealthPulse} 700ms ease-in-out infinite;
+      background: #ff3c14;
+      box-shadow: 0 0 7px rgba(255, 60, 20, 0.75);
     `}
 `;
 
