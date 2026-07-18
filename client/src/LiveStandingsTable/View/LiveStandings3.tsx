@@ -395,6 +395,7 @@ const LiveStandings3Row: React.FC<{
   return (
     <RowShell
       layout="position"
+      layoutDependency={`${index}:${rowHeight}`}
       transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
       $height={rowHeight}
       $index={index}
@@ -577,6 +578,8 @@ const Rank = styled.div`
   text-align: center;
   font-size: 28px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 `;
 
 const Divider = styled.div`
@@ -642,6 +645,9 @@ const TagText = styled.span`
   font-weight: 700;
   letter-spacing: 0.7px;
   text-align: center;
+  line-height: 1;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const Stats = styled.div<{ $showPoints: boolean }>`
@@ -666,12 +672,18 @@ const StatWrap = styled.div<{ $width: number }>`
 `;
 
 const StatValue = styled.span`
+  display: inline-block;
+  min-width: 2ch;
   color: var(--live3-text);
   font-family: "Orbitron", "Rajdhani", "Oswald", sans-serif;
   font-size: 30px;
   font-weight: 800;
   letter-spacing: 0.5px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const HealthPanel = styled.div<{ $width: number }>`
