@@ -1,5 +1,9 @@
 import React from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
+import {
+  GFF_LATIN_EXTRA_BOLD_FONT_FAMILY,
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../../LiveStandingsTable/View/LiveStandingsFont";
 
 type MatchNumberDesign3Props = {
   dayName: string;
@@ -23,6 +27,15 @@ const formatValue = (value: number | string | undefined, fallback: string) => {
   return text || fallback;
 };
 
+const logoPulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+`;
+
 const MatchNumberDesign3: React.FC<MatchNumberDesign3Props> = ({
   dayName,
   gameNumber,
@@ -39,7 +52,6 @@ const MatchNumberDesign3: React.FC<MatchNumberDesign3Props> = ({
       <LogoPanel $color={color5}>
         <LogoMask>
           {logoUrl ? <Logo src={logoUrl} alt="Tournament logo" /> : <LogoFallback>LOGO</LogoFallback>}
-          <LogoShine />
         </LogoMask>
       </LogoPanel>
 
@@ -68,7 +80,7 @@ const Overlay = styled.div`
   width: ${PANEL_WIDTH}px;
   height: ${PANEL_HEIGHT}px;
   z-index: 999;
-  font-family: "Montserrat", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, "Montserrat", sans-serif;
   pointer-events: none;
 
   @media (min-width: 2560px) {
@@ -105,7 +117,7 @@ const LogoMask = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 14, 0.22);
+  background: transparent;
   clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
   overflow: hidden;
 `;
@@ -115,10 +127,8 @@ const Logo = styled.img`
   height: 100%;
   object-fit: contain;
   object-position: center;
-  filter:
-    brightness(1.08)
-    saturate(1.12)
-    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.24));
+  filter: none;
+  animation: ${logoPulse} 2.4s ease-in-out infinite;
 `;
 
 const LogoFallback = styled.span`
@@ -126,15 +136,6 @@ const LogoFallback = styled.span`
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.8px;
-`;
-
-const LogoShine = styled.div`
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 34%, rgba(255, 255, 255, 0.08) 58%, transparent 78%),
-    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.18), transparent 32%);
-  pointer-events: none;
 `;
 
 const ContentArea = styled.div`
@@ -160,7 +161,7 @@ const StageBanner = styled.div<{ $background: string }>`
 `;
 
 const GameText = styled.div<{ $color: string }>`
-  font-family: "Kanit", sans-serif;
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY}, "Kanit", sans-serif;
   font-size: 44px;
   font-weight: 900;
   color: ${({ $color }) => $color};

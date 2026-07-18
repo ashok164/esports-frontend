@@ -5,6 +5,7 @@ import {
   BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
   getBroadcastDisplaySettings,
 } from "../../Theme/projectTheme";
+import LiveStandingsFont, { LIVE_STANDINGS_FONT_FAMILY } from "./LiveStandingsFont";
 
 type Player = {
   hp?: number;
@@ -35,20 +36,21 @@ type Team = {
   players?: Player[];
 };
 
+type TableAnimationPhase = "entering" | "exiting";
+
 const PANEL_WIDTH = 296;
-const RANK_WIDTH = 42;
-const FLAG_WIDTH = 26;
-const STATUS_WIDTH = 77;
-const FIN_WIDTH = 32;
-const PTS_WIDTH = 45;
-const STATUS_BAR_WIDTH = 5;
+const RANK_WIDTH = 46;
+const FLAG_WIDTH = 30;
+const STATUS_WIDTH = 84;
+const FIN_WIDTH = 36;
+const PTS_WIDTH = 50;
+const STATUS_BAR_WIDTH = 6;
 const STATUS_BAR_GAP = 3;
-const HEADER_HEIGHT = 32;
-const ROW_HEIGHT = 34;
-const ELIMINATION_ROW_HEIGHT = 58;
-const MIN_COMPACT_ROW_HEIGHT = 24;
-const FOOTER_HEIGHT = 28;
-const MAX_ROWS = 16;
+const HEADER_HEIGHT = 36;
+const ROW_HEIGHT = 38;
+const ELIMINATION_ROW_HEIGHT = 64;
+const MIN_COMPACT_ROW_HEIGHT = 26;
+const FOOTER_HEIGHT = 30;
 const ELIMINATION_SWAP_DELAY_MS = 700;
 const ELIMINATION_BANNER_MS = 1800;
 const HEADER_BG = "var(--live2-color-3)";
@@ -71,11 +73,47 @@ const lowHealthPulse = keyframes`
   }
 `;
 
+const redWipeEffect = keyframes`
+  0% { transform: translateX(-100%); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+`;
+
+const eliminatedTextSwap = keyframes`
+  0% { transform: translateX(-120%) skewX(-10deg); opacity: 0; }
+  18% { opacity: 1; }
+  48% { transform: translateX(0) skewX(-10deg); opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateX(120%) skewX(-10deg); opacity: 0; }
+`;
+
+const tableFallIn = keyframes`
+  0% { opacity: 0; transform: translateY(-18px) scale(1.015); }
+  68% { opacity: 1; transform: translateY(2px) scale(1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const tableFallOut = keyframes`
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-16px) scale(0.985); }
+`;
+
+const panelChromeIn = keyframes`
+  0% { border-color: transparent; }
+  100% { border-color: var(--live2-color-4); }
+`;
+
+const panelChromeOut = keyframes`
+  0% { border-color: var(--live2-color-4); }
+  100% { border-color: transparent; }
+`;
+
 const gridTemplate = ({ $showFlags, $showPoints }: LayoutProps) =>
   [
     `${RANK_WIDTH}px`,
     $showFlags ? `${FLAG_WIDTH}px` : "",
-    "100px",
+    "112px",
     `${STATUS_WIDTH}px`,
     `${FIN_WIDTH}px`,
     $showPoints ? `${PTS_WIDTH}px` : "",
@@ -84,21 +122,25 @@ const gridTemplate = ({ $showFlags, $showPoints }: LayoutProps) =>
     .join(" ");
 
 const panelWidth = ({ $showFlags, $showPoints }: LayoutProps) =>
-  RANK_WIDTH + 100 + STATUS_WIDTH + FIN_WIDTH + ($showFlags ? FLAG_WIDTH : 0) + ($showPoints ? PTS_WIDTH : 0);
+  RANK_WIDTH + 112 + STATUS_WIDTH + FIN_WIDTH + ($showFlags ? FLAG_WIDTH : 0) + ($showPoints ? PTS_WIDTH : 0);
 
-const Panel = styled.div<LayoutProps>`
+const Panel = styled.div<LayoutProps & { $phase?: TableAnimationPhase; $rowCount: number }>`
   position: fixed;
   top: 50%;
   right: 26px;
   transform: translateY(-50%);
   width: ${panelWidth}px;
   color: #ffffff;
-  font-family: "Oswald", "Arial Narrow", sans-serif;
+  font-family: "${LIVE_STANDINGS_FONT_FAMILY}", "Oswald", "Arial Narrow", sans-serif;
   text-transform: uppercase;
   overflow: hidden;
   background: ${PANEL_BG};
-  border: 1px solid var(--live2-color-4);
+  border: 1px solid transparent;
   box-shadow: none;
+  animation: ${({ $phase }) => ($phase === "exiting" ? panelChromeOut : panelChromeIn)}
+    220ms linear
+    ${({ $phase, $rowCount }) => ($phase === "exiting" ? 40 : 80 + $rowCount * 75)}ms
+    both;
 
   /* The compact reference design expands to Style 1's broadcast footprint at 2K. */
   @media (min-width: 2560px) {
@@ -108,7 +150,7 @@ const Panel = styled.div<LayoutProps>`
   }
 `;
 
-const Header = styled.div<LayoutProps>`
+const Header = styled.div<LayoutProps & { $phase?: TableAnimationPhase; $rowCount?: number }>`
   display: grid;
   grid-template-columns: ${gridTemplate};
   align-items: center;
@@ -116,9 +158,14 @@ const Header = styled.div<LayoutProps>`
   background: ${HEADER_BG};
   border-bottom: 1px solid #000000;
   color: var(--live2-text-color-3);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
+  animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
+    420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    ${({ $phase, $rowCount = 0 }) => ($phase === "exiting" ? 160 + $rowCount * 55 : 80)}ms
+    both;
 `;
 
 const HeaderCell = styled.div<{ $rank?: boolean; $center?: boolean }>`
@@ -151,11 +198,17 @@ const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean; $height: n
   transition: height 240ms ease, opacity 220ms ease;
 `;
 
-const RowShell = styled.div<{ $height: number }>`
+const RowShell = styled.div<{ $height: number; $index: number; $rowCount: number; $phase?: TableAnimationPhase }>`
   position: relative;
   height: ${({ $height }) => $height}px;
   overflow: hidden;
   transition: height 240ms ease;
+  opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
+  animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
+    420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    ${({ $phase, $index, $rowCount }) =>
+      $phase === "exiting" ? 150 + ($rowCount - $index - 1) * 55 : 180 + $index * 75}ms
+    both;
 `;
 
 const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
@@ -166,7 +219,7 @@ const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
   background: var(--live2-color-2);
   color: var(--live2-text-color-2);
   font-family: "Roboto Condensed", "Arial Narrow", sans-serif;
-  font-size: 19px;
+  font-size: 21px;
   font-style: italic;
   font-weight: 700;
   border-right: 1px solid #000000;
@@ -193,14 +246,14 @@ const FlagCell = styled.div`
 `;
 
 const Flag = styled.img`
-  width: 16px;
-  height: 12px;
+  width: 18px;
+  height: 13px;
   object-fit: cover;
 `;
 
 const LogoWrap = styled.div<{ $eliminated: boolean }>`
-  width: 16px;
-  height: 20px;
+  width: 18px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,7 +272,7 @@ const TeamName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.5px;
   text-shadow: none;
@@ -273,15 +326,24 @@ const NumberCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
   height: 100%;
   background: transparent;
   color: var(--live2-text-color-1);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
 `;
 
 const FlashOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 60, 20, 0.9), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 60, 20, 0.94) 25%,
+    #ff8a70 50%,
+    rgba(255, 60, 20, 0.94) 75%,
+    transparent
+  );
+  mix-blend-mode: screen;
   z-index: 6;
+  animation: ${redWipeEffect} 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 `;
 
 const RosterOverlay = styled.div`
@@ -291,22 +353,25 @@ const RosterOverlay = styled.div`
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 4px 8px;
-  background: rgba(8, 8, 8, 0.96);
+  background: linear-gradient(90deg, #1f0205 0%, #0a0102 60%, #000000 100%);
+  box-shadow: inset 0 0 18px rgba(255, 60, 20, 0.38);
   z-index: 4;
 `;
 
 const PortraitFrame = styled.div`
   position: relative;
   overflow: hidden;
-  background: #121212;
+  background: #020503;
   border: 1px solid rgba(255, 60, 20, 0.65);
+  border-radius: 3px;
 `;
 
 const Portrait = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(1) brightness(0.36);
+  object-position: center top;
+  filter: grayscale(1) brightness(0.34) contrast(1.16);
 `;
 
 const Skull = styled.div`
@@ -328,17 +393,29 @@ const ElimBannerWrap = styled.div`
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  overflow: hidden;
 `;
 
 const ElimBanner = styled.div`
-  padding: 4px 14px;
-  background: rgba(255, 60, 20, 0.94);
+  min-width: 92%;
+  padding: 4px 14px 5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 60, 20, 0.98) 16%,
+    #ff8a70 50%,
+    rgba(255, 60, 20, 0.98) 84%,
+    transparent 100%
+  );
   color: #ffffff;
-  font-family: "Oswald", "Arial Narrow", sans-serif;
+  font-family: "${LIVE_STANDINGS_FONT_FAMILY}", "Oswald", "Arial Narrow", sans-serif;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.75), 0 0 10px rgba(255, 255, 255, 0.32);
+  animation: ${eliminatedTextSwap} 1.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 `;
 
 const Footer = styled.div`
@@ -349,10 +426,18 @@ const Footer = styled.div`
   height: ${FOOTER_HEIGHT}px;
   background: var(--live2-color-4);
   border: 0;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--live2-text-color-4);
   letter-spacing: 0.5px;
+`;
+
+const AnimatedFooter = styled(Footer)<{ $phase?: TableAnimationPhase; $rowCount: number }>`
+  opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
+  animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
+    420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    ${({ $phase, $rowCount }) => ($phase === "exiting" ? 40 : 240 + $rowCount * 75)}ms
+    both;
 `;
 
 const LegendItem = styled.span`
@@ -462,9 +547,12 @@ const LiveStandings2Row: React.FC<{
   team: Team;
   rank: number;
   rowHeight: number;
+  index: number;
+  rowCount: number;
+  animationPhase?: TableAnimationPhase;
   showFlags: boolean;
   showPoints: boolean;
-}> = ({ team, rank, rowHeight, showFlags, showPoints }) => {
+}> = ({ team, rank, rowHeight, index, rowCount, animationPhase = "entering", showFlags, showPoints }) => {
   const eliminated = isEliminated(team);
   const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
   const [phase, setPhase] = useState<"idle" | "flash_wipe">("idle");
@@ -494,13 +582,13 @@ const LiveStandings2Row: React.FC<{
   }, [eliminated, hasTriggered]);
 
   return (
-    <RowShell $height={rowHeight}>
+    <RowShell $height={rowHeight} $index={index} $rowCount={rowCount} $phase={animationPhase}>
       {phase === "flash_wipe" && (
         <>
           <RosterOverlay>
             {players.map((player, playerIndex) => (
               <PortraitFrame key={playerIndex}>
-                {player?.playerPic ? <Portrait src={player.playerPic} alt="" /> : null}
+                {player?.playerPic ? <Portrait src={player.playerPic} alt="" onError={hideBrokenLogo} /> : null}
                 <Skull>☠</Skull>
               </PortraitFrame>
             ))}
@@ -557,7 +645,10 @@ const LiveStandings2Row: React.FC<{
   );
 };
 
-const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
+const LiveStandings2: React.FC<{ teams?: Team[]; animationPhase?: TableAnimationPhase }> = ({
+  teams = [],
+  animationPhase = "entering",
+}) => {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousEliminatedIdsRef = React.useRef<Set<string>>(new Set());
@@ -593,13 +684,11 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
   } as React.CSSProperties;
   const rankedTeams = useMemo(
     () =>
-      [...teams]
-        .sort((left, right) => {
-          const pointDiff = pointsOf(right) - pointsOf(left);
-          if (pointDiff !== 0) return pointDiff;
-          return numberOf(right.kills) - numberOf(left.kills);
-        })
-        .slice(0, MAX_ROWS),
+      [...teams].sort((left, right) => {
+        const pointDiff = pointsOf(right) - pointsOf(left);
+        if (pointDiff !== 0) return pointDiff;
+        return numberOf(right.kills) - numberOf(left.kills);
+      }),
     [teams],
   );
 
@@ -664,8 +753,21 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
   const rowHeights = useMemo(() => getRowHeightMap(rankedTeams, flashingIds), [rankedTeams, flashingIds]);
 
   return (
-    <Panel $showFlags={showFlags} $showPoints={showPoints} style={overlayColors}>
-      <Header $showFlags={showFlags} $showPoints={showPoints}>
+    <>
+    <LiveStandingsFont />
+    <Panel
+      $showFlags={showFlags}
+      $showPoints={showPoints}
+      $phase={animationPhase}
+      $rowCount={rankedTeams.length}
+      style={overlayColors}
+    >
+        <Header
+          $showFlags={showFlags}
+          $showPoints={showPoints}
+          $phase={animationPhase}
+          $rowCount={rankedTeams.length}
+        >
         <HeaderCell $rank>#</HeaderCell>
         {showFlags && <HeaderCell $center />}
         <HeaderCell>Teams</HeaderCell>
@@ -682,6 +784,9 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
               key={team.id}
               team={team}
               rank={rank}
+              index={index}
+              rowCount={rankedTeams.length}
+              animationPhase={animationPhase}
               rowHeight={rowHeights.get(getTeamId(team)) ?? ROW_HEIGHT}
               showFlags={showFlags}
               showPoints={showPoints}
@@ -690,7 +795,7 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
         })}
       </TableBody>
 
-      <Footer>
+        <AnimatedFooter $phase={animationPhase} $rowCount={rankedTeams.length}>
         <LegendItem>
           <LegendSwatch $color="#24fe5b" />
           Alive
@@ -703,8 +808,9 @@ const LiveStandings2: React.FC<{ teams?: Team[] }> = ({ teams = [] }) => {
           <LegendSwatch $color="#4b5d60" />
           Eliminated
         </LegendItem>
-      </Footer>
+        </AnimatedFooter>
     </Panel>
+    </>
   );
 };
 

@@ -276,10 +276,13 @@ const TeamEliminatedView = () => {
       {broadcastSettings.selectedBroadcastStyle === "theme3" ? (
         <StyleThreeEliminatedCard
           team={activeEliminatedTeam}
+          isExiting={isEliminationExiting}
+          showPlayers={broadcastSettings.teamEliminationPlayerEnabled}
           color1={broadcastSettings.liveStandings2Color1}
           color2={broadcastSettings.liveStandings2Color2}
           color5={broadcastSettings.liveStandings2Color5}
           textColor1={broadcastSettings.liveStandings2TextColor1}
+          textColor2={broadcastSettings.liveStandings2TextColor2}
           textColor3={broadcastSettings.liveStandings2TextColor3}
           textColor4={broadcastSettings.liveStandings2TextColor4}
         />

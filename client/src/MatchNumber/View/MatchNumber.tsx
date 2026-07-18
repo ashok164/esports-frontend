@@ -14,6 +14,7 @@ import MatchOverlay from "./Component/MatchNumberDesign";
 import MatchNumberDesign2 from "./Component/MatchNumberDesign2";
 import MatchNumberDesign3 from "./Component/MatchNumberDesign3";
 import MatchNumberImageOverlay from "./Component/MatchNumberImageOverlay";
+import LiveStandingsFont from "../../LiveStandingsTable/View/LiveStandingsFont";
 
 const MatchNumber = () => {
   useSyncGameDetails();
@@ -77,33 +78,46 @@ const MatchNumber = () => {
       matchingMatchNumberImage?.imageUrl || broadcastSettings.matchNumberImageUrl;
 
     if (imageUrl) {
-      return <MatchNumberImageOverlay imageUrl={imageUrl} />;
+      return (
+        <>
+          <LiveStandingsFont />
+          <MatchNumberImageOverlay imageUrl={imageUrl} />
+        </>
+      );
     }
   }
 
   if (broadcastSettings.selectedBroadcastStyle === "theme3") {
     return (
-      <MatchNumberDesign3
-        {...overlayProps}
-        color1={broadcastSettings.liveStandings2Color1}
-        color2={broadcastSettings.liveStandings2Color2}
-        color5={broadcastSettings.liveStandings2Color5}
-        textColor3={broadcastSettings.liveStandings2TextColor3}
-        textColor4={broadcastSettings.liveStandings2TextColor4}
-      />
+      <>
+        <LiveStandingsFont />
+        <MatchNumberDesign3
+          {...overlayProps}
+          color1={broadcastSettings.liveStandings2Color1}
+          color2={broadcastSettings.liveStandings2Color2}
+          color5={broadcastSettings.liveStandings2Color5}
+          textColor3={broadcastSettings.liveStandings2TextColor3}
+          textColor4={broadcastSettings.liveStandings2TextColor4}
+        />
+      </>
     );
   }
 
-  return broadcastSettings.selectedBroadcastStyle === "theme2" ? (
-    <MatchNumberDesign2
-      {...overlayProps}
-      color1={broadcastSettings.liveStandings2Color1}
-      color2={broadcastSettings.liveStandings2Color2}
-      color4={broadcastSettings.liveStandings2Color4}
-      color5={broadcastSettings.liveStandings2Color5}
-    />
-  ) : (
-    <MatchOverlay {...overlayProps} />
+  return (
+    <>
+      <LiveStandingsFont />
+      {broadcastSettings.selectedBroadcastStyle === "theme2" ? (
+        <MatchNumberDesign2
+          {...overlayProps}
+          color1={broadcastSettings.liveStandings2Color1}
+          color2={broadcastSettings.liveStandings2Color2}
+          color4={broadcastSettings.liveStandings2Color4}
+          color5={broadcastSettings.liveStandings2Color5}
+        />
+      ) : (
+        <MatchOverlay {...overlayProps} />
+      )}
+    </>
   );
 };
 

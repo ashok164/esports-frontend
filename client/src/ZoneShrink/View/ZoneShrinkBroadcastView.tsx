@@ -9,6 +9,10 @@ import {
   ZONE_SHRINK_UPDATED_EVENT,
   ZoneShrinkState,
 } from "../zoneShrinkState";
+import LiveStandingsFont, {
+  GFF_LATIN_EXTRA_BOLD_FONT_FAMILY,
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../LiveStandingsTable/View/LiveStandingsFont";
 
 const soundPath = "/ZoneShrinkSound/shrinkSound.mp3";
 const STYLE3_ALERT_RED = "#ff1010";
@@ -140,17 +144,6 @@ const ZoneShrinkBroadcastView: React.FC = () => {
     };
   }, [openOverlay]);
 
-  // Inject Google Fonts dynamic fallback directly into the document frame context if missing
-  React.useEffect(() => {
-    if (!document.getElementById("broadcast-font-oswald")) {
-      const link = document.createElement("link");
-      link.id = "broadcast-font-oswald";
-      link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=Oswald:wght@400;700;900&display=swap";
-      document.head.appendChild(link);
-    }
-  }, []);
-
   if (isThemeLoading) return null;
 
   const isStyle2 = broadcastSettings.selectedBroadcastStyle === "theme2";
@@ -164,10 +157,9 @@ const ZoneShrinkBroadcastView: React.FC = () => {
     textDark: broadcastSettings.liveStandings2TextColor2,
   };
 
-  const formattedTimer = secondsLeft < 10 ? `0${Math.max(0, secondsLeft)}` : Math.max(0, secondsLeft);
-
   return (
     <Stage>
+      <LiveStandingsFont />
       {(soundBlocked || !soundUnlocked) && (
         <SoundUnlockButton type="button" onClick={unlockSound}>
           Enable Sound
@@ -204,21 +196,13 @@ const ZoneShrinkBroadcastView: React.FC = () => {
               <Style3TimerZone>
                 <Style3TimerStack>
                   <Style3TimerCountdown $urgent={secondsLeft <= 3}>
-                    00:{formattedTimer}
+                    {Math.max(0, secondsLeft)}
                   </Style3TimerCountdown>
+                  <Style3TimerUnit>SEC</Style3TimerUnit>
                 </Style3TimerStack>
               </Style3TimerZone>
             </Style3MainBanner>
 
-            <Style3BottomTickerContainer>
-              <Style3BottomTicker $background={STYLE3_ALERT_RED}>
-                {secondsLeft <= 0
-                  ? "PLAYZONE HAS LOCKED IN"
-                  : secondsLeft <= 3
-                    ? "CRITICAL TIME WARNING"
-                    : "ATTENTION: BLUE ZONE MOVEMENT COMMENCING"}
-              </Style3BottomTicker>
-            </Style3BottomTickerContainer>
           </ZoneCardStyle3>
         ) : isStyle2 ? (
           <ZoneCardStyle2 $dissolving={isDissolving}>
@@ -340,7 +324,7 @@ const Stage = styled.main`
   min-height: 100vh;
   overflow: hidden;
   background: transparent;
-  font-family: "Oswald", "Montserrat", "Arial Black", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
 `;
 
 const SoundUnlockButton = styled.button`
@@ -354,7 +338,7 @@ const SoundUnlockButton = styled.button`
   background: rgba(2, 6, 23, 0.82);
   color: #ffffff;
   padding: 0 12px;
-  font: 700 12px/1 "Segoe UI", sans-serif;
+  font: 700 12px/1 ${LIVE_STANDINGS_FONT_FAMILY};
   cursor: pointer;
 `;
 
@@ -403,7 +387,7 @@ const ZoneCardStyle3 = styled.section<{ $dissolving: boolean }>`
   position: absolute;
   right: 26px;
   bottom: 40px;
-  width: 900px; /* Perfect wide fit frame dimensions */
+  width: 320px;
   animation: ${({ $dissolving }) => ($dissolving ? dissolveOut : slideIn)}
     ${({ $dissolving }) => ($dissolving ? "700ms" : "360ms")} ease-out both;
   transform-origin: right bottom;
@@ -417,37 +401,35 @@ const ZoneCardStyle3 = styled.section<{ $dissolving: boolean }>`
 
 const Style3MainBanner = styled.div<{ $border: string }>`
   width: 100%;
-  height: 220px; /* Aligned height parameters */
+  height: 96px;
   display: flex;
   position: relative;
   overflow: hidden;
   background: #12161a;
-  border: 3px solid ${({ $border }) => $border};
-  box-shadow:
-    inset 0 0 20px rgba(255, 26, 26, 0.2),
-    0 10px 30px rgba(0, 0, 0, 0.7);
+  border: 2px solid ${({ $border }) => $border};
+  box-shadow: none;
 
   &::before {
     content: "";
     position: absolute;
     top: 0;
     right: 0;
-    width: 40px;
-    height: 40px;
-    border-top: 4px solid ${({ $border }) => $border};
-    border-right: 4px solid ${({ $border }) => $border};
+    width: 18px;
+    height: 18px;
+    border-top: 3px solid ${({ $border }) => $border};
+    border-right: 3px solid ${({ $border }) => $border};
   }
 `;
 
 const Style3LogoZone = styled.div<{ $background: string }>`
-  width: 25%;
+  width: 28%;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   background: linear-gradient(135deg, #990000 0%, ${({ $background }) => $background} 50%, #990000 100%);
-  border-right: 3px solid #ff1a1a;
-  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+  border-right: 2px solid #ff1a1a;
+  box-shadow: none;
 `;
 
 const Style3LogoGlow = styled.div`
@@ -459,9 +441,9 @@ const Style3LogoGlow = styled.div`
 const Style3ClockWrap = styled.div`
   position: relative;
   z-index: 2;
-  width: 100px;
-  height: 100px;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.6));
+  width: 46px;
+  height: 46px;
+  filter: none;
 `;
 
 const Style3ClockSvg = styled.svg`
@@ -471,89 +453,80 @@ const Style3ClockSvg = styled.svg`
 
 const Style3ClockHand = styled.line`
   stroke: #ffffff;
-  stroke-width: 5;
+  stroke-width: 6;
   stroke-linecap: round;
   transform-origin: 50px 50px;
   animation: ${style3ClockRotate} 10s linear infinite;
 `;
 
 const Style3TextZone = styled.div`
-  width: 48%;
+  width: 46%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-left: 35px;
+  padding-left: 14px;
   z-index: 1;
 `;
 
 const Style3TimerSub = styled.div<{ $color: string }>`
-  font-family: 'Oswald', 'Arial Black', sans-serif;
-  font-size: 28px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 11px;
   color: ${({ $color }) => $color};
   text-transform: uppercase;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   line-height: 1.1;
 `;
 
 const Style3AlertMain = styled.div`
   margin-top: 2px;
-  font-family: 'Oswald', 'Arial Black', sans-serif;
-  font-size: 72px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 28px;
   font-weight: 900;
   color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: -1px;
-  line-height: 0.95;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+  letter-spacing: 0;
+  line-height: 0.96;
+  text-shadow: none;
 `;
 
 const Style3TimerZone = styled.div`
-  width: 27%;
+  width: 26%;
   display: flex;
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.02);
-  border-left: 2px solid rgba(255, 26, 26, 0.2);
+  border-left: 1px solid rgba(255, 26, 26, 0.24);
 `;
 
 const Style3TimerStack = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  gap: 4px;
 `;
 
 const Style3TimerCountdown = styled.div<{ $urgent: boolean }>`
-  font-family: 'Oswald', 'Arial Black', sans-serif;
-  font-size: 95px;
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY};
+  font-size: 38px;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: -2px;
+  letter-spacing: 0;
   line-height: 1;
-  text-shadow: 0 0 20px rgba(255, 26, 26, 0.7), 2px 2px 0px #ff1a1a;
+  text-shadow: 1px 1px 0px #ff1a1a;
   animation: ${({ $urgent }) => ($urgent ? style3Urgent : "none")} 0.5s ease-in-out infinite alternate;
 `;
 
-const Style3BottomTickerContainer = styled.div`
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-top: -3px;
-  z-index: 2;
-`;
-
-const Style3BottomTicker = styled.div<{ $background: string }>`
-  background: linear-gradient(90deg, transparent 0%, ${({ $background }) => $background} 15%, ${({ $background }) => $background} 85%, transparent 100%);
+const Style3TimerUnit = styled.div`
+  margin-bottom: 6px;
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY};
+  font-size: 10px;
+  font-weight: 900;
   color: #ffffff;
-  padding: 6px 50px;
-  font-family: 'Oswald', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
+  letter-spacing: 0.6px;
+  line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  border-bottom: 2px solid #ff1a1a;
-  min-width: 500px;
-  text-align: center;
+  text-shadow: 1px 1px 0 #ff1a1a;
 `;
 
 /* --- Remaining Substyles for Style 2 --- */
@@ -666,7 +639,7 @@ const Style2Header = styled.div<{ $bar: string; $text: string }>`
   padding: 0 14px;
   background: ${({ $bar }) => $bar};
   color: ${({ $text }) => $text};
-  font-family: "Oswald", "Arial Black", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
   font-size: 21px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -692,7 +665,7 @@ const Style2NumberRow = styled.div<{ $text: string }>`
 `;
 
 const Style2Number = styled.div`
-  font-family: "Oswald", "Bebas Neue", sans-serif;
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY};
   font-size: 60px;
   font-weight: 700;
   line-height: 0.78;
@@ -702,7 +675,7 @@ const Style2Number = styled.div`
 
 const Style2Secs = styled.div`
   margin-bottom: 7px;
-  font-family: "Oswald", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 1.8px;

@@ -3,11 +3,14 @@ import styled, { css } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 import { useProjectTheme } from "../../../Theme";
 import { PlayerData, PlayerStatus, TeamData } from "./LastFourTeam1";
+import LiveStandingsFont, {
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../../LiveStandingsTable/View/LiveStandingsFont";
 
-const CARD_WIDTH = 210;
-const CARD_HEIGHT = 70;
-const LOGO_WIDTH = 58;
-const FOOTER_HEIGHT = 24;
+const CARD_WIDTH = 230;
+const CARD_HEIGHT = 78;
+const LOGO_WIDTH = 64;
+const FOOTER_HEIGHT = 27;
 const RECALLED_BLUE = "#2575fc";
 
 const withOpacity = (color: string, opacity: number) => {
@@ -55,12 +58,16 @@ const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
     bar: broadcastSettings.liveStandings2Color2,
     logo: broadcastSettings.liveStandings2Color5,
     dark: broadcastSettings.liveStandings2Color4,
+    accent: broadcastSettings.liveStandings2Color5,
+    alive: "#24fe5b",
+    recalled: RECALLED_BLUE,
     text: broadcastSettings.liveStandings2TextColor4,
     textDark: broadcastSettings.liveStandings2TextColor2,
   };
 
   return (
     <Overlay>
+      <LiveStandingsFont />
       <AnimatePresence mode="popLayout">
         {activeTopFour.map((team) => {
           const players = Array.from({ length: 4 }, (_, index) => {
@@ -104,8 +111,15 @@ const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
                           $isLow={isLow}
                           $hasRecalled={hasRecalled}
                           $dark={colors.dark}
+                          $accent={colors.accent}
                         >
-                          <HealthFill $percent={percent} $status={status} />
+                          <HealthFill
+                            $percent={percent}
+                            $status={status}
+                            $accent={colors.accent}
+                            $alive={colors.alive}
+                            $recalled={colors.recalled}
+                          />
                         </HealthBar>
                       );
                     })}
@@ -131,15 +145,20 @@ const Overlay = styled.div`
   top: 24px;
   left: 50%;
   display: flex;
-  gap: 22px;
+  gap: 26px;
   transform: translateX(-50%);
+  transform-origin: top center;
   z-index: 9999;
   pointer-events: none;
 
+  @media (min-width: 1920px) {
+    top: 34px;
+    transform: translateX(-50%) scale(1.35);
+  }
+
   @media (min-width: 2560px) {
-    top: 24px;
-    transform: translateX(-50%) scale(1.96);
-    transform-origin: top center;
+    top: 42px;
+    transform: translateX(-50%) scale(1.72);
   }
 `;
 
@@ -169,15 +188,16 @@ const LogoPanel = styled.div<{ $logo: string }>`
 `;
 
 const Logo = styled.img`
-  width: 38px;
-  height: 38px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
   filter: none;
 `;
 
 const LogoFallback = styled.span`
   color: #ffffff;
-  font-size: 12px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 1px;
 `;
@@ -192,7 +212,7 @@ const HealthZone = styled.div<{ $base: string }>`
 const HealthBars = styled.div`
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 `;
 
 const HealthBar = styled.i<{
@@ -201,16 +221,17 @@ const HealthBar = styled.i<{
   $isLow: boolean;
   $hasRecalled: boolean;
   $dark: string;
+  $accent: string;
 }>`
   position: relative;
-  width: 10px;
-  height: 30px;
+  width: 11px;
+  height: 34px;
   overflow: hidden;
   background: ${({ $isDead, $dark }) => ($isDead ? "#ffffff" : withOpacity($dark, 0.4))};
   border: 1px solid
-    ${({ $isDead, $isKnocked, $isLow, $hasRecalled }) => {
+    ${({ $isDead, $isKnocked, $isLow, $hasRecalled, $accent }) => {
       if ($isDead) return "rgba(255,255,255,0.28)";
-      if ($isKnocked) return "#ff3c14";
+      if ($isKnocked) return $accent;
       if ($isLow) return "#ffd54a";
       if ($hasRecalled) return RECALLED_BLUE;
       return "rgba(255,255,255,0.18)";
@@ -224,16 +245,22 @@ const HealthBar = styled.i<{
     `}
 `;
 
-const HealthFill = styled.span<{ $percent: number; $status: PlayerStatus }>`
+const HealthFill = styled.span<{
+  $percent: number;
+  $status: PlayerStatus;
+  $accent: string;
+  $alive: string;
+  $recalled: string;
+}>`
   position: absolute;
   left: 0;
   bottom: 0;
   width: 100%;
   height: ${({ $status, $percent }) => ($status === "dead" ? 0 : $percent)}%;
-  background: ${({ $status }) => {
-    if ($status === "knocked") return "#ff3c14";
-    if ($status === "recalled") return RECALLED_BLUE;
-    return "#24fe5b";
+  background: ${({ $status, $accent, $alive, $recalled }) => {
+    if ($status === "knocked") return $accent;
+    if ($status === "recalled") return $recalled;
+    return $alive;
   }};
 `;
 
@@ -253,8 +280,8 @@ const Footer = styled.div<{ $bar: string; $text: string }>`
 `;
 
 const FooterText = styled.span`
-  font-family: "Orbitron", "Rajdhani", "Teko", sans-serif;
-  font-size: 14px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: 1.5px;
   text-transform: uppercase;

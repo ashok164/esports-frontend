@@ -156,12 +156,20 @@ export const normalizeBroadcastDisplaySettings = (value: unknown): BroadcastDisp
   const selectedStyle = settings.selectedBroadcastStyle ?? settings.selectedBroadcastTheme;
   const style = isBroadcastStyle(selectedStyle) ? selectedStyle : "theme1";
   const speed = Number(settings.circleAnalysisAnimationSpeed ?? settings.circle_analysis_animation_speed ?? 1);
+  const showResultStandings =
+    settings.showResultStandings ?? settings.show_result_standings ?? DEFAULT_BROADCAST_DISPLAY_SETTINGS.showResultStandings;
+  const showLiveStandingsPoints =
+    settings.showLiveStandingsPoints ??
+    settings.show_live_standings_points ??
+    DEFAULT_BROADCAST_DISPLAY_SETTINGS.showLiveStandingsPoints;
   return {
     ...DEFAULT_BROADCAST_DISPLAY_SETTINGS,
     ...settings,
     circleAnalysisAnimationSpeed: Number.isFinite(speed) ? Math.max(0, speed) : 1,
     selectedBroadcastTheme: style,
     selectedBroadcastStyle: style,
+    showLiveStandingsPoints: Boolean(showLiveStandingsPoints),
+    showResultStandings: Boolean(showResultStandings),
     matchNumberImageEntries: normalizeMatchNumberImageEntries(settings.matchNumberImageEntries),
     teamEliminationImageEntries: normalizeTeamEliminationImageEntries(settings.teamEliminationImageEntries),
   } as BroadcastDisplaySettings;

@@ -13,6 +13,7 @@ import {
   BROADCAST_DISPLAY_SETTINGS_UPDATED_EVENT,
   getBroadcastDisplaySettings,
 } from "../../Theme/projectTheme";
+import LiveStandingsFont, { LIVE_STANDINGS_FONT_FAMILY } from "./LiveStandingsFont";
 
 const ELIMINATION_BANNER_MS = 2000;
 const ELIMINATION_SWAP_DELAY_MS = 1000;
@@ -54,6 +55,7 @@ interface StandingsTableProps {
   maxRows?: number;
   championBannerUrl?: string;
   championRushTeamKeys?: string[];
+  animationPhase?: "entering" | "exiting";
 }
 
 /* ================= THEME & DESIGN SYSTEM ================= */
@@ -100,23 +102,34 @@ const eliminatedTextSwap = keyframes`
   100% { transform: translateX(120%) skewX(-10deg); opacity: 0; }
 `;
 
+const tableFallIn = keyframes`
+  0% { opacity: 0; transform: translateY(-22px) scale(1.015); }
+  68% { opacity: 1; transform: translateY(2px) scale(1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const tableFallOut = keyframes`
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-18px) scale(0.985); }
+`;
+
 /* ================= LAYOUT CONSTANTS ================= */
-const BASE_ROW_HEIGHT = 64;
-const SINGLE_ELIMINATION_ROW_HEIGHT = 112;
-const MULTI_ELIMINATION_ROW_HEIGHT = 96;
-const MIN_COMPACT_ROW_HEIGHT = 42;
+const BASE_ROW_HEIGHT = 68;
+const SINGLE_ELIMINATION_ROW_HEIGHT = 118;
+const MULTI_ELIMINATION_ROW_HEIGHT = 102;
+const MIN_COMPACT_ROW_HEIGHT = 44;
 
 const GRID_LAYOUT = css<{ $showFlags: boolean; $showPoints: boolean }>`
   display: grid;
   grid-template-columns: ${({ $showFlags, $showPoints }) =>
     [
-      "62px",
-      $showFlags ? "58px" : "",
-      $showFlags ? "58px" : "48px",
-      "minmax(120px, 1fr)",
-      "96px",
-      $showPoints ? "18px 66px" : "",
-      "18px 66px",
+      "66px",
+      $showFlags ? "62px" : "",
+      $showFlags ? "62px" : "52px",
+      "minmax(136px, 1fr)",
+      "104px",
+      $showPoints ? "20px 72px" : "",
+      "20px 72px",
     ]
       .filter(Boolean)
       .join(" ")};
@@ -143,8 +156,8 @@ const Board = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
   right: 26px;
   transform: translateY(-50%) scale(0.51);
   transform-origin: right center;
-  width: ${({ $showFlags, $showPoints }) => 580 - ($showFlags ? 0 : 68) - ($showPoints ? 0 : 84)}px;
-  font-family: "Orbitron", "Oswald", "Inter", sans-serif;
+  width: ${({ $showFlags, $showPoints }) => 626 - ($showFlags ? 0 : 72) - ($showPoints ? 0 : 92)}px;
+  font-family: "${LIVE_STANDINGS_FONT_FAMILY}", "Orbitron", "Oswald", "Inter", sans-serif;
   filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.85))
     drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
   pointer-events: auto;
@@ -170,9 +183,9 @@ const Frame = styled.div`
 `;
 
 /* ================= HUD TABLE HEADER ================= */
-const HeaderRow = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
+const HeaderRow = styled.div<{ $showFlags: boolean; $showPoints: boolean; $phase?: "entering" | "exiting"; $rowCount?: number }>`
   ${GRID_LAYOUT}
-  height: 44px;
+  height: 48px;
   position: relative;
   background: linear-gradient(
     135deg,
@@ -183,10 +196,15 @@ const HeaderRow = styled.div<{ $showFlags: boolean; $showPoints: boolean }>`
   border-bottom: 2px solid rgba(0, 0, 0, 0.28);
   color: ${Theme.ink};
   font-weight: 900;
-  font-size: 13px;
+  font-size: 17px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   flex-shrink: 0;
+  opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
+  animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
+    420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    ${({ $phase, $rowCount = 0 }) => ($phase === "exiting" ? 160 + $rowCount * 55 : 80)}ms
+    both;
   clip-path: polygon(
     0 0,
     98% 0,
@@ -390,7 +408,7 @@ const BaseContentGroup = styled.div<{ $hidden: boolean }>`
 const PipeDivider = styled.div`
   font-family: system-ui, sans-serif;
   font-weight: 500;
-  font-size: 28px;
+  font-size: 30px;
   color: rgba(98, 223, 99, 0.65);
   text-align: center;
   line-height: 1;
@@ -402,7 +420,7 @@ const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 900;
   z-index: 25;
 
@@ -444,8 +462,8 @@ const LogoCellWrap = styled(CellWrap)<{ $showFlags: boolean }>`
 `;
 
 const CountryBox = styled.div`
-  width: 38px;
-  height: 25px;
+  width: 41px;
+  height: 27px;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(98, 223, 99, 0.12);
   border-radius: 2px;
@@ -453,8 +471,8 @@ const CountryBox = styled.div`
 `;
 
 const LogoBox = styled.div`
-  width: 39px;
-  height: 31px;
+  width: 43px;
+  height: 34px;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(98, 223, 99, 0.12);
   border-radius: 3px;
@@ -479,7 +497,7 @@ const Logo = styled.img`
 `;
 
 const TeamName = styled.div<{ $dead?: boolean }>`
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   text-transform: uppercase;
   color: ${(p) => (p.$dead ? Theme.muted : "#c6ffcf")};
@@ -493,7 +511,7 @@ const TeamName = styled.div<{ $dead?: boolean }>`
 
 const Num = styled.div`
   text-align: center;
-  font-size: 25px;
+  font-size: 27px;
   font-weight: 800;
   color: #a6ffbe;
   height: 100%;
@@ -550,7 +568,7 @@ const Fill = styled.div<{ $hp: number; $status: PlayerStatus | "empty" }>`
 
 /* ================= FOOTER COMPONENT ================= */
 const Footer = styled.div`
-  height: 40px;
+  height: 44px;
   position: relative;
   background: linear-gradient(
     135deg,
@@ -576,6 +594,14 @@ const Footer = styled.div`
   );
 `;
 
+const AnimatedFooter = styled(Footer)<{ $phase?: "entering" | "exiting"; $rowCount: number }>`
+  opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
+  animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
+    420ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    ${({ $phase, $rowCount }) => ($phase === "exiting" ? 40 : 240 + $rowCount * 75)}ms
+    both;
+`;
+
 const Legend = styled.div`
   display: flex;
   gap: 14px;
@@ -587,7 +613,7 @@ const LegendItem = styled.div`
   align-items: center;
   gap: 5px;
   color: ${Theme.ink};
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 900;
   text-transform: uppercase;
 `;
@@ -605,7 +631,7 @@ const EmptyState = styled.div`
   align-items: center;
   justify-content: center;
   color: ${Theme.muted};
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
 `;
@@ -880,13 +906,13 @@ const TeamRowComponent = memo(function TeamRow({
 /* ================= MAIN COMPONENT ================= */
 export default function StandingsTable({
   teams = [],
-  maxRows = 12,
+  maxRows,
   championBannerUrl = "",
   championRushTeamKeys = [],
+  animationPhase = "entering",
 }: StandingsTableProps) {
   const [displaySettings, setDisplaySettings] = useState(getBroadcastDisplaySettings);
   console.log("Want to see api Call for realtime api? lol you cant track api");
-  const [isFinalPhaseLocked, setIsFinalPhaseLocked] = useState(false);
   const [flashingIds, setFlashingIds] = useState<Set<string>>(() => new Set());
   const previousDeadIdsRef = useRef<Set<string>>(new Set());
   const hasDeadBaselineRef = useRef(false);
@@ -901,34 +927,12 @@ export default function StandingsTable({
         if (pointDiff !== 0) return pointDiff;
         return toNumber(b.kills) - toNumber(a.kills);
       })
-      .slice(0, maxRows)
+      .slice(0, maxRows ?? teams.length)
       .map((team, index) => ({
         ...team,
         rank: index + 1,
       }));
   }, [teams, maxRows]);
-
-  const aliveTeamsCount = useMemo(
-    () =>
-      teams.filter(
-        (team) =>
-          Number(team?.playersAlive ?? 0) > 0 &&
-          !team?.isEliminated &&
-          !team?.is_eliminated,
-      ).length,
-    [teams],
-  );
-
-  useEffect(() => {
-    if (aliveTeamsCount === 4) {
-      setIsFinalPhaseLocked(true);
-      return;
-    }
-
-    if (aliveTeamsCount === 0 || aliveTeamsCount > 4) {
-      setIsFinalPhaseLocked(false);
-    }
-  }, [aliveTeamsCount]);
 
   useEffect(() => {
     const syncDisplaySettings = () => setDisplaySettings(getBroadcastDisplaySettings());
@@ -1040,39 +1044,40 @@ export default function StandingsTable({
     }
   }, [sortedTeams]);
 
-  if (isFinalPhaseLocked) {
-    return null;
-  }
-
   if (sortedTeams.length === 0) {
     return (
-      <Board $showFlags={showFlags} $showPoints={showPoints}>
-        <Frame>
-          <HeaderRow $showFlags={showFlags} $showPoints={showPoints}>
-            <HeaderCell $center>#</HeaderCell>
-            {showFlags && <HeaderCell />}
-            <HeaderCell />
-            <HeaderCell $center>TEAM</HeaderCell>
-            <HeaderCell $center>ALIVE</HeaderCell>
-            {showPoints && (
-              <>
-                <PipeDivider>|</PipeDivider>
-                <HeaderCell $center>PTS</HeaderCell>
-              </>
-            )}
-            <PipeDivider>|</PipeDivider>
-            <HeaderCell $center>KILL</HeaderCell>
+      <>
+        <LiveStandingsFont />
+        <Board $showFlags={showFlags} $showPoints={showPoints}>
+          <Frame>
+          <HeaderRow $showFlags={showFlags} $showPoints={showPoints} $phase={animationPhase} $rowCount={0}>
+              <HeaderCell $center>#</HeaderCell>
+              {showFlags && <HeaderCell />}
+              <HeaderCell />
+              <HeaderCell $center>TEAM</HeaderCell>
+              <HeaderCell $center>ALIVE</HeaderCell>
+              {showPoints && (
+                <>
+                  <PipeDivider>|</PipeDivider>
+                  <HeaderCell $center>PTS</HeaderCell>
+                </>
+              )}
+              <PipeDivider>|</PipeDivider>
+              <HeaderCell $center>KILL</HeaderCell>
           </HeaderRow>
-          <EmptyState>No Teams Active</EmptyState>
-        </Frame>
-      </Board>
+            <EmptyState>No Teams Active</EmptyState>
+          </Frame>
+        </Board>
+      </>
     );
   }
 
   return (
+    <>
+    <LiveStandingsFont />
     <Board $showFlags={showFlags} $showPoints={showPoints}>
       <Frame>
-        <HeaderRow $showFlags={showFlags} $showPoints={showPoints}>
+        <HeaderRow $showFlags={showFlags} $showPoints={showPoints} $phase={animationPhase} $rowCount={sortedTeams.length}>
           <HeaderCell $center>#</HeaderCell>
           {showFlags && <HeaderCell />}
           <HeaderCell />
@@ -1097,12 +1102,19 @@ export default function StandingsTable({
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{
-                  opacity: 1,
-                  y: 0,
+                  opacity: animationPhase === "exiting" ? 0 : 1,
+                  y: animationPhase === "exiting" ? -18 : 0,
                   height: rowHeights.get(getTeamId(team)) ?? BASE_ROW_HEIGHT,
                 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                transition={{
+                  duration: 0.42,
+                  delay:
+                    animationPhase === "exiting"
+                      ? 0.16 + (sortedTeams.length - index - 1) * 0.055
+                      : 0.18 + index * 0.075,
+                  ease: [0.2, 0.8, 0.2, 1],
+                }}
               >
                 <TeamRowComponent
                   index={index}
@@ -1123,7 +1135,7 @@ export default function StandingsTable({
           </AnimatePresence>
         </RowsContainer>
 
-        <Footer>
+        <AnimatedFooter $phase={animationPhase} $rowCount={sortedTeams.length}>
           <Legend>
             <LegendItem>
               <ColorSquare $color={Theme.aliveYellow} />
@@ -1138,8 +1150,9 @@ export default function StandingsTable({
               <ColorSquare $color="transparent" /> ELIMINATED
             </LegendItem>
           </Legend>
-        </Footer>
+        </AnimatedFooter>
       </Frame>
     </Board>
+    </>
   );
 }

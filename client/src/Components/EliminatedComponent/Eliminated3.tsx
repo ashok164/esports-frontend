@@ -1,9 +1,15 @@
 import React from "react";
 import styled, { keyframes } from "styled-components";
+import LiveStandingsFont, {
+  GFF_LATIN_EXTRA_BOLD_FONT_FAMILY,
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../LiveStandingsTable/View/LiveStandingsFont";
 
 type TeamNotificationData = {
   name?: string;
   logoUrl?: string;
+  countryFlag?: string;
+  countryUrl?: string;
   rank?: number;
   eliminatedNumber?: number;
   kills?: number;
@@ -13,52 +19,118 @@ type TeamNotificationData = {
   teamTag?: string;
   shortName?: string;
   tag?: string;
+  players?: PlayerNotificationData[];
+};
+
+type PlayerNotificationData = {
+  playerPic?: string;
+  avatarUrl?: string;
+  photoUrl?: string;
+  player_image?: string;
+  player_pic?: string;
+  name?: string;
 };
 
 type Eliminated3Props = {
   team?: TeamNotificationData;
   tournamentName?: string;
+  isExiting?: boolean;
+  showPlayers?: boolean;
   color1: string;
   color2: string;
+  color3?: string;
   color5: string;
   textColor1: string;
+  textColor2?: string;
   textColor3: string;
   textColor4: string;
 };
 
-const WIDTH = 900;
+const WIDTH = 430;
+const PLAYER_WIDTH = 760;
+const PLAYER_HEIGHT = 330;
 const STYLE3_BORDER_RED = "#ff1010";
 const enter = keyframes`
   0% {
-    transform: translateY(-18px);
+    transform: translateY(-24px) scale(0.965);
     opacity: 0;
   }
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
-  }
-`;
-
-const paintSwipe = keyframes`
-  0% {
-    transform: translateX(-118%) skewX(-16deg);
-  }
-  60% {
-    transform: translateX(-6%) skewX(-16deg);
-  }
-  100% {
-    transform: translateX(118%) skewX(-16deg);
   }
 `;
 
 const contentReveal = keyframes`
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.985);
+    transform: translateY(8px);
+    filter: blur(1.2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+`;
+
+const exit = keyframes`
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-18px) scale(0.96);
+    opacity: 0;
+  }
+`;
+
+const eliminatedWipe = keyframes`
+  0% {
+    transform: translateX(-114%) skewX(-8deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  48% {
+    transform: translateX(0) skewX(-8deg);
+    opacity: 1;
+  }
+  74% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(114%) skewX(-8deg);
+    opacity: 0;
+  }
+`;
+
+const wipeTextPop = keyframes`
+  0% {
+    opacity: 0;
+    transform: skewX(8deg) scale(0.94);
+  }
+  24% {
+    opacity: 1;
+    transform: skewX(8deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: skewX(8deg) scale(0.98);
+  }
+`;
+
+const playerCardReveal = keyframes`
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    filter: blur(1.4px);
   }
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+    filter: blur(0);
   }
 `;
 
@@ -68,73 +140,134 @@ const getTeamLabel = (team?: TeamNotificationData) =>
 const getPlacement = (team?: TeamNotificationData) =>
   Math.max(1, Number(team?.eliminatedNumber ?? team?.rank ?? 1));
 
-const getPlacementPoints = (team?: TeamNotificationData) =>
-  Math.max(0, Number(team?.placementPoints ?? 0));
-
 const getTotalPoints = (team?: TeamNotificationData) =>
   Math.max(0, Number(team?.totalPoints ?? team?.rankingScore ?? 0));
 
+const getPlayerImage = (player?: PlayerNotificationData) =>
+  player?.playerPic ||
+  player?.avatarUrl ||
+  player?.photoUrl ||
+  player?.player_image ||
+  player?.player_pic ||
+  "";
+
 const Eliminated3: React.FC<Eliminated3Props> = ({
   team,
+  isExiting = false,
+  showPlayers = false,
+  color1,
+  color2,
+  color5,
+  textColor1,
+  textColor2,
   textColor3,
   textColor4,
 }) => {
   const placement = getPlacement(team);
   const kills = Math.max(0, Number(team?.kills ?? 0));
-  const placementPoints = getPlacementPoints(team);
   const totalPoints = getTotalPoints(team);
+  const placementPoints = Math.max(0, totalPoints - kills);
+  const bodyColor = color1 || "#12161a";
+  const accentColor = color2 || STYLE3_BORDER_RED;
+  const red = color5 || STYLE3_BORDER_RED;
+  const teamTextColor = textColor1 || "#ffffff";
+  const accentTextColor = textColor2 || "#ffffff";
+  const eliminatedTextColor = textColor3 || "#ffffff";
+  const stripTextColor = textColor1 || textColor4 || "#ffffff";
+  const playerSlots = Array.from({ length: 4 }, (_, index) => team?.players?.[index]);
+
+  if (showPlayers) {
+    return (
+      <Overlay $showPlayers>
+        <LiveStandingsFont />
+        <PlayerOnlyWrapper $isExiting={isExiting}>
+          <PlayerRankBadge $background={accentColor} $color={accentTextColor}>
+            {`#${placement}`}
+          </PlayerRankBadge>
+          <PlayerBackPlate $background={bodyColor} $border={red} />
+          <PlayerOnlyGrid>
+            {playerSlots.map((player, index) => {
+              const src = getPlayerImage(player);
+              const playerName = player?.name || `Player ${index + 1}`;
+
+              return src ? (
+                <PlayerOnlyImage
+                  key={index}
+                  $index={index}
+                  src={src}
+                  alt={playerName}
+                />
+              ) : (
+                <PlayerFallback key={index} $index={index}>
+                  {index + 1}
+                </PlayerFallback>
+              );
+            })}
+          </PlayerOnlyGrid>
+          <PlayerBannerRow>
+            <PlayerBrandBlock $background={bodyColor} $border={red}>
+              {team?.countryFlag || team?.countryUrl ? (
+                <PlayerCountryFlag
+                  src={team.countryFlag || team.countryUrl}
+                  alt=""
+                />
+              ) : null}
+              <PlayerLogoSlot>
+                {team?.logoUrl ? (
+                  <PlayerTeamLogo src={team.logoUrl} alt={getTeamLabel(team)} />
+                ) : (
+                  <PlayerLogoFallback>{getTeamLabel(team)}</PlayerLogoFallback>
+                )}
+              </PlayerLogoSlot>
+            </PlayerBrandBlock>
+            <PlayerModeTitle $background={STYLE3_BORDER_RED} $color="#ffffff">
+              ELIMINATED
+            </PlayerModeTitle>
+          </PlayerBannerRow>
+        </PlayerOnlyWrapper>
+      </Overlay>
+    );
+  }
 
   return (
-    <Overlay>
-      <Wrapper>
-        <MainBanner $border={STYLE3_BORDER_RED}>
-          <PaintSwipeLayer>
-            <PaintCore />
-            <PaintEdge />
-            <PaintChunk $top="14px" $left="42px" $width="168px" $height="38px" $rotate="-8deg" />
-            <PaintChunk $top="48px" $left="180px" $width="244px" $height="30px" $rotate="4deg" />
-            <PaintChunk $top="98px" $left="132px" $width="310px" $height="34px" $rotate="-5deg" />
-            <PaintChunk $top="40px" $left="470px" $width="198px" $height="42px" $rotate="-11deg" />
-            <PaintChunk $top="104px" $left="548px" $width="252px" $height="28px" $rotate="7deg" />
-            <PaintDrip $top="34px" $left="250px" $height="56px" />
-            <PaintDrip $top="86px" $left="610px" $height="46px" />
-            <PaintDrip $top="58px" $left="736px" $height="52px" />
-          </PaintSwipeLayer>
+    <Overlay $showPlayers={false}>
+      <LiveStandingsFont />
+      <Wrapper $isExiting={isExiting} $showPlayers={false}>
+        <EliminatedWipe $background={STYLE3_BORDER_RED} $showPlayers={false}>
+          <WipeText>ELIMINATED</WipeText>
+        </EliminatedWipe>
+        <MainBanner $background={bodyColor} $border={red} $showPlayers={false}>
+          <ContentLayer $showPlayers={false}>
+            <LogoZone $background={red}>
+              {team?.logoUrl ? <TeamLogo src={team.logoUrl} alt={getTeamLabel(team)} /> : <LogoFallback>{getTeamLabel(team)}</LogoFallback>}
+            </LogoZone>
 
-          <ContentLayer>
-          <LogoZone $background={STYLE3_BORDER_RED}>
-            <LogoGlow />
-            {team?.logoUrl ? <TeamLogo src={team.logoUrl} alt={getTeamLabel(team)} /> : <LogoFallback>{getTeamLabel(team)}</LogoFallback>}
-          </LogoZone>
+            <TextZone $showPlayers={false}>
+              <TeamName $color={teamTextColor} $showPlayers={false}>{getTeamLabel(team)}</TeamName>
+              <EliminatedTitle $color={eliminatedTextColor} $showPlayers={false}>ELIMINATED</EliminatedTitle>
+            </TextZone>
 
-          <TextZone>
-            <TeamName>{getTeamLabel(team)}</TeamName>
-            <EliminatedTitle $color={textColor3}>ELIMINATED</EliminatedTitle>
-          </TextZone>
-
-          <StatsZone>
-            <RankBox $background={STYLE3_BORDER_RED}>{`RANK #${String(placement).padStart(2, "0")}`}</RankBox>
-            <StatsTable $border={STYLE3_BORDER_RED}>
-              <StatRow $border={STYLE3_BORDER_RED}>
-                <span>Total Kills</span>
-                <StatValue $color={textColor3}>{kills}</StatValue>
-              </StatRow>
-              <StatRow $border={STYLE3_BORDER_RED}>
-                <span>Placing Points</span>
-                <StatValue $color={textColor3}>{placementPoints}</StatValue>
-              </StatRow>
-              <StatRow $border={STYLE3_BORDER_RED}>
-                <span>Total Points</span>
-                <StatValue $color={textColor3}>{totalPoints}</StatValue>
-              </StatRow>
-            </StatsTable>
-          </StatsZone>
+            <RankChip $background={accentColor} $color={accentTextColor}>
+              {`#${placement}`}
+            </RankChip>
           </ContentLayer>
         </MainBanner>
-
-        <BottomTicker $background={STYLE3_BORDER_RED} $color={textColor4}>
-          {`ELIMINATION | ${getTeamLabel(team)}`}
-        </BottomTicker>
+        <StatsStrip $background={bodyColor} $border={red} $color={stripTextColor} $showPlayers={false}>
+          <StatItem>
+            <span>KILLS</span>
+            <strong>{kills}</strong>
+          </StatItem>
+          <StatDivider />
+          <StatItem>
+            <span>PLACE</span>
+            <strong>{placementPoints}</strong>
+          </StatItem>
+          <StatDivider />
+          <StatItem>
+            <span>POINTS</span>
+            <strong>{totalPoints}</strong>
+          </StatItem>
+        </StatsStrip>
       </Wrapper>
     </Overlay>
   );
@@ -142,40 +275,39 @@ const Eliminated3: React.FC<Eliminated3Props> = ({
 
 export default Eliminated3;
 
-const Overlay = styled.div`
+const Overlay = styled.div<{ $showPlayers: boolean }>`
   position: fixed;
-  top: 16px;
+  top: 26px;
   left: 50%;
-  transform: translateX(-50%);
-  width: ${WIDTH}px;
-  height: 240px;
+  width: ${({ $showPlayers }) => ($showPlayers ? PLAYER_WIDTH : WIDTH)}px;
+  height: ${({ $showPlayers }) => ($showPlayers ? PLAYER_HEIGHT : 128)}px;
   z-index: 9999;
   pointer-events: none;
+  transform: translateX(-50%);
+  transform-origin: top center;
 
   @media (min-width: 2560px) {
-    top: 16px;
-    transform: translateX(-50%) scale(1.96);
-    transform-origin: center top;
+    top: 34px;
+    transform: translateX(-50%) scale(1.72);
   }
 `;
 
-const Wrapper = styled.div`
-  width: ${WIDTH}px;
+const Wrapper = styled.div<{ $isExiting: boolean; $showPlayers: boolean }>`
+  width: ${({ $showPlayers }) => ($showPlayers ? PLAYER_WIDTH : WIDTH)}px;
+  height: ${({ $showPlayers }) => ($showPlayers ? PLAYER_HEIGHT : 128)}px;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  animation: ${enter} 260ms ease-out both;
+  animation: ${({ $isExiting }) => ($isExiting ? exit : enter)}
+    ${({ $isExiting }) => ($isExiting ? "420ms" : "620ms")}
+    cubic-bezier(0.22, 1, 0.36, 1) both;
 `;
 
-const MainBanner = styled.div<{ $border: string }>`
+const MainBanner = styled.div<{ $background: string; $border: string; $showPlayers: boolean }>`
   width: 100%;
-  height: 188px;
-  background: #12161a;
-  border: none;
-  box-shadow:
-    inset 0 0 0 3px ${({ $border }) => $border},
-    0 10px 30px rgba(0, 0, 0, 0.35);
+  height: ${({ $showPlayers }) => ($showPlayers ? 216 : 96)}px;
+  background: ${({ $background }) => $background};
+  border: 2px solid ${({ $border }) => $border};
+  clip-path: polygon(34px 0, 100% 0, calc(100% - 22px) 100%, 0 100%, 0 34px);
+  box-shadow: none;
   display: flex;
   position: relative;
   overflow: hidden;
@@ -185,261 +317,354 @@ const MainBanner = styled.div<{ $border: string }>`
     position: absolute;
     top: 0;
     right: 0;
-    width: 28px;
-    height: 22px;
-    border-top: 4px solid ${({ $border }) => $border};
-    border-right: 4px solid ${({ $border }) => $border};
+    width: 18px;
+    height: 18px;
+    border-top: 3px solid ${({ $border }) => $border};
+    border-right: 3px solid ${({ $border }) => $border};
   }
 `;
 
-const PaintSwipeLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  animation: ${paintSwipe} 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
-`;
-
-const PaintCore = styled.div`
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(255, 16, 16, 0) 0%, rgba(255, 24, 24, 0.18) 8%, rgba(255, 24, 24, 0.96) 18%, rgba(255, 0, 0, 1) 40%, rgba(180, 0, 0, 0.95) 64%, rgba(255, 40, 40, 0.36) 82%, rgba(255, 16, 16, 0) 100%);
-  filter: saturate(1.08);
-  opacity: 0.9;
-`;
-
-const PaintEdge = styled.div`
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 180px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 26%),
-    linear-gradient(180deg, rgba(255, 48, 48, 0.98), rgba(160, 0, 0, 0.96));
-  clip-path: polygon(0 0, 88% 0, 100% 18%, 92% 34%, 100% 52%, 90% 68%, 100% 86%, 84% 100%, 0 100%);
-  opacity: 0.96;
-`;
-
-const PaintChunk = styled.div<{
-  $top: string;
-  $left: string;
-  $width: string;
-  $height: string;
-  $rotate: string;
-}>`
-  position: absolute;
-  top: ${({ $top }) => $top};
-  left: ${({ $left }) => $left};
-  width: ${({ $width }) => $width};
-  height: ${({ $height }) => $height};
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06) 22%, rgba(90, 0, 0, 0.12) 100%),
-    linear-gradient(180deg, rgba(255, 52, 52, 0.98), rgba(186, 0, 0, 0.98));
-  clip-path: polygon(0 16%, 10% 0, 88% 0, 100% 22%, 96% 50%, 100% 82%, 88% 100%, 10% 100%, 0 76%, 4% 48%);
-  transform: rotate(${({ $rotate }) => $rotate}) skewX(-14deg);
-  opacity: 0.94;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background: inherit;
-  }
-
-  &::before {
-    left: -20px;
-    width: 34px;
-    clip-path: polygon(100% 0, 100% 100%, 0 72%, 10px 0);
-  }
-
-  &::after {
-    right: -18px;
-    width: 46px;
-    clip-path: polygon(0 0, 100% 26%, calc(100% - 16px) 100%, 0 100%);
-  }
-`;
-
-const PaintDrip = styled.div<{
-  $top: string;
-  $left: string;
-  $height: string;
-}>`
-  position: absolute;
-  top: ${({ $top }) => $top};
-  left: ${({ $left }) => $left};
-  width: 16px;
-  height: ${({ $height }) => $height};
-  background: linear-gradient(180deg, rgba(255, 48, 48, 0.94), rgba(150, 0, 0, 0.95));
-  border-radius: 12px;
-  opacity: 0.88;
-  filter: blur(0.2px);
-
-  &::after {
-    content: "";
-    position: absolute;
-    left: -5px;
-    bottom: -10px;
-    width: 26px;
-    height: 20px;
-    background: inherit;
-    border-radius: 50%;
-  }
-`;
-
-const ContentLayer = styled.div`
+const ContentLayer = styled.div<{ $showPlayers: boolean }>`
   position: relative;
   z-index: 2;
   width: 100%;
   height: 100%;
   display: flex;
-  animation: ${contentReveal} 360ms ease-out 180ms both;
+  animation: ${contentReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1) 220ms both;
+`;
+
+const EliminatedWipe = styled.div<{ $background: string; $showPlayers: boolean }>`
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: ${({ $showPlayers }) => ($showPlayers ? 216 : 96)}px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: ${({ $background }) => $background};
+  color: #ffffff;
+  clip-path: polygon(34px 0, 100% 0, calc(100% - 22px) 100%, 0 100%, 0 34px);
+  transform-origin: center;
+  animation: ${eliminatedWipe} 1.45s cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+`;
+
+const WipeText = styled.div`
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 34px;
+  font-weight: 900;
+  color: inherit;
+  letter-spacing: 1px;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: skewX(8deg);
+  animation: ${wipeTextPop} 1.45s cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
 `;
 
 const LogoZone = styled.div<{ $background: string }>`
-  width: 22%;
+  width: 28%;
+  flex: 0 0 28%;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, ${({ $background }) => $background} 0%, ${({ $background }) => $background} 76%, rgba(0, 0, 0, 0.14) 100%);
-  box-shadow:
-    inset -3px 0 0 ${({ $background }) => $background},
-    5px 0 15px rgba(0, 0, 0, 0.5);
-`;
-
-const LogoGlow = styled.div`
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+  background: #050608;
+  border-right: 2px solid ${({ $background }) => $background};
+  clip-path: polygon(24px 0, 100% 0, calc(100% - 18px) 100%, 0 100%, 0 24px);
+  box-shadow: none;
 `;
 
 const TeamLogo = styled.img`
-  width: 122px;
-  height: 122px;
+  width: 82%;
+  height: 82%;
+  max-width: 132px;
+  max-height: 132px;
   z-index: 2;
   object-fit: contain;
-  filter: drop-shadow(0px 0px 10px rgba(255, 255, 255, 0.6));
+  filter: none;
 `;
 
 const LogoFallback = styled.div`
   z-index: 2;
-  padding: 0 18px;
+  padding: 0 10px;
   color: #ffffff;
-  font-family: "Oswald", sans-serif;
-  font-size: 24px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 14px;
   font-weight: 900;
   text-align: center;
   line-height: 1;
   text-transform: uppercase;
 `;
 
-const TextZone = styled.div`
-  width: 50%;
+const TextZone = styled.div<{ $showPlayers: boolean }>`
+  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 0 22px 0 26px;
+  justify-content: ${({ $showPlayers }) => ($showPlayers ? "flex-start" : "center")};
+  min-width: 0;
+  padding: ${({ $showPlayers }) => ($showPlayers ? "16px 12px 0 18px" : "0 8px 0 16px")};
   z-index: 1;
 `;
 
-const EliminatedTitle = styled.div<{ $color: string }>`
-  font-family: "Oswald", sans-serif;
-  font-size: 62px;
+const EliminatedTitle = styled.div<{ $color: string; $showPlayers: boolean }>`
+  align-self: flex-start;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: ${({ $showPlayers }) => ($showPlayers ? 34 : 32)}px;
   font-weight: 900;
+  background: transparent;
   color: ${({ $color }) => $color};
   text-transform: uppercase;
-  letter-spacing: -1px;
-  line-height: 0.96;
-  text-shadow: 0px 0px 12px rgba(0, 0, 0, 0.12);
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 0;
+  text-shadow: none;
   max-width: 100%;
   white-space: nowrap;
 `;
 
-const TeamName = styled.div`
-  font-family: "Oswald", sans-serif;
-  font-size: 24px;
-  color: #ffffff;
+const TeamName = styled.div<{ $color: string; $showPlayers: boolean }>`
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: ${({ $showPlayers }) => ($showPlayers ? 16 : 14)}px;
+  color: ${({ $color }) => $color};
   text-transform: uppercase;
   font-weight: 700;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
   line-height: 1;
 `;
 
-const StatsZone = styled.div`
-  width: 28%;
+const RankChip = styled.div<{ $background: string; $color: string }>`
+  width: 104px;
+  flex: 0 0 104px;
+  height: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 12px 14px 12px 0;
-`;
-
-const RankBox = styled.div<{ $background: string }>`
-  background: linear-gradient(180deg, ${({ $background }) => $background} 0%, ${({ $background }) => $background} 100%);
-  color: #ffffff;
-  text-align: center;
-  font-family: "Oswald", sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  padding: 6px 0;
-  text-transform: uppercase;
-  border: none;
-  box-shadow:
-    inset 0 2px 0 ${({ $background }) => $background},
-    inset 2px 0 0 ${({ $background }) => $background},
-    inset -2px 0 0 ${({ $background }) => $background};
-  border-radius: 4px 4px 0 0;
-  letter-spacing: 1px;
-`;
-
-const StatsTable = styled.div<{ $border: string }>`
-  background-color: #ffffff;
-  border-radius: 0 0 4px 4px;
-  border: none;
-  box-shadow:
-    inset 2px 0 0 ${({ $border }) => $border},
-    inset -2px 0 0 ${({ $border }) => $border},
-    inset 0 -2px 0 ${({ $border }) => $border};
-  overflow: hidden;
-`;
-
-const StatRow = styled.div<{ $border: string }>`
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 7px 12px;
-  border-bottom: 1px solid ${({ $border }) => $border};
-  color: #111;
-  font-family: "Oswald", sans-serif;
-  font-size: 16px;
-  font-weight: 700;
+  justify-content: center;
+  background: ${({ $background }) => $background};
+  color: ${({ $color }) => $color};
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 43px;
+  font-weight: 900;
   text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 0.86;
+  text-align: center;
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+`;
 
-  &:last-child {
-    border-bottom: none;
+const PlayerOnlyWrapper = styled.div<{ $isExiting: boolean }>`
+  width: ${PLAYER_WIDTH}px;
+  height: ${PLAYER_HEIGHT}px;
+  position: relative;
+  overflow: visible;
+  animation: ${({ $isExiting }) => ($isExiting ? exit : enter)}
+    ${({ $isExiting }) => ($isExiting ? "420ms" : "620ms")}
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+`;
+
+const PlayerBackPlate = styled.div<{ $background: string; $border: string }>`
+  position: absolute;
+  left: 50%;
+  top: 66px;
+  width: 680px;
+  height: 202px;
+  background: ${({ $background }) => $background};
+  border: 3px solid ${({ $border }) => $border};
+  clip-path: polygon(40px 0, 100% 0, calc(100% - 34px) 100%, 0 100%, 0 40px);
+  transform: translateX(-50%);
+  z-index: 1;
+  animation: ${contentReveal} 520ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 118px;
+    background: rgba(0, 0, 0, 0.24);
+    clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%);
   }
 `;
 
-const StatValue = styled.span<{ $color: string }>`
-  font-family: "Oswald", sans-serif;
-  font-size: 20px;
-  font-weight: 900;
-  color: ${({ $color }) => $color};
+const PlayerBannerRow = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 238px;
+  display: flex;
+  align-items: stretch;
+  transform: translateX(-50%);
+  z-index: 5;
+  animation: ${contentReveal} 520ms cubic-bezier(0.22, 1, 0.36, 1) 520ms both;
 `;
 
-const BottomTicker = styled.div<{ $background: string; $color: string }>`
-  min-width: 360px;
-  margin-top: -2px;
-  padding: 5px 34px;
-  background: linear-gradient(90deg, transparent 0%, ${({ $background }) => $background} 15%, ${({ $background }) => $background} 85%, transparent 100%);
-  box-shadow: inset 0 -2px 0 ${({ $background }) => $background};
-  color: ${({ $color }) => $color};
-  font-family: "Oswald", sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+const PlayerBrandBlock = styled.div<{ $background: string; $border: string }>`
+  width: 126px;
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: ${({ $background }) => $background};
+  border: 2px solid ${({ $border }) => $border};
+  clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%, 0 14px);
+`;
+
+const PlayerTeamLogo = styled.img`
+  width: 70px;
+  height: 54px;
+  object-fit: contain;
+  display: block;
+`;
+
+const PlayerLogoSlot = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const PlayerCountryFlag = styled.img`
+  width: 22px;
+  height: 14px;
+  object-fit: cover;
+  align-self: flex-start;
+  margin-left: 20px;
+`;
+
+const PlayerLogoFallback = styled.div`
+  color: #ffffff;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
   text-align: center;
+  text-transform: uppercase;
+`;
+
+const PlayerModeTitle = styled.div<{ $background: string; $color: string }>`
+  width: 520px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  padding: 0 62px 0 46px;
+  background: ${({ $background }) => $background};
+  color: ${({ $color }) => $color};
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  clip-path: polygon(18px 0, 100% 0, calc(100% - 28px) 100%, 0 100%, 0 18px);
+`;
+
+const PlayerRankBadge = styled.div<{ $background: string; $color: string }>`
+  position: absolute;
+  top: 18px;
+  left: 40px;
+  z-index: 6;
+  min-width: 104px;
+  height: 42px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $background }) => $background};
+  color: ${({ $color }) => $color};
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%, 0 12px);
+  animation: ${contentReveal} 520ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+`;
+
+const PlayerOnlyGrid = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 66px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: 0;
+  width: 680px;
+  height: 202px;
+  transform: translateX(-50%);
+  z-index: 3;
+  overflow: hidden;
+  clip-path: polygon(40px 0, 100% 0, calc(100% - 34px) 100%, 0 100%, 0 40px);
+`;
+
+const PlayerOnlyImage = styled.img<{ $index: number }>`
+  align-self: end;
+  justify-self: center;
+  width: ${({ $index }) => ($index === 1 || $index === 2 ? 164 : 154)}px;
+  height: ${({ $index }) => ($index === 1 || $index === 2 ? 202 : 194)}px;
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  margin-inline: 0;
+  z-index: ${({ $index }) => ($index === 1 || $index === 2 ? 4 : 3)};
+  opacity: 0;
+  animation: ${playerCardReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: ${({ $index }) => 120 + $index * 90}ms;
+`;
+
+const PlayerFallback = styled.div<{ $index: number }>`
+  align-self: end;
+  justify-self: stretch;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.16);
+  border-left: ${({ $index }) => ($index === 0 ? "0" : "1px solid rgba(255, 255, 255, 0.34)")};
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 34px;
+  font-weight: 900;
+  opacity: 0;
+  animation: ${playerCardReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: ${({ $index }) => 120 + $index * 90}ms;
+`;
+
+const StatsStrip = styled.div<{ $background: string; $border: string; $color: string; $showPlayers: boolean }>`
+  position: absolute;
+  left: ${({ $showPlayers }) => ($showPlayers ? 116 : 42)}px;
+  right: ${({ $showPlayers }) => ($showPlayers ? 116 : 42)}px;
+  bottom: 2px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: ${({ $background }) => $background};
+  border: 1px solid ${({ $border }) => $border};
+  color: ${({ $color }) => $color};
+  clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  animation: ${contentReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
+`;
+
+const StatItem = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+
+  strong {
+    font-size: 14px;
+    color: #ffffff;
+  }
+`;
+
+const StatDivider = styled.i`
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.5);
 `;

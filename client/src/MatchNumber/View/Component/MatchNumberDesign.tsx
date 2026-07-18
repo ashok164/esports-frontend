@@ -1,5 +1,9 @@
 import React from "react";
 import styled from "styled-components";
+import {
+  GFF_LATIN_EXTRA_BOLD_FONT_FAMILY,
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../../LiveStandingsTable/View/LiveStandingsFont";
 
 // --- STYLED COMPONENTS ---
 
@@ -11,7 +15,7 @@ const OverlayContainer = styled.div`
   
   display: flex;
   align-items: stretch;
-  font-family: "Montserrat", "Arial Black", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, "Montserrat", "Arial Black", sans-serif;
   font-style: italic;
   font-weight: 900;
   text-transform: uppercase;
@@ -85,6 +89,7 @@ const HeaderTag = styled.div`
 
 // Main Game Number display
 const GameText = styled.h1`
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY}, "Arial Black", sans-serif;
   font-size: 48px;
   margin: 0;
   line-height: 1;

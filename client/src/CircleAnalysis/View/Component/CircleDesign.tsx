@@ -118,7 +118,6 @@ const TrackList = styled.div`
   border: 1px solid var(--circle-grid-line);
   background:
     linear-gradient(90deg, var(--circle-grid-line) 1px, transparent 1px) 0 0 / calc(100% / 8) 100%,
-    linear-gradient(180deg, var(--circle-row-line) 1px, transparent 1px) 0 0 / 100% 53px,
     var(--circle-panel-bg);
   overflow: hidden;
 `;
@@ -134,19 +133,20 @@ const TrackSvg = styled.svg`
   width: 100%;
   height: 100%;
   overflow: visible;
+  z-index: 1;
 `;
 
 const TrackPath = styled.path<{ $delay: number; $dead: boolean; $duration: number; $pathLength: number }>`
   --path-length: ${({ $pathLength }) => $pathLength};
   fill: none;
   stroke: ${({ $dead }) => ($dead ? "var(--circle-elim)" : "var(--circle-line)")};
-  stroke-width: 2.5;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: var(--path-length);
   stroke-dashoffset: var(--path-length);
   opacity: 0;
-  stroke-opacity: 0.48;
-  filter: drop-shadow(0 0 4px ${({ $dead }) => ($dead ? "var(--circle-elim-glow)" : "var(--circle-line-glow)")});
+  stroke-opacity: 0.34;
+  filter: drop-shadow(0 0 2px ${({ $dead }) => ($dead ? "var(--circle-elim-glow)" : "var(--circle-line-glow)")});
   animation: ${growPath} ${({ $duration }) => `${$duration}ms`} linear forwards;
   animation-delay: ${({ $delay }) => `${$delay}ms`};
 `;
@@ -165,8 +165,8 @@ const LogoPoint = styled.div<{ $startX: number; $x: number; $dead: boolean; $del
 `;
 
 const LogoBox = styled.div<{ $bgImage?: string; $dead?: boolean }>`
-  width: 40px;
-  height: 40px;
+  width: 37px;
+  height: 37px;
   display: grid;
   place-items: center;
   position: relative;
@@ -186,10 +186,10 @@ const LogoFallback = styled.span`
 
 const Flag = styled.img`
   position: absolute;
-  right: -7px;
-  bottom: -5px;
-  width: 16px;
-  height: 12px;
+  right: -6px;
+  bottom: -4px;
+  width: 15px;
+  height: 11px;
   object-fit: cover;
   border: 1px solid var(--circle-text-1);
   background: #000;
@@ -202,9 +202,9 @@ const KillBadge = styled.div<{ $x: number; $delay: number; $terminal: boolean }>
   z-index: 5;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-width: 44px;
-  padding: 2px 6px 2px 3px;
+  gap: 3px;
+  min-width: 41px;
+  padding: 2px 5px 2px 3px;
   background: var(--circle-badge-bg);
   color: var(--circle-badge-text);
   border: 1px solid var(--circle-grid-line);
@@ -214,8 +214,8 @@ const KillBadge = styled.div<{ $x: number; $delay: number; $terminal: boolean }>
 `;
 
 const IconWrap = styled.span`
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
   display: inline-grid;
   place-items: center;
   color: var(--circle-accent);
@@ -229,7 +229,7 @@ const IconWrap = styled.span`
 
 const KillCountText = styled.span`
   font-family: "Roboto Condensed", "Arial Narrow", sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
 `;

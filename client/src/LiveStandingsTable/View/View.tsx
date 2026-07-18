@@ -4,8 +4,11 @@ import StyleOneStandingsTable from "./LiveStandings1";
 import StyleTwoStandingsTable from "./LiveStandings2";
 import StyleThreeStandingsTable from "./LiveStandings3";
 import { useProjectTheme } from "../../Theme";
+import { AnimatePresence } from "framer-motion";
 
 const SINGLE_ELIMINATION_TEST_PARAM = "testSingleElimination";
+const TABLE_SEQUENCE_EXIT_MS = 1200;
+type TableAnimationPhase = "entering" | "exiting";
 
 const isDeadTeam = (team: any) =>
   Boolean(team?.isEliminated) || Number(team?.playersAlive ?? 0) <= 0;
@@ -49,6 +52,8 @@ const LiveStandingsView: React.FC = () => {
   const { broadcastSettings } = useProjectTheme();
   const [testTeamId, setTestTeamId] = useState<string | number | null>(null);
   const [testEliminated, setTestEliminated] = useState(false);
+  const [shouldRenderStandings, setShouldRenderStandings] = useState(false);
+  const [tableAnimationPhase, setTableAnimationPhase] = useState<TableAnimationPhase>("entering");
   const isSingleEliminationTest =
     new URLSearchParams(window.location.search).has(
       SINGLE_ELIMINATION_TEST_PARAM,
@@ -88,30 +93,59 @@ const LiveStandingsView: React.FC = () => {
     });
   }, [isSingleEliminationTest, standings, testEliminated, testTeamId]);
 
-  const aliveTeamsCount = useMemo(
-    () =>
-      displayStandings.filter(
-        (team) =>
-          Number(team?.playersAlive ?? 0) > 0 &&
-          !team?.isEliminated,
-      ).length,
-    [displayStandings],
+  const shouldShowStandings =
+    !loading && broadcastSettings.showResultStandings;
+
+  useEffect(() => {
+    if (shouldShowStandings) {
+      setShouldRenderStandings(true);
+      setTableAnimationPhase("entering");
+      return;
+    }
+
+    if (!shouldRenderStandings) return;
+
+    setTableAnimationPhase("exiting");
+    const timer = window.setTimeout(() => {
+      setShouldRenderStandings(false);
+    }, TABLE_SEQUENCE_EXIT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [shouldShowStandings, shouldRenderStandings]);
+
+  const selectedStyle = broadcastSettings.selectedBroadcastStyle;
+
+  const standingsTable =
+    selectedStyle === "theme2" ? (
+      <StyleTwoStandingsTable teams={displayStandings} animationPhase={tableAnimationPhase} />
+    ) : selectedStyle === "theme3" ? (
+      <StyleThreeStandingsTable teams={displayStandings} animationPhase={tableAnimationPhase} />
+    ) : (
+      <StyleOneStandingsTable
+        teams={displayStandings}
+        championBannerUrl={championBannerUrl}
+        championRushTeamKeys={championRushTeamKeys}
+        animationPhase={tableAnimationPhase}
+      />
+    );
+
+  return (
+    <AnimatePresence mode="wait">
+      {shouldRenderStandings && (
+        <div
+          key={selectedStyle}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999,
+            transformOrigin: "right center",
+          }}
+        >
+          {standingsTable}
+        </div>
+      )}
+    </AnimatePresence>
   );
-
-  const shouldHideStandingsTable =
-    aliveTeamsCount > 0 && aliveTeamsCount <= 4;
-
-  if (loading || shouldHideStandingsTable) return null;
-
-  if (broadcastSettings.selectedBroadcastStyle === "theme2") {
-    return <StyleTwoStandingsTable teams={displayStandings} />;
-  }
-
-  if (broadcastSettings.selectedBroadcastStyle === "theme3") {
-    return <StyleThreeStandingsTable teams={displayStandings} />;
-  }
-
-  return <StyleOneStandingsTable teams={displayStandings} championBannerUrl={championBannerUrl} championRushTeamKeys={championRushTeamKeys} />;
 };
 
 export default LiveStandingsView;

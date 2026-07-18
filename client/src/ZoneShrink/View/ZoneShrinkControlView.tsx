@@ -1,5 +1,8 @@
 import React from "react";
 import styled from "styled-components";
+import LiveStandingsFont, {
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../LiveStandingsTable/View/LiveStandingsFont";
 import {
   getZoneShrinkApi,
   getZoneShrinkState,
@@ -52,6 +55,7 @@ const ZoneShrinkControlView: React.FC = () => {
 
   return (
     <Page>
+      <LiveStandingsFont />
       <Panel>
         <Header>
           <TitleBlock>
@@ -127,7 +131,7 @@ const Page = styled.main`
   box-sizing: border-box;
   background: var(--project-background, #090d14);
   color: var(--project-text-primary, #f8fafc);
-  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
 `;
 
 const Panel = styled.section`

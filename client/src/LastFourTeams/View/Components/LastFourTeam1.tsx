@@ -1,6 +1,10 @@
 import React from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
+import { useProjectTheme } from "../../../Theme";
+import LiveStandingsFont, {
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../../LiveStandingsTable/View/LiveStandingsFont";
 
 /* ==========================================================================
    TYPE DEFINITIONS
@@ -50,16 +54,18 @@ const lowHpFlicker = keyframes`
    ========================================================================== */
 
 const Theme = {
-  purplePlateBg: "linear-gradient(135deg, var(--project-primary, #4d0cb5) 0%, var(--project-surface, #2f047a) 100%)",
-  blackLogoBg: "var(--project-background, #0d0d11)",
-  limeBadge: "var(--project-accent, #bfff00)",
-  orangeBadge: "var(--project-warning, #ff6a00)",
+  purplePlateBg: "linear-gradient(135deg, var(--last4-body, var(--project-primary, #4d0cb5)) 0%, var(--last4-body-alt, var(--project-surface, #2f047a)) 100%)",
+  blackLogoBg: "var(--last4-logo-bg, var(--project-background, #0d0d11))",
+  orangeBadge: "var(--last4-badge, var(--project-warning, #ff6a00))",
   aliveYellow: "#ffd35a",
+  alive: "var(--last4-health-alive, #ffd35a)",
   aliveBlue: "#2575fc",
-  knocked: "var(--project-danger, #FF0055)",
-  lowAlert: "var(--project-danger, #FF2A6D)",
-  textDark: "var(--project-background, #000000)",
-  textLight: "var(--project-text-primary, #ffffff)",
+  knocked: "var(--last4-health-knocked, var(--last4-danger, var(--project-danger, #FF0055)))",
+  lowAlert: "var(--last4-health-low, var(--last4-danger, var(--project-danger, #FF2A6D)))",
+  recalled: "var(--last4-health-recalled, #2575fc)",
+  textDark: "var(--last4-text-dark, var(--project-background, #000000))",
+  textLight: "var(--last4-text-light, var(--project-text-primary, #ffffff))",
+  logoText: "var(--last4-logo-text, var(--project-text-primary, #ffffff))",
 };
 
 /* ==========================================================================
@@ -68,20 +74,31 @@ const Theme = {
 
 const EndgameHUDContainer = styled.div`
   position: fixed;
-  top: 30px; 
+  top: 30px;
   left: 50%;
   transform: translateX(-50%);
+  transform-origin: top center;
   display: flex;
-  gap: 24px;
+  gap: 28px;
   z-index: 9999;
   background: transparent;
   pointer-events: none;
+
+  @media (min-width: 1920px) {
+    top: 34px;
+    transform: translateX(-50%) scale(1.35);
+  }
+
+  @media (min-width: 2560px) {
+    top: 42px;
+    transform: translateX(-50%) scale(1.72);
+  }
 `;
 
 const CardContainer = styled(motion.div)`
   position: relative;
-  width: 250px; /* Slightly scaled up width footprint */
-  height: 98px; /* Balanced height scale */
+  width: 272px;
+  height: 108px;
   background: transparent;
   pointer-events: auto;
 `;
@@ -92,7 +109,7 @@ const MainSkelBody = styled.div`
   top: 0;
   left: 0;
   width: 100%;
-  height: 74px; /* Increased track space height */
+  height: 82px;
   background: ${Theme.purplePlateBg};
   clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
   border-top: 1.5px solid rgba(255, 255, 255, 0.25);
@@ -106,8 +123,8 @@ const LogoShield = styled.div`
   position: absolute;
   top: 0;
   left: 4%;
-  width: 70px; /* Enhanced badge window wrapper width */
-  height: 74px;
+  width: 78px;
+  height: 82px;
   background: ${Theme.blackLogoBg};
   clip-path: polygon(12% 0%, 100% 0%, 82% 100%, 0% 100%);
   display: flex;
@@ -118,9 +135,17 @@ const LogoShield = styled.div`
 `;
 
 const TeamLogoImg = styled.img`
-  width: 42px; /* Upscaled brand identity asset rendering scale */
-  height: 42px;
+  width: 66px;
+  height: 66px;
   object-fit: contain;
+`;
+
+const LogoFallback = styled.span`
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 13px;
+  font-weight: 900;
+  color: ${Theme.logoText};
+  text-transform: uppercase;
 `;
 
 /* ==========================================================================
@@ -132,27 +157,27 @@ const LimeNameTag = styled.div`
   position: absolute;
   bottom: 6px;
   left: 2%;
-  height: 22px; /* Increased structural layout density slightly */
+  height: 25px;
   background: ${Theme.orangeBadge};
   clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px 0 10px;
+  gap: 7px;
+  padding: 0 14px 0 11px;
   z-index: 5;
   box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.35);
 `;
 
 const FlagImg = styled.img`
-  width: 16px;
-  height: 11px;
+  width: 18px;
+  height: 12px;
   object-fit: cover;
   border-radius: 1px;
 `;
 
 const TeamShortText = styled.span`
-  font-family: 'Arial Black', Gadget, sans-serif;
-  font-size: 12px; /* Prominent profile font optimization */
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 13px;
   font-weight: 900;
   color: ${Theme.textDark};
   font-style: italic;
@@ -162,10 +187,10 @@ const TeamShortText = styled.span`
 // WR text alignment label
 const WrLabel = styled.span`
   position: absolute;
-  bottom: 10px;
-  left: 100px; /* Repositioned to balance the shifted elements */
-  font-family: 'Arial Black', Gadget, sans-serif;
-  font-size: 12px;
+  bottom: 11px;
+  left: 110px;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 13px;
   font-weight: 900;
   font-style: italic;
   color: ${Theme.textLight};
@@ -177,9 +202,9 @@ const WrLabel = styled.span`
 const OrangeWrBadge = styled.div`
   position: absolute;
   bottom: 6px;
-  left: 128px; /* Repositioned to balance upscale */
-  width: 100px; /* Expanded spatial envelope */
-  height: 22px;
+  left: 140px;
+  width: 110px;
+  height: 25px;
   background: ${Theme.orangeBadge};
   clip-path: polygon(12% 0%, 100% 0%, 88% 100%, 0% 100%);
   display: flex;
@@ -190,8 +215,8 @@ const OrangeWrBadge = styled.div`
 `;
 
 const WinRateText = styled.span`
-  font-family: 'Arial Black', Gadget, sans-serif;
-  font-size: 13px; /* Clean tracking font scaling up scale readability */
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+  font-size: 14px;
   font-weight: 900;
   color: ${Theme.textDark};
   font-style: italic;
@@ -204,10 +229,10 @@ const WinRateText = styled.span`
 
 const HealthSystemRow = styled.div`
   position: absolute;
-  top: 12px;
-  right: 40px;
+  top: 14px;
+  right: 44px;
   display: flex;
-  gap: 5px; /* Clean spacing for upscaled blocks */
+  gap: 6px;
   z-index: 3;
 `;
 
@@ -217,8 +242,8 @@ const HPBlock = styled.div<{
   $isKnocked: boolean;
   $hasRecalled: boolean;
 }>`
-  width: 11px; /* Expanded tracking fill window */
-  height: 32px; /* Significantly increased health bar height profile */
+  width: 12px;
+  height: 35px;
   position: relative;
   background: ${(props) => (props.$isDead ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.55)")};
   border: 1px solid ${(props) => {
@@ -248,8 +273,8 @@ const HealthFill = styled.div<{
   background: ${(props) => {
     if (props.$status === "alive" && props.$percent <= 25) return Theme.knocked;
     if (props.$status === "knocked") return Theme.knocked;
-    if (props.$status === "recalled") return Theme.aliveBlue;
-    return Theme.aliveYellow;
+    if (props.$status === "recalled") return Theme.recalled;
+    return Theme.alive;
   }};
   transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 `;
@@ -259,6 +284,25 @@ const HealthFill = styled.div<{
    ========================================================================== */
 
 const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
+  const { broadcastSettings } = useProjectTheme();
+  const style3Colors =
+    broadcastSettings.selectedBroadcastStyle === "theme3"
+      ? ({
+          "--last4-body": broadcastSettings.liveStandings2Color1,
+          "--last4-body-alt": broadcastSettings.liveStandings2Color1,
+          "--last4-logo-bg": broadcastSettings.liveStandings2Color3,
+          "--last4-badge": broadcastSettings.liveStandings2Color2,
+          "--last4-danger": broadcastSettings.liveStandings2Color5,
+          "--last4-text-dark": broadcastSettings.liveStandings2TextColor2,
+          "--last4-text-light": broadcastSettings.liveStandings2TextColor1,
+          "--last4-logo-text": broadcastSettings.liveStandings2TextColor3,
+          "--last4-health-alive": "#24fe5b",
+          "--last4-health-knocked": broadcastSettings.liveStandings2Color5,
+          "--last4-health-low": broadcastSettings.liveStandings2Color5,
+          "--last4-health-recalled": Theme.aliveBlue,
+        } as React.CSSProperties)
+      : undefined;
+
   // Once the match reaches the last-four phase, keep showing the survivors as they drop from 4 to 1.
   const activeTeams = [...teams]
     .filter(team => team.playersAlive > 0 && !team.is_eliminated && !team.isEliminated)
@@ -291,7 +335,8 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
   };
 
   return (
-    <EndgameHUDContainer>
+    <EndgameHUDContainer style={style3Colors}>
+      <LiveStandingsFont />
       <AnimatePresence mode="popLayout">
         {activeTopFour.map((team) => {
           
@@ -318,7 +363,11 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
                 
                 {/* Embedded Skewed Shield Component for Team Badge Icons */}
                 <LogoShield>
-                  <TeamLogoImg src={team.logoUrl} alt="Icon" />
+                  {team.logoUrl ? (
+                    <TeamLogoImg src={team.logoUrl} alt="Icon" />
+                  ) : (
+                    <LogoFallback>LOGO</LogoFallback>
+                  )}
                 </LogoShield>
 
                 {/* Plain Text Header Label Descriptor Elements */}

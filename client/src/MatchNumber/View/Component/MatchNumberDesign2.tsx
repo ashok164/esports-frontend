@@ -1,5 +1,9 @@
 import React from "react";
 import styled, { keyframes } from "styled-components";
+import {
+  GFF_LATIN_EXTRA_BOLD_FONT_FAMILY,
+  LIVE_STANDINGS_FONT_FAMILY,
+} from "../../../LiveStandingsTable/View/LiveStandingsFont";
 
 type MatchNumberDesign2Props = {
   dayName: string;
@@ -29,20 +33,12 @@ const withOpacity = (color: string, opacity: number) => {
   return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${opacity})`;
 };
 
-const shimmer = keyframes`
-  0% {
-    transform: translateX(-150%) skewX(-18deg);
-    opacity: 0;
+const logoPulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
   }
-  18% {
-    opacity: 0.95;
-  }
-  56% {
-    opacity: 0.7;
-  }
-  100% {
-    transform: translateX(150%) skewX(-18deg);
-    opacity: 0;
+  50% {
+    transform: scale(1.06);
   }
 `;
 
@@ -60,7 +56,6 @@ const MatchNumberDesign2: React.FC<MatchNumberDesign2Props> = ({
     <LogoPanel $color={color5}>
       <LogoFrame>
         {logoUrl ? <Logo src={logoUrl} alt="Tournament logo" /> : <LogoFallback>LOGO</LogoFallback>}
-        <LogoShine />
       </LogoFrame>
     </LogoPanel>
 
@@ -90,7 +85,7 @@ const Overlay = styled.div`
   overflow: hidden;
   border: 1px solid #000000;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
-  font-family: "Oswald", "Arial Narrow", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, "Oswald", "Arial Narrow", sans-serif;
   text-transform: uppercase;
   z-index: 999;
 
@@ -110,16 +105,6 @@ const LogoPanel = styled.div<{ $color: string }>`
   justify-content: center;
   padding: 8px;
   background: ${({ $color }) => $color};
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.34), transparent 30%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 42%);
-    pointer-events: none;
-  }
 `;
 
 const LogoFrame = styled.div`
@@ -130,11 +115,8 @@ const LogoFrame = styled.div`
   justify-content: center;
   width: 98px;
   height: 98px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 10px 18px rgba(0, 0, 0, 0.18);
+  background: transparent;
+  box-shadow: none;
   overflow: hidden;
 `;
 
@@ -144,38 +126,8 @@ const Logo = styled.img`
   width: 94px;
   height: 94px;
   object-fit: contain;
-  filter:
-    brightness(1.12)
-    saturate(1.12)
-    contrast(1.04)
-    drop-shadow(0 0 10px rgba(255, 255, 255, 0.18))
-    drop-shadow(0 3px 0 rgba(255, 255, 255, 0.12))
-    drop-shadow(0 8px 14px rgba(0, 0, 0, 0.28));
-`;
-
-const LogoShine = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 34%, rgba(255, 255, 255, 0.1) 52%, transparent 72%),
-    radial-gradient(ellipse at 28% 20%, rgba(255, 255, 255, 0.45), transparent 36%),
-    radial-gradient(ellipse at 70% 80%, rgba(255, 255, 255, 0.16), transparent 42%);
-  opacity: 0.82;
-  pointer-events: none;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: -20%;
-    bottom: -20%;
-    left: 0;
-    width: 48%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
-    animation: ${shimmer} 2.7s ease-in-out infinite;
-  }
+  filter: none;
+  animation: ${logoPulse} 2.4s ease-in-out infinite;
 `;
 
 const LogoFallback = styled.span`
@@ -202,7 +154,7 @@ const HeaderStrip = styled.div`
   padding: 0 12px;
   background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
   color: #080808;
-  font-family: "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 1.25px;
@@ -251,7 +203,7 @@ const MatchName = styled.div`
   position: relative;
   max-width: 100%;
   color: #ffffff;
-  font-family: "Bebas Neue", "Teko", "Oswald", sans-serif;
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, ${LIVE_STANDINGS_FONT_FAMILY}, "Bebas Neue", "Teko", "Oswald", sans-serif;
   font-size: 39px;
   font-weight: 800;
   letter-spacing: 2.2px;
@@ -266,7 +218,7 @@ const MatchName = styled.div`
 const PhaseName = styled.div`
   max-width: 100%;
   color: rgba(255, 255, 255, 0.96);
-  font-family: "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 1.4px;
