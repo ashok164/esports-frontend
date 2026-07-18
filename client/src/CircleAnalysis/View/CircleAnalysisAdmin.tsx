@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import {
+  connectRealtime,
+  getRealtimeData,
+  subscribeRealtime,
+} from "../../GlobalWebsocket/store";
+import {
+  GAME_DETAILS_UPDATED_EVENT,
+  getActiveGameDetails,
+} from "../../GameDetails/gameDetailsState";
+import useSyncGameDetails from "../../GameDetails/useSyncGameDetails";
 import { useProjectTheme } from "../../Theme";
 import {
   buildCircleAnalysisFromTeams,
@@ -11,9 +21,117 @@ import { CircleAnalysisResponse, CircleAnalysisTeam } from "../types";
 
 const DEFAULT_CIRCLES = [1, 2, 3, 4, 5, 6, 7, 8];
 
+const firstValue = (...values: any[]) =>
+  values.find((value) => value !== undefined && value !== null) ?? "";
+
+const toNumber = (value: any, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeTeamKey = (value: any) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const collectLiveMatchRows = (payload: any) => {
+  const source =
+    payload?.data?.liveMatchStandings ??
+    payload?.liveMatchStandings;
+
+  return Array.isArray(source) ? source : [];
+};
+
+const getLiveTeamId = (team: any) =>
+  firstValue(
+    team?.permanent_team_id,
+    team?.permanentTeamId,
+    team?.team_id,
+    team?.teamId,
+    team?.id,
+  );
+
+const getLiveTeamKeys = (team: any) =>
+  [
+    getLiveTeamId(team),
+    firstValue(team?.room_team_id, team?.roomTeamId),
+    firstValue(team?.short_tag, team?.team_tag, team?.teamTag, team?.tag),
+    firstValue(team?.team_name, team?.teamName, team?.name),
+  ]
+    .map(normalizeTeamKey)
+    .filter(Boolean);
+
+const getAnalysisTeamKeys = (team: CircleAnalysisTeam) =>
+  [team.teamId, team.shortLabel, team.teamName].map(normalizeTeamKey).filter(Boolean);
+
+const getLiveKills = (team: any) =>
+  Math.max(
+    0,
+    Math.round(
+      toNumber(
+        firstValue(
+          team?.live_kills,
+          team?.liveKills,
+          team?.killing_score,
+          team?.kill_count,
+          team?.kills,
+          0,
+        ),
+      ),
+    ),
+  );
+
+const isLiveTeamEliminated = (team: any) => {
+  const players = Array.isArray(team?.player_stats)
+    ? team.player_stats
+    : Array.isArray(team?.players)
+      ? team.players
+      : [];
+
+  if (team?.is_eliminated !== undefined || team?.isEliminated !== undefined) {
+    return Boolean(firstValue(team?.is_eliminated, team?.isEliminated));
+  }
+
+  if (players.length === 0) return false;
+
+  return players.every((player: any) => {
+    const hp = toNumber(
+      firstValue(
+        player?.hp_info?.current_hp,
+        player?.hpInfo?.currentHp,
+        player?.hp,
+        0,
+      ),
+    );
+    return hp <= 0;
+  });
+};
+
+const getNextSnapshotCircle = (analysis: CircleAnalysisResponse) => {
+  const circles = analysis.circles?.length ? analysis.circles : DEFAULT_CIRCLES;
+  const usedCircles = circles.filter((circle) =>
+    analysis.teams.some(
+      (team) =>
+        team.killsPerCircle[circle] > 0 ||
+        (team.isDead && team.lastCircle === circle),
+    ),
+  );
+
+  return circles[Math.min(usedCircles.length, circles.length - 1)];
+};
+
+const buildEmptyCircleKills = (circles: number[]) =>
+  circles.reduce<Record<number, number>>((acc, circle) => {
+    acc[circle] = 0;
+    return acc;
+  }, {});
+
 const CircleAnalysisAdmin: React.FC = () => {
+  useSyncGameDetails();
   const { isLoading: isThemeLoading } = useProjectTheme();
   const [analysis, setAnalysis] = useState<CircleAnalysisResponse | null>(null);
+  const [latestRealtimeData, setLatestRealtimeData] = useState<any>(() => getRealtimeData());
+  const [snapshotIndex, setSnapshotIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +139,12 @@ const CircleAnalysisAdmin: React.FC = () => {
 
   const circles = analysis?.circles?.length ? analysis.circles : DEFAULT_CIRCLES;
   const teams = analysis?.teams || [];
+  const latestLiveMatchRows = useMemo(
+    () => collectLiveMatchRows(latestRealtimeData),
+    [latestRealtimeData],
+  );
+  const snapshotCount = Math.min(snapshotIndex, circles.length);
+  const nextSnapshotCircle = snapshotIndex < circles.length ? circles[snapshotIndex] : null;
   const totalKills = useMemo(
     () =>
       teams.reduce(
@@ -47,7 +171,12 @@ const CircleAnalysisAdmin: React.FC = () => {
           ? buildCircleAnalysisFromTeams(teamRows, savedResponse)
           : savedResponse;
 
-        if (isMounted) setAnalysis(mergedResponse);
+        if (isMounted) {
+          setAnalysis(mergedResponse);
+          setSnapshotIndex(
+            Math.max(0, DEFAULT_CIRCLES.indexOf(getNextSnapshotCircle(mergedResponse))),
+          );
+        }
       } catch (err: any) {
         if (isMounted) setError(err?.message || "Failed to load circle analysis data");
       } finally {
@@ -62,6 +191,30 @@ const CircleAnalysisAdmin: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const connectActiveMatch = () => {
+      const activeMatchId = getActiveGameDetails().matchIds;
+      if (!String(activeMatchId || "").trim()) return;
+      connectRealtime(activeMatchId);
+    };
+
+    connectActiveMatch();
+    setLatestRealtimeData(getRealtimeData());
+
+    const unsubscribe = subscribeRealtime((data) => {
+      setLatestRealtimeData(data);
+    });
+
+    window.addEventListener(GAME_DETAILS_UPDATED_EVENT, connectActiveMatch);
+    window.addEventListener("storage", connectActiveMatch);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener(GAME_DETAILS_UPDATED_EVENT, connectActiveMatch);
+      window.removeEventListener("storage", connectActiveMatch);
+    };
+  }, []);
+
   const updateTeam = (teamId: string, nextTeam: (team: CircleAnalysisTeam) => CircleAnalysisTeam) => {
     setAnalysis((current) => {
       if (!current) return current;
@@ -72,6 +225,101 @@ const CircleAnalysisAdmin: React.FC = () => {
       };
     });
     setStatus(null);
+  };
+
+  const takeSnapshot = () => {
+    const payload = latestRealtimeData || getRealtimeData();
+    const liveRows = collectLiveMatchRows(payload);
+
+    if (!analysis) return;
+
+    const availableCircles = analysis.circles?.length ? analysis.circles : DEFAULT_CIRCLES;
+
+    if (snapshotIndex >= availableCircles.length) {
+      setError("All 8 circle snapshots are already filled.");
+      setStatus(null);
+      return;
+    }
+
+    if (liveRows.length === 0) {
+      setError("No liveMatchStandings data is available from table standings websocket yet.");
+      setStatus(null);
+      return;
+    }
+
+    const liveByKey = new Map<string, any>();
+    liveRows.forEach((row) => {
+      getLiveTeamKeys(row).forEach((key) => {
+        if (!liveByKey.has(key)) liveByKey.set(key, row);
+      });
+    });
+
+    const snapshotCircle = availableCircles[snapshotIndex];
+    let matchedTeams = 0;
+    let updatedTeams = 0;
+    let skippedDeadTeams = 0;
+
+    const nextTeams = analysis.teams.map((team) => {
+      const liveTeam = getAnalysisTeamKeys(team)
+        .map((key) => liveByKey.get(key))
+        .find(Boolean);
+
+      if (!liveTeam) return team;
+
+      matchedTeams += 1;
+
+      if (team.isDead) {
+        skippedDeadTeams += 1;
+        return team;
+      }
+
+      const nextIsDead = isLiveTeamEliminated(liveTeam);
+      updatedTeams += 1;
+
+      return {
+        ...team,
+        isDead: nextIsDead,
+        lastCircle: snapshotCircle,
+        killsPerCircle: {
+          ...team.killsPerCircle,
+          [snapshotCircle]: getLiveKills(liveTeam),
+        },
+      };
+    });
+
+    setAnalysis({
+      ...analysis,
+      updatedAt: new Date().toISOString(),
+      teams: nextTeams,
+    });
+    setSnapshotIndex((current) => Math.min(current + 1, availableCircles.length));
+
+    setError(null);
+    setStatus(
+      `Snapshot saved to Circle ${snapshotCircle}. Updated ${updatedTeams} team${updatedTeams === 1 ? "" : "s"}, skipped ${skippedDeadTeams} dead team${skippedDeadTeams === 1 ? "" : "s"} (${matchedTeams} matched).`,
+    );
+  };
+
+  const resetSnapshots = () => {
+    if (!analysis) return;
+
+    const availableCircles = analysis.circles?.length ? analysis.circles : DEFAULT_CIRCLES;
+    const firstCircle = availableCircles[0] || 1;
+    const emptyKills = buildEmptyCircleKills(availableCircles);
+
+    setAnalysis({
+      ...analysis,
+      updatedAt: new Date().toISOString(),
+      teams: analysis.teams.map((team) => ({
+        ...team,
+        isDead: false,
+        lastCircle: firstCircle,
+        killsPerCircle: { ...emptyKills },
+      })),
+    });
+    setSnapshotIndex(0);
+    setError(null);
+    setStatus("Snapshot data has been reset. Save Response to update the broadcast.");
   };
 
   const updateCircleKills = (teamId: string, circle: number, value: string) => {
@@ -105,6 +353,11 @@ const CircleAnalysisAdmin: React.FC = () => {
 
   if (isThemeLoading) return null;
 
+  const snapshotDisabled =
+    isLoading ||
+    !analysis ||
+    snapshotIndex >= (analysis.circles?.length || DEFAULT_CIRCLES.length);
+
   return (
     <Page>
       <Shell>
@@ -125,12 +378,32 @@ const CircleAnalysisAdmin: React.FC = () => {
         </Header>
 
         <Toolbar>
-          <ToolbarText>
-            {isLoading ? "Loading team data..." : `Updated ${analysis?.updatedAt ? new Date(analysis.updatedAt).toLocaleString() : "now"}`}
-          </ToolbarText>
-          <SaveButton type="button" onClick={saveAnalysis} disabled={isSaving || isLoading || !analysis}>
-            {isSaving ? "Saving..." : "Save Response"}
-          </SaveButton>
+          <ToolbarInfo>
+            <ToolbarText>
+              {isLoading ? "Loading team data..." : `Updated ${analysis?.updatedAt ? new Date(analysis.updatedAt).toLocaleString() : "now"}`}
+            </ToolbarText>
+            <LiveMeta>
+              <LiveDot $active={latestLiveMatchRows.length > 0} />
+              {latestLiveMatchRows.length > 0
+                ? `Live websocket ready: ${latestLiveMatchRows.length} liveMatchStandings teams`
+                : "Waiting for table standings websocket liveMatchStandings"}
+            </LiveMeta>
+          </ToolbarInfo>
+          <ToolbarActions>
+            <SnapshotCount>
+              {snapshotCount}/{circles.length} Snapshots
+              {nextSnapshotCircle ? ` / Next C${nextSnapshotCircle}` : " / Complete"}
+            </SnapshotCount>
+            <SnapshotButton type="button" onClick={takeSnapshot} disabled={snapshotDisabled}>
+              Snapshot
+            </SnapshotButton>
+            <ResetButton type="button" onClick={resetSnapshots} disabled={isLoading || !analysis || snapshotCount === 0}>
+              Reset Snapshots
+            </ResetButton>
+            <SaveButton type="button" onClick={saveAnalysis} disabled={isSaving || isLoading || !analysis}>
+              {isSaving ? "Saving..." : "Save Response"}
+            </SaveButton>
+          </ToolbarActions>
         </Toolbar>
 
         {error && <Alert $tone="danger">{error}</Alert>}
@@ -222,7 +495,7 @@ const CircleAnalysisAdmin: React.FC = () => {
                           type="number"
                           min="0"
                           step="any"
-                          value={team.killsPerCircle[circle] || 0}
+                          value={team.killsPerCircle[circle] > 0 ? team.killsPerCircle[circle] : ""}
                           onChange={(event) => updateCircleKills(team.teamId, circle, event.target.value)}
                           aria-label={`${team.teamName} circle ${circle} kills`}
                         />
@@ -326,19 +599,60 @@ const Toolbar = styled.div`
   background: var(--project-surface, rgba(15, 23, 42, 0.85));
 `;
 
+const ToolbarInfo = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+`;
+
 const ToolbarText = styled.div`
   color: var(--project-text-secondary, #cbd5e1);
   font-size: 0.86rem;
   font-weight: 700;
 `;
 
-const SaveButton = styled.button`
+const LiveMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--project-text-secondary, #94a3b8);
+  font-size: 0.78rem;
+  font-weight: 800;
+`;
+
+const LiveDot = styled.span<{ $active: boolean }>`
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? "#22c55e" : "#f59e0b")};
+  box-shadow: 0 0 10px ${({ $active }) => ($active ? "rgba(34, 197, 94, 0.65)" : "rgba(245, 158, 11, 0.55)")};
+`;
+
+const ToolbarActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+`;
+
+const SnapshotCount = styled.div`
   min-height: 38px;
-  border: 1px solid rgba(var(--project-secondary-rgb, 94, 234, 212), 0.45);
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--project-border, rgba(148, 163, 184, 0.24));
+  border-radius: 8px;
+  padding: 0 12px;
+  background: rgba(2, 6, 23, 0.46);
+  color: var(--project-text-primary, #f8fafc);
+  font-size: 0.82rem;
+  font-weight: 900;
+`;
+
+const ActionButton = styled.button`
+  min-height: 38px;
   border-radius: 8px;
   padding: 0 16px;
-  background: var(--project-secondary, #22c55e);
-  color: var(--project-text-inverse, #020617);
   font-weight: 900;
   cursor: pointer;
 
@@ -346,6 +660,24 @@ const SaveButton = styled.button`
     cursor: not-allowed;
     opacity: 0.55;
   }
+`;
+
+const SnapshotButton = styled(ActionButton)`
+  border: 1px solid rgba(var(--project-primary-rgb, 59, 130, 246), 0.52);
+  background: var(--project-primary, #3b82f6);
+  color: var(--project-text-inverse, #020617);
+`;
+
+const ResetButton = styled(ActionButton)`
+  border: 1px solid rgba(248, 113, 113, 0.52);
+  background: rgba(127, 29, 29, 0.72);
+  color: var(--project-text-primary, #ffffff);
+`;
+
+const SaveButton = styled(ActionButton)`
+  border: 1px solid rgba(var(--project-secondary-rgb, 94, 234, 212), 0.45);
+  background: var(--project-secondary, #22c55e);
+  color: var(--project-text-inverse, #020617);
 `;
 
 const Alert = styled.div<{ $tone: "danger" | "success" }>`
