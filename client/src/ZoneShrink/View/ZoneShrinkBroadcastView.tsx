@@ -402,6 +402,7 @@ const ZoneCardStyle3 = styled.section<{ $dissolving: boolean }>`
 `;
 
 const Style3MainBanner = styled.div<{ $border: string }>`
+  box-sizing: border-box;
   width: 100%;
   height: 96px;
   display: flex;
