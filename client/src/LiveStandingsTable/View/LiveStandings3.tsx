@@ -570,6 +570,8 @@ const RankLogoArea = styled.div`
   flex-shrink: 0;
   background: var(--live3-rank);
   z-index: 1;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const Rank = styled.div`
@@ -636,6 +638,8 @@ const TagBanner = styled.div`
   background: var(--live3-tag);
   clip-path: polygon(18px 0, 100% 0, calc(100% - 18px) 100%, 0% 100%);
   z-index: 3;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const TagText = styled.span`
@@ -660,6 +664,8 @@ const Stats = styled.div<{ $showPoints: boolean }>`
   padding-left: 14px;
   gap: 0;
   z-index: 2;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const StatWrap = styled.div<{ $width: number }>`
@@ -696,6 +702,10 @@ const HealthPanel = styled.div<{ $width: number }>`
   justify-content: center;
   margin-right: 14px;
   flex: 0 0 ${({ $width }) => $width}px;
+  contain: layout paint style;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const HealthBar = styled.div`
@@ -712,14 +722,17 @@ const HealthFill = styled.span<{ $hp: number; $state: "alive" | "knocked" | "rec
   left: 0;
   bottom: 0;
   width: 100%;
-  height: ${({ $state, $hp }) => ($state === "dead" ? "0%" : `${$hp}%`)};
+  height: 100%;
   background: ${({ $state, $hp }) => {
     if ($state === "dead") return "transparent";
     if ($state === "recalled") return "#2575fc";
     if ($state === "knocked" || $hp <= 25) return "#ff3c14";
     return "var(--live3-health)";
   }};
-  transition: height 160ms ease, background-color 160ms ease;
+  transition: transform 160ms ease, background-color 160ms ease;
+  transform: scaleY(${({ $state, $hp }) => ($state === "dead" ? 0 : $hp / 100)});
+  transform-origin: bottom center;
+  will-change: transform;
 
   ${({ $state, $hp }) =>
     $state === "alive" &&

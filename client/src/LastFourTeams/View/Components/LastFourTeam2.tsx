@@ -78,6 +78,7 @@ const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
             <Card
               key={team.id || team.name}
               layout
+              layoutDependency={`${team.id || team.name}:${team.rank}`}
               initial={{ opacity: 0, y: -40, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{
@@ -213,6 +214,10 @@ const HealthBars = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
+  contain: layout paint style;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const HealthBar = styled.i<{
@@ -256,12 +261,16 @@ const HealthFill = styled.span<{
   left: 0;
   bottom: 0;
   width: 100%;
-  height: ${({ $status, $percent }) => ($status === "dead" ? 0 : $percent)}%;
+  height: 100%;
   background: ${({ $status, $accent, $alive, $recalled }) => {
     if ($status === "knocked") return $accent;
     if ($status === "recalled") return $recalled;
     return $alive;
   }};
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scaleY(${({ $status, $percent }) => ($status === "dead" ? 0 : $percent / 100)});
+  transform-origin: bottom center;
+  will-change: transform;
 `;
 
 const Footer = styled.div<{ $bar: string; $text: string }>`

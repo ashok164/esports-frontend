@@ -1,5 +1,5 @@
 import React from "react";
-import styled, { keyframes, css } from "styled-components";
+import styled, { css } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProjectTheme } from "../../../Theme";
 import LiveStandingsFont, {
@@ -39,15 +39,6 @@ export interface TeamData {
 interface EndgameTopHUDProps {
   teams?: TeamData[];
 }
-
-/* ==========================================================================
-   1. KEYFRAME ANIMATIONS (Low HP Flash & Glow)
-   ========================================================================== */
-
-const lowHpFlicker = keyframes`
-  0%, 100% { box-shadow: 0 0 4px rgba(var(--project-danger-rgb, 255, 42, 109), 0.4); filter: brightness(0.9); }
-  50% { box-shadow: 0 0 14px rgba(var(--project-danger-rgb, 255, 42, 109), 0.95); filter: brightness(1.2); }
-`;
 
 /* ==========================================================================
    2. CONFIGURATION & THEME STYLES
@@ -234,6 +225,10 @@ const HealthSystemRow = styled.div`
   display: flex;
   gap: 6px;
   z-index: 3;
+  contain: layout paint style;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
 const HPBlock = styled.div<{
@@ -257,7 +252,7 @@ const HPBlock = styled.div<{
   overflow: hidden;
   
   ${props => props.$isLow && !props.$isDead && css`
-    animation: ${lowHpFlicker} 1.2s infinite ease-in-out;
+    box-shadow: 0 0 10px rgba(var(--project-danger-rgb, 255, 42, 109), 0.75);
   `}
 `;
 
@@ -269,14 +264,17 @@ const HealthFill = styled.div<{
   bottom: 0;
   left: 0;
   width: 100%;
-  height: ${(props) => props.$percent}%;
+  height: 100%;
   background: ${(props) => {
     if (props.$status === "alive" && props.$percent <= 25) return Theme.knocked;
     if (props.$status === "knocked") return Theme.knocked;
     if (props.$status === "recalled") return Theme.recalled;
     return Theme.alive;
   }};
-  transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scaleY(${(props) => props.$percent / 100});
+  transform-origin: bottom center;
+  will-change: transform;
 `;
 
 /* ==========================================================================
@@ -348,6 +346,7 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
             <CardContainer
               key={team.id || team.name}
               layout
+              layoutDependency={`${team.id || team.name}:${team.rank}`}
               initial={{ opacity: 0, y: -40, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ 
