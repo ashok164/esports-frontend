@@ -126,6 +126,15 @@ const buildEmptyCircleKills = (circles: number[]) =>
     return acc;
   }, {});
 
+const getPreviousCircleKills = (
+  team: CircleAnalysisTeam,
+  circles: number[],
+  snapshotCircle: number,
+) =>
+  circles
+    .filter((circle) => circle < snapshotCircle)
+    .reduce((sum, circle) => sum + (team.killsPerCircle[circle] || 0), 0);
+
 const CircleAnalysisAdmin: React.FC = () => {
   useSyncGameDetails();
   const { isLoading: isThemeLoading } = useProjectTheme();
@@ -274,6 +283,12 @@ const CircleAnalysisAdmin: React.FC = () => {
       }
 
       const nextIsDead = isLiveTeamEliminated(liveTeam);
+      const previousCircleKills = getPreviousCircleKills(
+        team,
+        availableCircles,
+        snapshotCircle,
+      );
+      const circleKills = Math.max(0, getLiveKills(liveTeam) - previousCircleKills);
       updatedTeams += 1;
 
       return {
@@ -282,7 +297,7 @@ const CircleAnalysisAdmin: React.FC = () => {
         lastCircle: snapshotCircle,
         killsPerCircle: {
           ...team.killsPerCircle,
-          [snapshotCircle]: getLiveKills(liveTeam),
+          [snapshotCircle]: circleKills,
         },
       };
     });
