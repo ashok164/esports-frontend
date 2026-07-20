@@ -452,8 +452,8 @@ const BrandBox = styled.div`
   justify-content: center;
   gap: clamp(5px, 0.55vw, 9px);
   padding: 4px clamp(16px, 1.35vw, 22px) 4px clamp(7px, 0.75vw, 11px);
-  border-right: 2px solid var(--roster-color-5, var(--project-accent, #bfff00));
-  background: var(--roster-color-5, var(--project-surface-alt, #1f293d));
+  border-right: 2px solid var(--roster-color-2, var(--project-accent, #bfff00));
+  background: var(--roster-color-2, var(--project-surface-alt, #1f293d));
   clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
 
   body[data-show-roster-team-logos="false"] & {
