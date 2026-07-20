@@ -81,12 +81,29 @@ const mergeTeamIdentity = (rosters: RosterTeam[], playingTeams: TodaysPlayingTea
   });
 };
 
+const createEmptyRoster = (team: TodaysPlayingTeam): RosterTeam => ({
+  id: team.id,
+  teamId: team.teamId || team.id,
+  teamName: team.name || "Unnamed Team",
+  tag: team.tag,
+  teamLogo: team.teamLogo || team.logo || "",
+  countryLogo: team.countryLogo || "",
+  players: [],
+});
+
 const filterPlayingTeams = (rosters: RosterTeam[], playingTeams: TodaysPlayingTeam[]) => {
   if (!playingTeams.length) return rosters;
   const playingIds = new Set(playingTeams.map((team) => normalizeKey(team.teamId)));
   const playingNames = new Set(playingTeams.map((team) => normalizeKey(team.name)));
 
-  return rosters.filter((team) => playingIds.has(normalizeKey(team.teamId)) || playingNames.has(normalizeKey(team.teamName)));
+  const filteredRosters = rosters.filter((team) => playingIds.has(normalizeKey(team.teamId)) || playingNames.has(normalizeKey(team.teamName)));
+  const rosterIds = new Set(filteredRosters.map((team) => normalizeKey(team.teamId)));
+  const rosterNames = new Set(filteredRosters.map((team) => normalizeKey(team.teamName)));
+  const missingPlayingTeams = playingTeams.filter(
+    (team) => !rosterIds.has(normalizeKey(team.teamId)) && !rosterNames.has(normalizeKey(team.name)),
+  );
+
+  return [...filteredRosters, ...missingPlayingTeams.map(createEmptyRoster)];
 };
 
 export const getBroadcastTeamRosterApi = async (): Promise<RosterTeam[]> => {
