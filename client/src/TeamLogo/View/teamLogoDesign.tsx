@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import styled from "styled-components";
+import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 
 export interface Team {
   id?: number | string;
@@ -42,6 +43,13 @@ export default function TeamLogoDesign({
     return [...teams].sort(compareTeamId);
   }, [teams]);
 
+  useEffect(() => {
+    const urls = visibleTeams.flatMap((team) =>
+      [team.team_logo, team.country_logo].filter(Boolean) as string[],
+    );
+    warmImageUrls(urls).catch(() => undefined);
+  }, [visibleTeams]);
+
   return (
     <Page>
       <Header>
@@ -66,6 +74,8 @@ export default function TeamLogoDesign({
                     <TeamLogo
                       src={team.team_logo}
                       alt={`${team.team_name || "Team"} logo`}
+                      loading="eager"
+                      decoding="async"
                       onError={(event) => {
                         event.currentTarget.style.display = "none";
                       }}
@@ -76,7 +86,12 @@ export default function TeamLogoDesign({
 
                   <IdBadge>ID {team.team_id}</IdBadge>
                   {team.country_logo && (
-                    <CountryLogo src={team.country_logo} alt={`${team.team_name || "Team"} country`} />
+                    <CountryLogo
+                      src={team.country_logo}
+                      alt={`${team.team_name || "Team"} country`}
+                      loading="eager"
+                      decoding="async"
+                    />
                   )}
                 </LogoStage>
 

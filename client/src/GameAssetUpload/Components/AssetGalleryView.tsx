@@ -51,6 +51,8 @@ const AssetGalleryView = ({
                   <AssetImage
                     src={record.imageUrl}
                     alt={record.name || `${title} ${index + 1}`}
+                    loading={index < 8 ? "eager" : "lazy"}
+                    decoding="async"
                     onError={(event) => {
                       event.currentTarget.style.display = "none";
                     }}
