@@ -270,10 +270,12 @@ const usePlayerUploadController = () => {
       formData.append(`players[${index}][uid]`, uid);
       formData.append(`players[${index}][playerName]`, playerName);
       formData.append(`players[${index}][cameraLink]`, cameraLink);
-      formData.append(`players[${index}][player_pic]`, playerPicUrl);
       formData.append("playerUid", uid);
       formData.append("playerName", playerName);
       formData.append("cameraLink", cameraLink);
+      if (playerPicUrl) {
+        formData.append(`players[${index}][player_pic]`, playerPicUrl);
+      }
       if (playerPicUrl) formData.append("player_pic", playerPicUrl);
 
       extractFiles(player?.playerPic).forEach((photoFile) => {

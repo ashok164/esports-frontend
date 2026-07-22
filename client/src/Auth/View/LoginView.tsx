@@ -42,7 +42,17 @@ const LoginView: React.FC = () => {
       saveAuthSession(token, user);
       navigate("/tournaments", { replace: true });
     } catch (loginError: any) {
-      setError(loginError?.response?.data?.message || "Login failed. Check your credentials.");
+      if (!loginError?.response) {
+        setError("Cannot reach the API server. Check REACT_APP_API_BASE_URL and the backend status.");
+        return;
+      }
+
+      if (loginError.response.status >= 500) {
+        setError("The API server is unavailable right now. Try again after the backend is running.");
+        return;
+      }
+
+      setError(loginError.response.data?.message || "Login failed. Check your credentials.");
     } finally {
       setIsSubmitting(false);
     }
