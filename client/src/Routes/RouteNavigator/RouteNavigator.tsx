@@ -277,6 +277,12 @@ const routeGroups: RouteGroup[] = [
         type: "Broadcast",
       },
       {
+        title: "Notification",
+        path: "/notification",
+        note: "Player first blood, elim leader, and damage leader milestone overlay.",
+        type: "Broadcast",
+      },
+      {
         title: "Players Mode",
         path: "/players-mode",
         note: "All live players with team cards, photos, and health bars.",

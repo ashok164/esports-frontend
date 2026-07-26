@@ -15,6 +15,7 @@ import ViewSkills from "../../GameAssetUpload/View/ViewSkills";
 import ViewWeapons from "../../GameAssetUpload/View/ViewWeapons";
 import LastTeamNotification from "../../LastFourTeams/View/LastTeamNotification";
 import LandingView from "../../Landing/view";
+import LiveNotificationView from "../../LiveNotifications/View";
 import LiveStandingsView from "../../LiveStandingsTable/View";
 import LoginView, { RegisterView } from "../../Auth/View";
 import MatchNumber from "../../MatchNumber/View";
@@ -57,6 +58,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/broadcast-image-match-number", element: <MatchNumberImageSettingsView />, isProtected: true },
   { path: "/broadcast-image-team-elimination", element: <TeamEliminationImageSettingsView />, isProtected: true },
   { path: "/live-standings", element: <LiveStandingsView />, isBroadcast: true },
+  { path: "/notification", element: <LiveNotificationView />, isBroadcast: true },
   { path: "/players-mode", element: <PlayersModeView />, isBroadcast: true },
   { path: "/team-eliminated", element: <TeamEliminatedView />, isBroadcast: true },
   { path: "/last-four-teams", element: <LastTeamNotification />, isBroadcast: true },

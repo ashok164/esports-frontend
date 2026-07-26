@@ -399,7 +399,7 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
 
       <TrackList>
         {animationEnabled && teams.slice(0, 12).map((team, rowIndex) => {
-          const finishCircle = team.hasBooyah ? visibleCircles[visibleCircles.length - 1] : team.lastCircle;
+          const finishCircle = team.lastCircle;
           const clampedFinishCircle = Math.max(1, Math.min(visibleCircles.length, finishCircle));
           const startX = 0;
           const logoX = getCircleX(clampedFinishCircle);
@@ -452,7 +452,7 @@ export const StreamPerformanceTimeline: React.FC<StreamPerformanceTimelineProps>
                 const kills = team.killsPerCircle[circleNum];
                 const hasKills = kills !== undefined && kills > 0;
                 const isReachedCircle = circleNum <= clampedFinishCircle;
-                const isTerminalCircle = circleNum === team.lastCircle && !team.hasBooyah;
+                const isTerminalCircle = circleNum === clampedFinishCircle;
 
                 return (
                   isReachedCircle && hasKills && (
