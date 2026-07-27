@@ -4,6 +4,11 @@ import StyleTwoTopFourHUD from "./Components/LastFourTeam2";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
 
+const isTrue = (value: unknown) => value === true || value === 1 || value === "1" || value === "true";
+
+const isTeamAlive = (team: any) =>
+  Number(team?.playersAlive ?? 0) > 0 && !isTrue(team?.is_eliminated) && !isTrue(team?.isEliminated);
+
 const LastTeamNotification = () => {
   const { standings, loading } = useLiveStandingsController({
     forceLiveMatchStandings: true,
@@ -13,10 +18,7 @@ const LastTeamNotification = () => {
   const aliveTeamsCount = useMemo(
     () =>
       Array.isArray(standings)
-        ? standings.filter(
-            (team) =>
-              Number(team?.playersAlive ?? 0) > 0 && !team?.isEliminated,
-          ).length
+        ? standings.filter(isTeamAlive).length
         : 0,
     [standings],
   );

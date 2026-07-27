@@ -40,6 +40,14 @@ interface EndgameTopHUDProps {
   teams?: TeamData[];
 }
 
+const MAX_VISIBLE_TEAMS = 4;
+const CARD_GAP = 28;
+
+const isTrue = (value: unknown) => value === true || value === 1 || value === "1" || value === "true";
+
+const isTeamAlive = (team: TeamData) =>
+  Number(team.playersAlive ?? 0) > 0 && !isTrue(team.is_eliminated) && !isTrue(team.isEliminated);
+
 /* ==========================================================================
    2. CONFIGURATION & THEME STYLES
    ========================================================================== */
@@ -70,7 +78,9 @@ const EndgameHUDContainer = styled.div`
   transform: translateX(-50%);
   transform-origin: top center;
   display: flex;
-  gap: 28px;
+  justify-content: center;
+  gap: ${CARD_GAP}px;
+  width: ${272 * MAX_VISIBLE_TEAMS + CARD_GAP * (MAX_VISIBLE_TEAMS - 1)}px;
   z-index: 9999;
   background: transparent;
   pointer-events: none;
@@ -310,10 +320,10 @@ const EndgameTopHUD: React.FC<EndgameTopHUDProps> = ({ teams = [] }) => {
 
   // Once the match reaches the last-four phase, keep showing the survivors as they drop from 4 to 1.
   const activeTeams = [...teams]
-    .filter(team => team.playersAlive > 0 && !team.is_eliminated && !team.isEliminated)
+    .filter(isTeamAlive)
     .sort((a, b) => a.rank - b.rank);
 
-  const activeTopFour = activeTeams.length > 0 && activeTeams.length <= 4 ? activeTeams : [];
+  const activeTopFour = activeTeams.length > 0 && activeTeams.length <= MAX_VISIBLE_TEAMS ? activeTeams : [];
 
   // Helper function to format the Win Rate string matching image reference spacing
   const formatWinRate = (val: string | number | undefined) => {

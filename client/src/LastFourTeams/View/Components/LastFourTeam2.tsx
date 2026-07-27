@@ -12,6 +12,13 @@ const CARD_HEIGHT = 78;
 const LOGO_WIDTH = 64;
 const FOOTER_HEIGHT = 27;
 const RECALLED_BLUE = "#2575fc";
+const MAX_VISIBLE_TEAMS = 4;
+const CARD_GAP = 26;
+
+const isTrue = (value: unknown) => value === true || value === 1 || value === "1" || value === "true";
+
+const isTeamAlive = (team: TeamData) =>
+  Number(team.playersAlive ?? 0) > 0 && !isTrue(team.is_eliminated) && !isTrue(team.isEliminated);
 
 const withOpacity = (color: string, opacity: number) => {
   const normalized = color.replace("#", "").trim();
@@ -48,10 +55,10 @@ const LastFourTeam2: React.FC<{ teams?: TeamData[] }> = ({ teams = [] }) => {
   const { broadcastSettings } = useProjectTheme();
 
   const activeTeams = [...teams]
-    .filter((team) => Number(team.playersAlive ?? 0) > 0 && !team.is_eliminated && !team.isEliminated)
+    .filter(isTeamAlive)
     .sort((left, right) => left.rank - right.rank);
 
-  const activeTopFour = activeTeams.length > 0 && activeTeams.length <= 4 ? activeTeams : [];
+  const activeTopFour = activeTeams.length > 0 && activeTeams.length <= MAX_VISIBLE_TEAMS ? activeTeams : [];
 
   const colors = {
     base: broadcastSettings.liveStandings2Color1,
@@ -148,7 +155,9 @@ const Overlay = styled.div`
   top: 24px;
   left: 50%;
   display: flex;
-  gap: 26px;
+  justify-content: center;
+  gap: ${CARD_GAP}px;
+  width: ${CARD_WIDTH * MAX_VISIBLE_TEAMS + CARD_GAP * (MAX_VISIBLE_TEAMS - 1)}px;
   transform: translateX(-50%);
   transform-origin: top center;
   z-index: 9999;
