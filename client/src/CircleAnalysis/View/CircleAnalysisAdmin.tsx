@@ -64,29 +64,37 @@ const getLiveTeamKeys = (team: any) =>
 const getAnalysisTeamKeys = (team: CircleAnalysisTeam) =>
   [team.teamId, team.shortLabel, team.teamName].map(normalizeTeamKey).filter(Boolean);
 
-const getLiveKills = (team: any) =>
-  Math.max(
-    0,
-    Math.round(
-      toNumber(
-        firstValue(
-          team?.live_kills,
-          team?.liveKills,
-          team?.killing_score,
-          team?.kill_count,
-          team?.kills,
-          0,
-        ),
-      ),
-    ),
-  );
-
-const isLiveTeamEliminated = (team: any) => {
+const getPlayerRows = (team: any) => {
   const players = Array.isArray(team?.player_stats)
     ? team.player_stats
     : Array.isArray(team?.players)
       ? team.players
       : [];
+
+  return players;
+};
+
+const getPlayerKills = (player: any) =>
+  toNumber(
+    firstValue(
+      player?.kills,
+      player?.kill,
+      player?.kill_count,
+      player?.killCount,
+      0,
+    ),
+  );
+
+const getLiveKills = (team: any) => {
+  const players = getPlayerRows(team);
+  const playerKills = players.reduce((sum: number, player: any) => sum + getPlayerKills(player), 0);
+  const liveKills = toNumber(firstValue(team?.live_kills, team?.liveKills, playerKills), playerKills);
+
+  return Math.max(0, Math.round(liveKills));
+};
+
+const isLiveTeamEliminated = (team: any) => {
+  const players = getPlayerRows(team);
 
   if (team?.is_eliminated !== undefined || team?.isEliminated !== undefined) {
     return Boolean(firstValue(team?.is_eliminated, team?.isEliminated));
