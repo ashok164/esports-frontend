@@ -3,7 +3,7 @@ import {
   GET_CIRCLE_ANALYSIS,
   UPDATE_CIRCLE_ANALYSIS,
 } from "../../Routes/ApiRoutes/apiRoutes";
-import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
+import { getTeamTableApi, getTodaysPlayingTeamsApi } from "../../TeamRecordTable/Repositary/remote";
 import {
   CircleAnalysisResponse,
   CircleAnalysisTeam,
@@ -15,6 +15,8 @@ const CHANGE_EVENT = "circle-analysis-updated";
 const DEFAULT_CIRCLES = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const getTeamId = (team: TeamIdentityRecord) => team.team_id || team.teamId || team.id || team._id || "";
+
+const normalizeKey = (value: unknown) => String(value || "").trim().toLowerCase();
 
 const compareTeamId = (left: TeamIdentityRecord, right: TeamIdentityRecord) => {
   const leftId = getTeamId(left);
@@ -53,7 +55,7 @@ export const mapTeamToCircleAnalysis = (
   saved?: Partial<CircleAnalysisTeam>,
 ): CircleAnalysisTeam => {
   const teamId = String(getTeamId(team) || saved?.teamId || "");
-  const teamName = String(team.team_name || team.teamName || saved?.teamName || `Team ${teamId || ""}`).trim();
+  const teamName = String(team.team_name || team.teamName || team.name || saved?.teamName || `Team ${teamId || ""}`).trim();
   const shortLabel = String(
     team.short_tag || team.shortTag || team.tag || saved?.shortLabel || teamName.slice(0, 3) || teamId,
   ).toUpperCase();
@@ -62,7 +64,7 @@ export const mapTeamToCircleAnalysis = (
     teamId,
     teamName,
     shortLabel,
-    logoUrl: String(team.team_logo || team.teamLogo || saved?.logoUrl || ""),
+    logoUrl: String(team.team_logo || team.teamLogo || team.logo || saved?.logoUrl || ""),
     countryLogoUrl: String(team.country_logo || team.countryLogo || saved?.countryLogoUrl || ""),
     isDead: saved?.isDead ?? false,
     hasBooyah: saved?.hasBooyah ?? false,
@@ -107,6 +109,13 @@ const writeStoredResponse = (payload: CircleAnalysisResponse) => {
 };
 
 export const getCircleAnalysisTeamsApi = async () => {
+  try {
+    const todaysTeams = await getTodaysPlayingTeamsApi();
+    if (todaysTeams.length) return todaysTeams.slice(0, 12);
+  } catch (err) {
+    console.log("Circle analysis today's playing fallback:", err);
+  }
+
   const teams = await getTeamTableApi();
   return Array.isArray(teams) ? [...teams].sort(compareTeamId).slice(0, 12) : [];
 };
@@ -116,14 +125,18 @@ export const buildCircleAnalysisFromTeams = (
   savedResponse?: CircleAnalysisResponse | null,
 ): CircleAnalysisResponse => {
   const savedById = new Map(
-    (savedResponse?.teams || []).map((team) => [String(team.teamId), team]),
+    (savedResponse?.teams || []).map((team) => [normalizeKey(team.teamId), team]),
+  );
+  const savedByName = new Map(
+    (savedResponse?.teams || []).map((team) => [normalizeKey(team.teamName), team]),
   );
 
   return {
     circles: DEFAULT_CIRCLES,
     teams: teams.slice(0, 12).map((team) => {
       const teamId = String(getTeamId(team));
-      return mapTeamToCircleAnalysis(team, savedById.get(teamId));
+      const teamName = team.team_name || team.teamName || team.name;
+      return mapTeamToCircleAnalysis(team, savedById.get(normalizeKey(teamId)) || savedByName.get(normalizeKey(teamName)));
     }),
     updatedAt: savedResponse?.updatedAt || new Date().toISOString(),
   };

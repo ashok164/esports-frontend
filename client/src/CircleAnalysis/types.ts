@@ -25,11 +25,13 @@ export interface TeamIdentityRecord {
   teamId?: number | string;
   team_name?: string | null;
   teamName?: string | null;
+  name?: string | null;
   short_tag?: string | null;
   shortTag?: string | null;
   tag?: string | null;
   team_logo?: string | null;
   teamLogo?: string | null;
+  logo?: string | null;
   country_logo?: string | null;
   countryLogo?: string | null;
 }
