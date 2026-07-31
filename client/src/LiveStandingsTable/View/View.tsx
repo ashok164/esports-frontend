@@ -50,6 +50,9 @@ const forceTeamEliminated = (team: any) => ({
 
 const LiveStandingsView: React.FC = () => {
   const { standings, championBannerUrl, championRushTeamKeys, loading } = useLiveStandingsController();
+  const { standings: liveMatchStandings } = useLiveStandingsController({
+    forceLiveMatchStandings: true,
+  });
   const { broadcastSettings } = useProjectTheme();
   const [testTeamId, setTestTeamId] = useState<string | number | null>(null);
   const [testEliminated, setTestEliminated] = useState(false);
@@ -94,11 +97,11 @@ const LiveStandingsView: React.FC = () => {
     });
   }, [isSingleEliminationTest, standings, testEliminated, testTeamId]);
 
-  const aliveTeamsCount = useMemo(
-    () => displayStandings.filter((team) => !isDeadTeam(team)).length,
-    [displayStandings],
-  );
-  const isLastFourPhase = aliveTeamsCount > 0 && aliveTeamsCount <= 4;
+  const aliveTeamsCount = useMemo(() => {
+    const phaseRows = liveMatchStandings.length > 0 ? liveMatchStandings : displayStandings;
+    return phaseRows.filter((team) => !isDeadTeam(team)).length;
+  }, [displayStandings, liveMatchStandings]);
+  const isLastFourPhase = aliveTeamsCount === 4;
 
   const shouldShowStandings =
     !loading &&
