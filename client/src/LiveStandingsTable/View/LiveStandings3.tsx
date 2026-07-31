@@ -33,6 +33,7 @@ type Team = {
   placementPoints?: number;
   playersAlive?: number;
   isPlaying?: boolean;
+  isCrowned?: boolean;
   isEliminated?: boolean;
   is_eliminated?: boolean;
   players?: Player[];
@@ -428,7 +429,10 @@ const LiveStandings3Row: React.FC<{
         style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
       >
         <RankLogoArea>
-          <Rank>{rank}</Rank>
+          <Rank>
+            {team.isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
+            {rank}
+          </Rank>
           <Divider>|</Divider>
           <LogoBox $showFlags={showFlags} $hasLogo={Boolean(team.logoUrl)}>
             {showFlags && team.countryUrl ? <Flag src={team.countryUrl} alt="" onError={hideBrokenLogo} /> : null}
@@ -576,12 +580,23 @@ const RankLogoArea = styled.div`
 
 const Rank = styled.div`
   width: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   color: #ffffff;
   text-align: center;
   font-size: 28px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+`;
+
+const CrownIcon = styled.img`
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex: 0 0 auto;
 `;
 
 const Divider = styled.div`

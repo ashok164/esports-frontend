@@ -18,6 +18,7 @@ export interface SocketTeamData {
   totalPoints: number;
   isEliminated: boolean;
   isPlaying: boolean;
+  isCrowned?: boolean;
   rank: number;
   countryUrl?: string;
   logoUrl?: string;
@@ -156,6 +157,7 @@ class RealtimeSocketWrapper {
       totalPoints: Number(team.tp ?? team.totalPoints ?? team.total_points ?? 0),
       isEliminated: Boolean(team.el ?? team.isEliminated ?? team.is_eliminated),
       isPlaying: Boolean(team.pl ?? team.isPlaying ?? team.is_playing ?? true),
+      isCrowned: Boolean(team.cr ?? team.isCrowned ?? team.is_crowned),
       rank: Number(team.rnk ?? team.rank ?? 0),
       countryUrl: team.cl || team.countryUrl || team.country_logo,
       logoUrl: team.tl || team.logoUrl || team.team_logo,

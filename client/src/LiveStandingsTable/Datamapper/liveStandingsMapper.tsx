@@ -46,6 +46,7 @@ export interface Team {
   totalPoints?: number;
   winRate?: number;
   isPlaying?: boolean;
+  isCrowned?: boolean;
   players: Player[];
   playersAlive: number;
   totalPlayers: number;
@@ -108,6 +109,7 @@ const getIdentitySignature = (team: Team) =>
     team.totalPoints,
     team.winRate,
     team.isPlaying,
+    team.isCrowned,
     team.playersAlive,
     team.totalPlayers,
     team.isEliminated,
@@ -186,6 +188,7 @@ export const mergeHistoricalWithLiveStandings = (
       totalPoints,
       winRate: toNumber(firstValue(historicalTeam?.win_rate, historicalTeam?.winRate, mappedLiveTeam?.winRate, 0)),
       isPlaying: Boolean(liveTeam),
+      isCrowned: Boolean(firstValue(historicalTeam?.is_crowned, historicalTeam?.isCrowned, mappedLiveTeam?.isCrowned, false)),
       players: mappedLiveTeam?.players || previousTeam?.players || [],
       playersAlive:
         mappedLiveTeam?.playersAlive ?? previousTeam?.playersAlive ?? 0,
@@ -234,8 +237,12 @@ export const mapTeamData = (
   previousTeamsState?: Team[],
 ): Team[] => {
   const mapped = (data || []).map((team, teamIndex) => {
-    const rawPlayers = team?.player_stats || team?.players || [];
     const permanentTeamId = firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId, team?.team_name, teamIndex);
+    const prevTeam = previousTeamsState?.find(
+      (t) => String(t.id) === String(permanentTeamId),
+    );
+    const nextRawPlayers = team?.player_stats || team?.players || [];
+    const rawPlayers = nextRawPlayers.length > 0 ? nextRawPlayers : prevTeam?.players || [];
     const roomTeamId = firstValue(team?.room_team_id, team?.roomTeamId, null);
     const backendRank = toNumber(team?.rank, 0);
     const isOverallRow =
@@ -249,42 +256,39 @@ export const mapTeamData = (
       team?.isPlaying !== undefined;
 
     const sortedRawPlayers = [...rawPlayers].sort((a, b) =>
-      String(a?.account_id ?? "").localeCompare(String(b?.account_id ?? "")),
-    );
-
-    const prevTeam = previousTeamsState?.find(
-      (t) => String(t.id) === String(permanentTeamId),
+      String(a?.account_id ?? a?.id ?? "").localeCompare(String(b?.account_id ?? b?.id ?? "")),
     );
 
     const mappedPlayers: Player[] = sortedRawPlayers.map((p: any) => {
-      const hp = p.hp_info?.current_hp ?? 0;
-      const maxHp = p.hp_info?.total_hp ?? 200;
+      const prevPlayer = prevTeam?.players?.find(
+        (pl) => String(pl.id) === String(firstValue(p?.account_id, p?.id)),
+      );
+      const hp = toNumber(firstValue(p.hp_info?.current_hp, p.hpInfo?.currentHp, p.hp, prevPlayer?.hp, 0));
+      const maxHp = toNumber(firstValue(p.hp_info?.total_hp, p.hpInfo?.totalHp, p.maxHp, prevPlayer?.maxHp, 200), 200);
       const hpPercent = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+      const playerState = toNumber(firstValue(p.player_state, p.playerState, prevPlayer?.status === "knocked" ? 1 : 0));
+      const killedTime = toNumber(firstValue(p.be_killed_time, p.beKilledTime, prevPlayer?.deadTime, 0));
 
       const isAliveBase = hp > 0;
-      let isKnocked = p.player_state !== 0 && p.hp_info?.current_hp > 0;
+      let isKnocked = playerState !== 0 && hp > 0;
       let status: "alive" | "knocked" | "dead" = "dead";
-
-      const prevPlayer = prevTeam?.players?.find(
-        (pl) => String(pl.id) === String(p?.account_id),
-      );
 
       // 1. DETERMINE CURRENT STATUS & KNOCK PHASES
       if (isAliveBase) {
         status = "alive";
       } else {
         if (prevPlayer) {
-          if (prevPlayer.status === "knocked" && p.player_state !== 1) {
+          if (prevPlayer.status === "knocked" && playerState !== 1) {
             isKnocked = true;
             status = "knocked";
-          } else if (prevPlayer.hp > 0 && hp === 0 && p.player_state === 0) {
+          } else if (prevPlayer.hp > 0 && hp === 0 && playerState === 0) {
             isKnocked = true;
             status = "knocked";
           } else {
             status = "dead";
           }
         } else {
-          if (p.player_state === 0) {
+          if (playerState === 0) {
             isKnocked = true;
             status = "knocked";
           } else {
@@ -303,16 +307,16 @@ export const mapTeamData = (
       // If they are strictly dead right now (HP is 0 and they are not just knocked)
       else if (
         status === "alive" &&
-        p.player_state === 0 &&
-        p.be_killed_time > 0
+        playerState === 0 &&
+        killedTime > 0
       ) {
         hasRecalled = true;
       }
 
       return {
         ...p,
-        id: p?.account_id,
-        name: p?.nickname || "Unknown",
+        id: firstValue(p?.account_id, p?.id),
+        name: firstValue(p?.nickname, p?.name, "Unknown"),
         hp,
         maxHp,
         hpPercent: Math.max(0, Math.min(100, hpPercent)),
@@ -320,8 +324,8 @@ export const mapTeamData = (
         isKnocked,
         status,
         hasRecalled, // <-- Retained in state payload
-        deadTime: p?.be_killed_time,
-        playerPic: p?.player_image || undefined,
+        deadTime: killedTime,
+        playerPic: firstValue(p?.player_image, p?.playerPic, undefined),
         cameraLink: firstValue(p?.camera_link, p?.cameraLink, ""),
         kills: toNumber(firstValue(p?.kills, p?.kill, p?.kill_count, p?.killCount, 0)),
         damage: toNumber(firstValue(p?.damage, p?.damage_dealt, p?.damageDealt, 0)),
@@ -380,6 +384,7 @@ export const mapTeamData = (
       totalPoints: toNumber(firstValue(team?.total_points, team?.totalPoints, kills)),
       winRate: toNumber(firstValue(team?.win_rate, team?.winRate, 0)),
       isPlaying,
+      isCrowned: Boolean(firstValue(team?.is_crowned, team?.isCrowned, false)),
       players: mappedPlayers,
       playersAlive: aliveCount,
       totalPlayers: mappedPlayers.length,

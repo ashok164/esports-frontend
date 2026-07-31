@@ -161,9 +161,10 @@ export const updateTeamTableApi = async (id: string | number, data: FormData) =>
 
 export const updateTeamPlayingApi = async (
   id: string | number,
-  isPlaying: boolean,
+  payload: boolean | { isPlaying?: boolean; isCrowned?: boolean },
 ) => {
-  const response = await http.patch(UPDATE_TEAM_PLAYING(id), { isPlaying });
+  const data = typeof payload === "boolean" ? { isPlaying: payload } : payload;
+  const response = await http.patch(UPDATE_TEAM_PLAYING(id), data);
   invalidateTeamTableCache();
   return response;
 };

@@ -94,20 +94,9 @@ const LiveStandingsView: React.FC = () => {
     });
   }, [isSingleEliminationTest, standings, testEliminated, testTeamId]);
 
-  const aliveTeamsCount = useMemo(
-    () =>
-      Array.isArray(displayStandings)
-        ? displayStandings.filter((team) => !isDeadTeam(team)).length
-        : 0,
-    [displayStandings],
-  );
-
-  const shouldHideForFinalTeams = aliveTeamsCount > 0 && aliveTeamsCount <= 4;
-
   const shouldShowStandings =
     !loading &&
-    broadcastSettings.showResultStandings &&
-    !shouldHideForFinalTeams;
+    broadcastSettings.showResultStandings;
 
   useEffect(() => {
     if (shouldShowStandings) {

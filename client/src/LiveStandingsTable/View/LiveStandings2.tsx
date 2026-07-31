@@ -31,6 +31,7 @@ type Team = {
   placementPoints?: number;
   playersAlive?: number;
   isPlaying?: boolean;
+  isCrowned?: boolean;
   isEliminated?: boolean;
   is_eliminated?: boolean;
   players?: Player[];
@@ -215,6 +216,7 @@ const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   height: 100%;
   background: var(--live2-color-2);
   color: var(--live2-text-color-2);
@@ -223,6 +225,13 @@ const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
   font-style: italic;
   font-weight: 700;
   border-right: 1px solid #000000;
+`;
+
+const CrownIcon = styled.img`
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex: 0 0 auto;
 `;
 
 const TeamCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
@@ -610,7 +619,10 @@ const LiveStandings2Row: React.FC<{
         $showPoints={showPoints}
         style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
       >
-        <RankCell $highlighted={false} $eliminated={eliminated}>{rank}</RankCell>
+        <RankCell $highlighted={false} $eliminated={eliminated}>
+          {team.isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
+          {rank}
+        </RankCell>
 
         {showFlags && (
           <FlagCell>

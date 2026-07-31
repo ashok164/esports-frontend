@@ -47,6 +47,7 @@ interface Team {
   isEliminated?: boolean;
   is_eliminated?: boolean;
   isPlaying?: boolean;
+  isCrowned?: boolean;
   players?: Player[];
 }
 
@@ -420,6 +421,7 @@ const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   font-size: 28px;
   font-weight: 900;
   z-index: 25;
@@ -592,6 +594,13 @@ const Footer = styled.div`
     2% 34%,
     0 18%
   );
+`;
+
+const CrownIcon = styled.img`
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex: 0 0 auto;
 `;
 
 const AnimatedFooter = styled(Footer)<{ $phase?: "entering" | "exiting"; $rowCount: number }>`
@@ -852,6 +861,7 @@ const TeamRowComponent = memo(function TeamRow({
         {/* Base content */}
         <BaseContentGroup $hidden={phase === "flash_wipe"}>
           <RankCell $rank={rank} $dead={isDead}>
+            {team.isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
             {formatRank(rank)}
           </RankCell>
 

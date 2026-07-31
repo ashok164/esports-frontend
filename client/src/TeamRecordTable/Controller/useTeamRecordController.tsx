@@ -29,6 +29,8 @@ export interface TeamRecord {
   countryLogoPath?: string;
   is_playing?: boolean;
   isPlaying?: boolean;
+  is_crowned?: boolean;
+  isCrowned?: boolean;
 }
 
 const useTeamRecordController = () => {
@@ -62,6 +64,10 @@ const useTeamRecordController = () => {
     formData.append(
       "isPlaying",
       String(Boolean(teamRecord.isPlaying ?? teamRecord.is_playing ?? false)),
+    );
+    formData.append(
+      "isCrowned",
+      String(Boolean(teamRecord.isCrowned ?? teamRecord.is_crowned ?? false)),
     );
 
     const teamLogoFile = extractFile(teamRecord.teamLogo);
@@ -241,6 +247,23 @@ const useTeamRecordController = () => {
     }
   };
 
+  const handleToggleCrowned = async (
+    recordId: string | number,
+    isCrowned: boolean,
+  ) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateTeamPlayingApi(recordId, { isCrowned });
+      await loadTeams();
+    } catch (err: any) {
+      setError(err?.message || "Failed to update crowned team");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleOpenTeamLogos = (team?: TeamRecord) => {
     const recordId = team ? getRecordId(team) : "";
     navigate(recordId ? `/team-logo?team=${recordId}` : "/team-logo");
@@ -252,6 +275,7 @@ const useTeamRecordController = () => {
     reorderTeamTable: handleReorderTeams,
     deleteTeamTable: handleDeleteTeam,
     togglePlayingTeam: handleTogglePlaying,
+    toggleCrownedTeam: handleToggleCrowned,
     openTeamLogos: handleOpenTeamLogos,
     refreshTeams: loadTeams,
     teams,

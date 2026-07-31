@@ -28,6 +28,7 @@ export interface Team {
   historicalPoints?: number;
   totalPoints?: number;
   isPlaying?: boolean;
+  isCrowned?: boolean;
   players: Player[];
   playersAlive: number;
   totalPlayers: number;
@@ -185,6 +186,7 @@ export const mapTeamData = (
       totalPoints: toNumber(team?.totalPoints, kills),
       winRate: toNumber(pick(team, ["winRate", "win_rate"], 0)),
       isPlaying,
+      isCrowned: Boolean(pick(team, ["isCrowned", "is_crowned"], false)),
       players: mappedPlayers,
       playersAlive: aliveCount,
       totalPlayers: mappedPlayers.length,

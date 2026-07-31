@@ -18,6 +18,7 @@ type TeamRow = {
   existingTeamLogo?: string;
   existingCountryLogo?: string;
   isPlaying?: boolean;
+  isCrowned?: boolean;
 };
 
 type TeamFormValues = {
@@ -30,6 +31,7 @@ type TeamFormTableProps = {
   reorderTeamTable: (rows: TeamRow[]) => Promise<void>;
   deleteTeamTable: (id: string | number) => Promise<void>;
   togglePlayingTeam: (id: string | number, isPlaying: boolean) => Promise<void>;
+  toggleCrownedTeam: (id: string | number, isCrowned: boolean) => Promise<void>;
   openTeamLogos: (team?: TeamRecord) => void;
   teams?: TeamRecord[];
   countryLogos?: CountryLogo[];
@@ -50,6 +52,7 @@ const mapApiTeamToRow = (team: TeamRecord): TeamRow => ({
   existingTeamLogo: team.team_logo || team.teamLogo || "",
   existingCountryLogo: team.country_logo || team.countryLogo || "",
   isPlaying: Boolean(team.is_playing ?? team.isPlaying ?? false),
+  isCrowned: Boolean(team.is_crowned ?? team.isCrowned ?? false),
 });
 
 const getFileName = (fileField: any) => {
@@ -69,6 +72,7 @@ const toTeamRecord = (row: TeamRow): TeamRecord => ({
   team_logo: row.existingTeamLogo,
   country_logo: row.existingCountryLogo,
   is_playing: Boolean(row.isPlaying),
+  is_crowned: Boolean(row.isCrowned),
 });
 
 const getLogoUrl = (logo?: CountryLogo) => logo?.countryLogo || "";
@@ -599,6 +603,7 @@ export default function TeamFormTable({
   reorderTeamTable,
   deleteTeamTable,
   togglePlayingTeam,
+  toggleCrownedTeam,
   openTeamLogos,
   teams = [],
   countryLogos = [],
@@ -651,6 +656,7 @@ export default function TeamFormTable({
       existingTeamLogo: "",
       existingCountryLogo: "",
       isPlaying: false,
+      isCrowned: false,
     });
     setEditingRows((prev) => ({ ...prev, [fields.length]: true }));
   };
@@ -838,9 +844,10 @@ export default function TeamFormTable({
                       <th style={{ width: "11%" }}>Team ID</th>
                       <th style={{ width: "18%" }}>Team Name</th>
                       <th style={{ width: "8%" }}>Tag</th>
-                      <th style={{ width: "19%" }}>Team Logo</th>
-                      <th style={{ width: "19%" }}>Country Logo</th>
+                      <th style={{ width: "17%" }}>Team Logo</th>
+                      <th style={{ width: "17%" }}>Country Logo</th>
                       <th style={{ width: "8%", textAlign: "center" }}>Playing</th>
+                      <th style={{ width: "8%", textAlign: "center" }}>Crowned</th>
                       <th style={{ width: "12%", textAlign: "right" }}>Actions</th>
                     </tr>
                   </TableHead>
@@ -1012,6 +1019,26 @@ export default function TeamFormTable({
                                 });
                                 if (row.recordId) {
                                   await togglePlayingTeam(row.recordId, checked);
+                                }
+                              }}
+                            />
+                            <span />
+                          </Switch>
+                        </TableCell>
+
+                        <TableCell data-label="Crowned" style={{ textAlign: "center" }}>
+                          <Switch title={row.isCrowned ? "Crowned team" : "Not crowned"}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(row.isCrowned)}
+                              disabled={isSaving}
+                              onChange={async (event) => {
+                                const checked = event.target.checked;
+                                setValue(`teams.${index}.isCrowned`, checked, {
+                                  shouldDirty: true,
+                                });
+                                if (row.recordId) {
+                                  await toggleCrownedTeam(row.recordId, checked);
                                 }
                               }}
                             />
