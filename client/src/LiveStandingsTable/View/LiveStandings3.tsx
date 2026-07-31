@@ -91,14 +91,14 @@ const crownedRowPulse = keyframes`
 `;
 
 const booyahNeededSweep = keyframes`
-  0%, 72% {
+  0%, 84% {
     transform: translateX(0);
     opacity: 0;
   }
-  76% {
+  86% {
     opacity: 1;
   }
-  92% {
+  94% {
     opacity: 1;
   }
   100% {

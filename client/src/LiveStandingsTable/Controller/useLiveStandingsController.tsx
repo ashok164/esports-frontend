@@ -210,6 +210,7 @@ const minimizeTeam = (team: any) => {
     live_kills: firstValue(team?.live_kills, team?.liveKills, team?.killing_score, 0),
     live_points: firstValue(team?.live_points, team?.livePoints, 0),
     total_points: firstValue(team?.total_points, team?.totalPoints, 0),
+    head_start_points: firstValue(team?.head_start_points, team?.headStartPoints, 0),
     historical_kills: firstValue(team?.historical_kills, team?.historicalKills, 0),
     historical_points: firstValue(team?.historical_points, team?.historicalPoints, 0),
     is_playing: firstValue(team?.is_playing, team?.isPlaying, players.length > 0),
@@ -263,6 +264,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
         country_logo: team?.country_logo ?? team?.countryLogo,
         is_playing: Boolean(team?.is_playing ?? team?.isPlaying ?? false),
         is_crowned: Boolean(team?.is_crowned ?? team?.isCrowned ?? false),
+        head_start_points: Number(team?.head_start_points ?? team?.headStartPoints ?? 0) || 0,
       };
     });
   }, []);

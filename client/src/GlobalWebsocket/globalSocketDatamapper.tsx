@@ -27,6 +27,7 @@ export interface Team {
   livePoints?: number;
   historicalPoints?: number;
   totalPoints?: number;
+  headStartPoints?: number;
   isPlaying?: boolean;
   isCrowned?: boolean;
   players: Player[];
@@ -184,6 +185,7 @@ export const mapTeamData = (
       livePoints: toNumber(team?.livePoints, 0),
       historicalPoints: toNumber(team?.historicalPoints, 0),
       totalPoints: toNumber(team?.totalPoints, kills),
+      headStartPoints: toNumber(pick(team, ["headStartPoints", "head_start_points"], 0)),
       winRate: toNumber(pick(team, ["winRate", "win_rate"], 0)),
       isPlaying,
       isCrowned: Boolean(pick(team, ["isCrowned", "is_crowned"], false)),

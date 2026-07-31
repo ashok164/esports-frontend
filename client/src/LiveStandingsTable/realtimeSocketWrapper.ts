@@ -16,6 +16,7 @@ export interface SocketTeamData {
   kills: number;
   playersAlive: number;
   totalPoints: number;
+  headStartPoints?: number;
   isEliminated: boolean;
   isPlaying: boolean;
   isCrowned?: boolean;
@@ -155,6 +156,7 @@ class RealtimeSocketWrapper {
       kills: Number(team.k ?? team.kills ?? 0),
       playersAlive: Number(team.a ?? team.playersAlive ?? team.players_alive ?? 0),
       totalPoints: Number(team.tp ?? team.totalPoints ?? team.total_points ?? 0),
+      headStartPoints: Number(team.hs ?? team.headStartPoints ?? team.head_start_points ?? 0),
       isEliminated: Boolean(team.el ?? team.isEliminated ?? team.is_eliminated),
       isPlaying: Boolean(team.pl ?? team.isPlaying ?? team.is_playing ?? true),
       isCrowned: Boolean(team.cr ?? team.isCrowned ?? team.is_crowned),

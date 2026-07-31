@@ -44,6 +44,7 @@ export interface Team {
   livePoints?: number;
   historicalPoints?: number;
   totalPoints?: number;
+  headStartPoints?: number;
   winRate?: number;
   isPlaying?: boolean;
   isCrowned?: boolean;
@@ -85,7 +86,8 @@ const getPrimaryTeamId = (team: any, fallback: string | number) =>
   firstValue(team?.permanent_team_id, team?.permanentTeamId, team?.team_id, team?.teamId, fallback);
 
 const getHistoricalPoints = (team: any) =>
-  toNumber(firstValue(team?.historical_points, team?.historicalPoints, team?.total_points, team?.totalPoints, team?.points, 0));
+  toNumber(firstValue(team?.historical_points, team?.historicalPoints, team?.total_points, team?.totalPoints, team?.points, 0)) +
+  toNumber(firstValue(team?.head_start_points, team?.headStartPoints, 0));
 
 const getLiveKills = (team: any) =>
   toNumber(firstValue(team?.live_kills, team?.liveKills, team?.killing_score, team?.kill_count, team?.kills, 0));
@@ -107,6 +109,7 @@ const getIdentitySignature = (team: Team) =>
     team.livePoints,
     team.historicalPoints,
     team.totalPoints,
+    team.headStartPoints,
     team.winRate,
     team.isPlaying,
     team.isCrowned,
@@ -186,6 +189,7 @@ export const mergeHistoricalWithLiveStandings = (
       livePoints,
       historicalPoints,
       totalPoints,
+      headStartPoints: toNumber(firstValue(historicalTeam?.head_start_points, historicalTeam?.headStartPoints, mappedLiveTeam?.headStartPoints, 0)),
       winRate: toNumber(firstValue(historicalTeam?.win_rate, historicalTeam?.winRate, mappedLiveTeam?.winRate, 0)),
       isPlaying: Boolean(liveTeam),
       isCrowned: Boolean(firstValue(historicalTeam?.is_crowned, historicalTeam?.isCrowned, mappedLiveTeam?.isCrowned, false)),
@@ -382,6 +386,7 @@ export const mapTeamData = (
         firstValue(team?.historical_points, team?.historicalPoints, 0),
       ),
       totalPoints: toNumber(firstValue(team?.total_points, team?.totalPoints, kills)),
+      headStartPoints: toNumber(firstValue(team?.head_start_points, team?.headStartPoints, 0)),
       winRate: toNumber(firstValue(team?.win_rate, team?.winRate, 0)),
       isPlaying,
       isCrowned: Boolean(firstValue(team?.is_crowned, team?.isCrowned, false)),

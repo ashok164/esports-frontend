@@ -19,6 +19,7 @@ type TeamRow = {
   existingCountryLogo?: string;
   isPlaying?: boolean;
   isCrowned?: boolean;
+  headStartPoints?: number;
 };
 
 type TeamFormValues = {
@@ -53,6 +54,7 @@ const mapApiTeamToRow = (team: TeamRecord): TeamRow => ({
   existingCountryLogo: team.country_logo || team.countryLogo || "",
   isPlaying: Boolean(team.is_playing ?? team.isPlaying ?? false),
   isCrowned: Boolean(team.is_crowned ?? team.isCrowned ?? false),
+  headStartPoints: Number(team.head_start_points ?? team.headStartPoints ?? 0) || 0,
 });
 
 const getFileName = (fileField: any) => {
@@ -73,6 +75,7 @@ const toTeamRecord = (row: TeamRow): TeamRecord => ({
   country_logo: row.existingCountryLogo,
   is_playing: Boolean(row.isPlaying),
   is_crowned: Boolean(row.isCrowned),
+  head_start_points: Number(row.headStartPoints) || 0,
 });
 
 const getLogoUrl = (logo?: CountryLogo) => logo?.countryLogo || "";
@@ -657,6 +660,7 @@ export default function TeamFormTable({
       existingCountryLogo: "",
       isPlaying: false,
       isCrowned: false,
+      headStartPoints: 0,
     });
     setEditingRows((prev) => ({ ...prev, [fields.length]: true }));
   };
@@ -844,8 +848,9 @@ export default function TeamFormTable({
                       <th style={{ width: "11%" }}>Team ID</th>
                       <th style={{ width: "18%" }}>Team Name</th>
                       <th style={{ width: "8%" }}>Tag</th>
-                      <th style={{ width: "17%" }}>Team Logo</th>
-                      <th style={{ width: "17%" }}>Country Logo</th>
+                      <th style={{ width: "15%" }}>Team Logo</th>
+                      <th style={{ width: "15%" }}>Country Logo</th>
+                      <th style={{ width: "8%", textAlign: "center" }}>Head Start</th>
                       <th style={{ width: "8%", textAlign: "center" }}>Playing</th>
                       <th style={{ width: "8%", textAlign: "center" }}>Crowned</th>
                       <th style={{ width: "12%", textAlign: "right" }}>Actions</th>
@@ -1004,6 +1009,35 @@ export default function TeamFormTable({
                               <Muted>{selectedCountryLogo?.name || (selectedCountryLogoUrl ? "Selected" : "No flag")}</Muted>
                             </LogoPreview>
                           )}
+                        </TableCell>
+
+                        <TableCell data-label="Head Start" style={{ textAlign: "center" }}>
+                          <TextInput
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={Number(row.headStartPoints) || 0}
+                            disabled={isSaving}
+                            onChange={(event) => {
+                              setValue(`teams.${index}.headStartPoints`, Number(event.target.value) || 0, {
+                                shouldDirty: true,
+                              });
+                            }}
+                            onBlur={async (event) => {
+                              if (row.recordId) {
+                                await updateTeamTable(row.recordId, {
+                                  ...row,
+                                  headStartPoints: Number(event.target.value) || 0,
+                                });
+                              }
+                            }}
+                            onKeyDown={async (event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                event.currentTarget.blur();
+                              }
+                            }}
+                          />
                         </TableCell>
 
                         <TableCell data-label="Playing" style={{ textAlign: "center" }}>

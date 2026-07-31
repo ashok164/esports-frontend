@@ -31,6 +31,8 @@ export interface TeamRecord {
   isPlaying?: boolean;
   is_crowned?: boolean;
   isCrowned?: boolean;
+  head_start_points?: number;
+  headStartPoints?: number;
 }
 
 const useTeamRecordController = () => {
@@ -68,6 +70,10 @@ const useTeamRecordController = () => {
     formData.append(
       "isCrowned",
       String(Boolean(teamRecord.isCrowned ?? teamRecord.is_crowned ?? false)),
+    );
+    formData.append(
+      "headStartPoints",
+      String(Number(teamRecord.headStartPoints ?? teamRecord.head_start_points ?? 0) || 0),
     );
 
     const teamLogoFile = extractFile(teamRecord.teamLogo);
