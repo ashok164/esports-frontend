@@ -90,13 +90,20 @@ const LiveStandingsView: React.FC = () => {
 
       return testEliminated
         ? forceTeamEliminated(team)
-        : forceTeamAlive(team);
+      : forceTeamAlive(team);
     });
   }, [isSingleEliminationTest, standings, testEliminated, testTeamId]);
 
+  const aliveTeamsCount = useMemo(
+    () => displayStandings.filter((team) => !isDeadTeam(team)).length,
+    [displayStandings],
+  );
+  const isLastFourPhase = aliveTeamsCount > 0 && aliveTeamsCount <= 4;
+
   const shouldShowStandings =
     !loading &&
-    broadcastSettings.showResultStandings;
+    broadcastSettings.showResultStandings &&
+    !isLastFourPhase;
 
   useEffect(() => {
     if (shouldShowStandings) {
