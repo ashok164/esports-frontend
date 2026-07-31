@@ -10,9 +10,32 @@ const SINGLE_ELIMINATION_TEST_PARAM = "testSingleElimination";
 const TABLE_SEQUENCE_EXIT_MS = 1200;
 type TableAnimationPhase = "entering" | "exiting";
 
-const isDeadTeam = (team: any) =>
-  Boolean(team?.isEliminated || team?.is_eliminated) ||
-  Number(team?.playersAlive ?? 0) <= 0;
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const isTruthy = (value: unknown) =>
+  value === true || value === 1 || value === "1" || value === "true";
+
+const getPlayerHpPercent = (player: any) =>
+  Math.max(0, Math.min(100, toNumber(player?.hpPercent ?? player?.hp ?? 0)));
+
+const isPlayerVisibleAlive = (player: any) => {
+  if (!player) return false;
+  if (isTruthy(player?.hasRecalled) || player?.status === "dead") return false;
+  return getPlayerHpPercent(player) > 0;
+};
+
+const isDeadTeam = (team: any) => {
+  if (Boolean(team?.isEliminated || team?.is_eliminated)) return true;
+
+  if (Array.isArray(team?.players) && team.players.length > 0) {
+    return !team.players.some(isPlayerVisibleAlive);
+  }
+
+  return Number(team?.playersAlive ?? 0) <= 0;
+};
 
 const forceTeamAlive = (team: any) => ({
   ...team,
@@ -101,7 +124,7 @@ const LiveStandingsView: React.FC = () => {
     const phaseRows = liveMatchStandings.length > 0 ? liveMatchStandings : displayStandings;
     return phaseRows.filter((team) => !isDeadTeam(team)).length;
   }, [displayStandings, liveMatchStandings]);
-  const isLastFourPhase = aliveTeamsCount === 4;
+  const isLastFourPhase = aliveTeamsCount > 0 && aliveTeamsCount <= 4;
 
   const shouldShowStandings =
     !loading &&
