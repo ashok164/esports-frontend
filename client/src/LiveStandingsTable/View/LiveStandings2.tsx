@@ -32,6 +32,7 @@ type Team = {
   playersAlive?: number;
   isPlaying?: boolean;
   isCrowned?: boolean;
+  is_crowned?: boolean;
   isEliminated?: boolean;
   is_eliminated?: boolean;
   players?: Player[];
@@ -110,6 +111,30 @@ const panelChromeOut = keyframes`
   100% { border-color: transparent; }
 `;
 
+const crownedRowPulse = keyframes`
+  0% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.95; }
+  52% { opacity: 0.7; }
+  100% { transform: translateX(215%) skewX(-18deg); opacity: 0; }
+`;
+
+const booyahNeededSweep = keyframes`
+  0%, 72% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  76% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(51%);
+    opacity: 0;
+  }
+`;
+
 const gridTemplate = ({ $showFlags, $showPoints }: LayoutProps) =>
   [
     `${RANK_WIDTH}px`,
@@ -134,7 +159,7 @@ const Panel = styled.div<LayoutProps & { $phase?: TableAnimationPhase; $rowCount
   color: #ffffff;
   font-family: "${LIVE_STANDINGS_FONT_FAMILY}", "Oswald", "Arial Narrow", sans-serif;
   text-transform: uppercase;
-  overflow: hidden;
+  overflow: visible;
   background: ${PANEL_BG};
   border: 1px solid transparent;
   box-shadow: none;
@@ -189,7 +214,7 @@ const TableBody = styled.div`
   background: ${PANEL_BG};
 `;
 
-const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean; $height: number } & LayoutProps>`
+const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean; $height: number; $crowned: boolean } & LayoutProps>`
   display: grid;
   grid-template-columns: ${gridTemplate};
   align-items: center;
@@ -197,12 +222,74 @@ const Row = styled.div<{ $highlighted: boolean; $eliminated: boolean; $height: n
   border-bottom: 1px solid #000000;
   background: var(--live2-color-1-70);
   transition: height 240ms ease, opacity 220ms ease;
+  ${({ $crowned }) =>
+    $crowned &&
+    css`
+      position: relative;
+      box-shadow:
+        inset 3px 0 0 rgba(255, 211, 90, 0.86),
+        0 10px 24px rgba(0, 0, 0, 0.32),
+        0 0 22px rgba(255, 211, 90, 0.26);
+      z-index: 35;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 48%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 211, 90, 0.12),
+          rgba(255, 255, 255, 0.34),
+          rgba(255, 211, 90, 0.18),
+          transparent
+        );
+        mix-blend-mode: screen;
+        pointer-events: none;
+        z-index: 18;
+        animation: ${crownedRowPulse} 2.2s ease-in-out infinite;
+      }
+
+      &::before {
+        content: "BOOYAH RACE";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 66%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          90deg,
+          rgba(4, 96, 45, 0),
+          rgba(10, 188, 82, 0.9) 18%,
+          rgba(64, 255, 134, 0.96) 50%,
+          rgba(10, 188, 82, 0.9) 82%,
+          rgba(4, 96, 45, 0)
+        );
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 1000;
+        letter-spacing: 1.6px;
+        text-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.76),
+          0 0 12px rgba(255, 255, 255, 0.34);
+        pointer-events: none;
+        z-index: 19;
+        animation: ${booyahNeededSweep} 30s ease-in-out infinite;
+      }
+    `}
 `;
 
 const RowShell = styled.div<{ $height: number; $index: number; $rowCount: number; $phase?: TableAnimationPhase }>`
   position: relative;
   height: ${({ $height }) => $height}px;
-  overflow: hidden;
+  overflow: visible;
   transition: height 240ms ease;
   opacity: ${({ $phase }) => ($phase === "exiting" ? 1 : 0)};
   animation: ${({ $phase }) => ($phase === "exiting" ? tableFallOut : tableFallIn)}
@@ -213,10 +300,10 @@ const RowShell = styled.div<{ $height: number; $index: number; $rowCount: number
 `;
 
 const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   height: 100%;
   background: var(--live2-color-2);
   color: var(--live2-text-color-2);
@@ -228,10 +315,15 @@ const RankCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
 `;
 
 const CrownIcon = styled.img`
-  width: 20px;
-  height: 20px;
+  position: absolute;
+  left: -42px;
+  top: 50%;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
-  flex: 0 0 auto;
+  transform: translateY(-50%);
+  z-index: 40;
+  pointer-events: none;
 `;
 
 const TeamCell = styled.div<{ $highlighted: boolean; $eliminated: boolean }>`
@@ -520,6 +612,9 @@ const isEliminated = (team: Team) =>
   Boolean(team.isEliminated || team.is_eliminated) ||
   (team.isPlaying !== false && numberOf(team.playersAlive) <= 0);
 
+const isCrownedTeam = (team: Team) =>
+  Boolean(team.isCrowned ?? team.is_crowned);
+
 const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
   const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
   const totalHeight = teams.length * ROW_HEIGHT;
@@ -563,6 +658,7 @@ const LiveStandings2Row: React.FC<{
   showPoints: boolean;
 }> = ({ team, rank, rowHeight, index, rowCount, animationPhase = "entering", showFlags, showPoints }) => {
   const eliminated = isEliminated(team);
+  const crowned = isCrownedTeam(team);
   const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
   const [phase, setPhase] = useState<"idle" | "flash_wipe">("idle");
   const [showElimText, setShowElimText] = useState(false);
@@ -617,10 +713,11 @@ const LiveStandings2Row: React.FC<{
         $height={rowHeight}
         $showFlags={showFlags}
         $showPoints={showPoints}
+        $crowned={crowned}
         style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
       >
         <RankCell $highlighted={false} $eliminated={eliminated}>
-          {team.isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
+          {crowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
           {rank}
         </RankCell>
 

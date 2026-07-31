@@ -48,6 +48,7 @@ interface Team {
   is_eliminated?: boolean;
   isPlaying?: boolean;
   isCrowned?: boolean;
+  is_crowned?: boolean;
   players?: Player[];
 }
 
@@ -112,6 +113,30 @@ const tableFallIn = keyframes`
 const tableFallOut = keyframes`
   0% { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-18px) scale(0.985); }
+`;
+
+const crownedRowPulse = keyframes`
+  0% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.95; }
+  52% { opacity: 0.7; }
+  100% { transform: translateX(215%) skewX(-18deg); opacity: 0; }
+`;
+
+const booyahNeededSweep = keyframes`
+  0%, 72% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  76% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(51%);
+    opacity: 0;
+  }
 `;
 
 /* ================= LAYOUT CONSTANTS ================= */
@@ -258,6 +283,7 @@ interface LiveRowProps {
   $phase: "alive" | "flash_wipe" | "settled_normal";
   $showFlags: boolean;
   $showPoints: boolean;
+  $crowned: boolean;
 }
 
 const LiveRow = styled(motion.div)<LiveRowProps>`
@@ -265,7 +291,7 @@ const LiveRow = styled(motion.div)<LiveRowProps>`
   position: absolute;
   width: 100%;
   height: ${(p) => p.$height}px;
-  overflow: hidden;
+  overflow: visible;
   border-bottom: 1px solid rgba(98, 223, 99, 0.06);
   background: ${(p) => (p.$odd ? Theme.rowA : Theme.rowB)};
 
@@ -285,6 +311,68 @@ const LiveRow = styled(motion.div)<LiveRowProps>`
       background:
         linear-gradient(90deg, rgba(98, 223, 99, 0.07), transparent 45%),
         ${p.$odd ? Theme.rowA : Theme.rowB};
+    `}
+
+  ${(p) =>
+    p.$crowned &&
+    css`
+      box-shadow:
+        inset 3px 0 0 rgba(255, 211, 90, 0.86),
+        0 10px 24px rgba(0, 0, 0, 0.32),
+        0 0 22px rgba(255, 211, 90, 0.26);
+      z-index: 35;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 48%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 211, 90, 0.12),
+          rgba(255, 255, 255, 0.34),
+          rgba(255, 211, 90, 0.18),
+          transparent
+        );
+        mix-blend-mode: screen;
+        pointer-events: none;
+        z-index: 18;
+        animation: ${crownedRowPulse} 2.2s ease-in-out infinite;
+      }
+
+      &::before {
+        content: "BOOYAH RACE";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 66%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          90deg,
+          rgba(4, 96, 45, 0),
+          rgba(10, 188, 82, 0.9) 18%,
+          rgba(64, 255, 134, 0.96) 50%,
+          rgba(10, 188, 82, 0.9) 82%,
+          rgba(4, 96, 45, 0)
+        );
+        color: #ffffff;
+        font-size: 38px;
+        font-weight: 1000;
+        letter-spacing: 2px;
+        text-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.76),
+          0 0 12px rgba(255, 255, 255, 0.34);
+        pointer-events: none;
+        z-index: 19;
+        animation: ${booyahNeededSweep} 30s ease-in-out infinite;
+      }
     `}
 `;
 
@@ -417,11 +505,11 @@ const PipeDivider = styled.div`
 `;
 
 const RankCell = styled.div<{ $rank: number; $dead: boolean }>`
+  position: relative;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   font-size: 28px;
   font-weight: 900;
   z-index: 25;
@@ -597,10 +685,15 @@ const Footer = styled.div`
 `;
 
 const CrownIcon = styled.img`
-  width: 24px;
-  height: 24px;
+  position: absolute;
+  left: -42px;
+  top: 50%;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
-  flex: 0 0 auto;
+  transform: translateY(-50%);
+  z-index: 40;
+  pointer-events: none;
 `;
 
 const AnimatedFooter = styled(Footer)<{ $phase?: "entering" | "exiting"; $rowCount: number }>`
@@ -669,6 +762,9 @@ const getPlayerStatus = (p: Player | null): PlayerStatus | "empty" => {
 const isTeamDead = (t: Team) =>
   t.isPlaying !== false &&
   (Boolean(t.isEliminated) || toNumber(t.playersAlive) <= 0);
+
+const isCrownedTeam = (team: Team) =>
+  Boolean(team.isCrowned ?? team.is_crowned);
 const formatRank = (rank: number) => `0${rank}`.slice(-2);
 const getTeamId = (team: Team) => String(team.id);
 const normalizeChampionKey = (value: unknown) =>
@@ -753,6 +849,7 @@ const TeamRowComponent = memo(function TeamRow({
   if (!team) return null;
 
   const isDead = isTeamDead(team);
+  const isCrowned = isCrownedTeam(team);
   const players = getPlayers(team);
 
   const [phase, setPhase] = useState<"alive" | "flash_wipe" | "settled_normal">(
@@ -807,6 +904,7 @@ const TeamRowComponent = memo(function TeamRow({
         $phase={phase}
         $showFlags={showFlags}
         $showPoints={showPoints}
+        $crowned={isCrowned}
         animate={{ height: rowHeight }}
         transition={{ duration: 0.24, ease: "easeOut" }}
         layout={false}
@@ -861,7 +959,7 @@ const TeamRowComponent = memo(function TeamRow({
         {/* Base content */}
         <BaseContentGroup $hidden={phase === "flash_wipe"}>
           <RankCell $rank={rank} $dead={isDead}>
-            {team.isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
+            {isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
             {formatRank(rank)}
           </RankCell>
 

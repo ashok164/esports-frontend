@@ -34,6 +34,7 @@ type Team = {
   playersAlive?: number;
   isPlaying?: boolean;
   isCrowned?: boolean;
+  is_crowned?: boolean;
   isEliminated?: boolean;
   is_eliminated?: boolean;
   players?: Player[];
@@ -80,6 +81,30 @@ const tableFallIn = keyframes`
 const tableFallOut = keyframes`
   0% { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-18px) scale(0.985); }
+`;
+
+const crownedRowPulse = keyframes`
+  0% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.95; }
+  52% { opacity: 0.7; }
+  100% { transform: translateX(215%) skewX(-18deg); opacity: 0; }
+`;
+
+const booyahNeededSweep = keyframes`
+  0%, 72% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  76% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(51%);
+    opacity: 0;
+  }
 `;
 
 const numberOf = (value: unknown) => {
@@ -131,6 +156,9 @@ const hideBrokenLogo = (event: React.SyntheticEvent<HTMLImageElement>) => {
 const isEliminated = (team: Team) =>
   Boolean(team.isEliminated || team.is_eliminated) ||
   (team.isPlaying !== false && numberOf(team.playersAlive) <= 0);
+
+const isCrownedTeam = (team: Team) =>
+  Boolean(team.isCrowned ?? team.is_crowned);
 
 const getRowHeightMap = (teams: Team[], flashingIds: Set<string>) => {
   const activeCount = teams.filter((team) => flashingIds.has(getTeamId(team))).length;
@@ -362,6 +390,7 @@ const LiveStandings3Row: React.FC<{
 }) => {
   const players = Array.from({ length: 4 }, (_, playerIndex) => team.players?.[playerIndex]);
   const eliminated = isEliminated(team);
+  const crowned = isCrownedTeam(team);
   const previousEliminated = useRef(eliminated);
   const [phase, setPhase] = useState<"idle" | "flash_wipe">("idle");
   const [showElimText, setShowElimText] = useState(false);
@@ -426,11 +455,12 @@ const LiveStandings3Row: React.FC<{
       <Row
         $eliminated={eliminated}
         $height={rowHeight}
+        $crowned={crowned}
         style={phase === "flash_wipe" ? { opacity: 0 } : undefined}
       >
         <RankLogoArea>
           <Rank>
-            {team.isCrowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
+            {crowned && <CrownIcon src="/crowned.png" alt="Crowned" />}
             {rank}
           </Rank>
           <Divider>|</Divider>
@@ -536,7 +566,7 @@ const RowShell = styled(motion.div)<{
 }>`
   position: relative;
   height: ${({ $height }) => $height}px;
-  overflow: hidden;
+  overflow: visible;
   transition: height 240ms ease;
   will-change: transform, height;
 
@@ -555,18 +585,81 @@ const RowShell = styled(motion.div)<{
         `}
 `;
 
-const Row = styled.div<{ $eliminated: boolean; $height: number }>`
+const Row = styled.div<{ $eliminated: boolean; $height: number; $crowned: boolean }>`
   display: flex;
   align-items: center;
   height: ${({ $height }) => $height}px;
-  overflow: hidden;
+  overflow: visible;
   background: var(--live3-stats);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   opacity: ${({ $eliminated }) => ($eliminated ? 0.72 : 1)};
   transition: height 240ms ease, opacity 220ms ease;
+  ${({ $crowned }) =>
+    $crowned &&
+    css`
+      position: relative;
+      box-shadow:
+        inset 3px 0 0 rgba(255, 211, 90, 0.88),
+        0 10px 24px rgba(0, 0, 0, 0.32),
+        0 0 22px rgba(255, 211, 90, 0.28);
+      z-index: 35;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 48%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 211, 90, 0.12),
+          rgba(255, 255, 255, 0.34),
+          rgba(255, 211, 90, 0.18),
+          transparent
+        );
+        mix-blend-mode: screen;
+        pointer-events: none;
+        z-index: 18;
+        animation: ${crownedRowPulse} 2.2s ease-in-out infinite;
+      }
+
+      &::before {
+        content: "BOOYAH RACE";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 66%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          90deg,
+          rgba(4, 96, 45, 0),
+          rgba(10, 188, 82, 0.9) 18%,
+          rgba(64, 255, 134, 0.96) 50%,
+          rgba(10, 188, 82, 0.9) 82%,
+          rgba(4, 96, 45, 0)
+        );
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 1000;
+        letter-spacing: 1.8px;
+        text-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.76),
+          0 0 12px rgba(255, 255, 255, 0.34);
+        pointer-events: none;
+        z-index: 19;
+        animation: ${booyahNeededSweep} 30s ease-in-out infinite;
+      }
+    `}
 `;
 
 const RankLogoArea = styled.div`
+  position: relative;
   display: flex;
   align-items: center;
   width: 182px;
@@ -576,14 +669,15 @@ const RankLogoArea = styled.div`
   z-index: 1;
   transform: translateZ(0);
   backface-visibility: hidden;
+  overflow: visible;
 `;
 
 const Rank = styled.div`
   width: 58px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   color: #ffffff;
   text-align: center;
   font-size: 28px;
@@ -593,10 +687,15 @@ const Rank = styled.div`
 `;
 
 const CrownIcon = styled.img`
-  width: 20px;
-  height: 20px;
+  position: absolute;
+  left: -65px;
+  top: 50%;
+  width: 55px;
+  height: 55px;
   object-fit: contain;
-  flex: 0 0 auto;
+  transform: translateY(-50%);
+  z-index: 40;
+  pointer-events: none;
 `;
 
 const Divider = styled.div`
