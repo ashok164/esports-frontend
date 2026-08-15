@@ -49,6 +49,19 @@ const collectLiveRows = (result: any, options: LiveStandingsControllerOptions = 
   return Array.isArray(source) ? source : null;
 };
 
+const collectLiveMatchRows = (result: any) => {
+  const source =
+    result?.data?.liveMatchStandings ??
+    result?.liveMatchStandings ??
+    result?.data?.standings ??
+    result?.standings ??
+    result?.data?.team_stats ??
+    result?.team_stats ??
+    (Array.isArray(result) ? result : null);
+
+  return Array.isArray(source) ? source : null;
+};
+
 const collectTeamIdentityMatches = (result: any) => {
   const source =
     result?.data?.teamIdentityMatches ??
@@ -226,6 +239,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
   useSyncGameDetails();
   const forceLiveMatchStandings = Boolean(options.forceLiveMatchStandings);
   const [standings, setStandings] = useState<Team[]>([]);
+  const [liveMatchStandings, setLiveMatchStandings] = useState<Team[]>([]);
   const [championBannerUrl, setChampionBannerUrl] = useState("");
   const [championRushTeamKeys, setChampionRushTeamKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,6 +342,10 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
     if (!source) return;
 
     const liveRows = minimizeLiveRows(source);
+    const liveMatchRows = collectLiveMatchRows(result);
+    setLiveMatchStandings(
+      liveMatchRows ? mapTeamData(minimizeLiveRows(liveMatchRows), previousStandingsRef.current) : [],
+    );
 
     const playingHistoricalRows = historicalRowsRef.current.filter((team: any) =>
       Boolean(team?.is_playing ?? team?.isPlaying),
@@ -497,6 +515,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
 
   return {
     standings,
+    liveMatchStandings,
     championBannerUrl,
     championRushTeamKeys,
     loading,

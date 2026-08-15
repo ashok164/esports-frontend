@@ -72,10 +72,7 @@ const forceTeamEliminated = (team: any) => ({
 });
 
 const LiveStandingsView: React.FC = () => {
-  const { standings, championBannerUrl, championRushTeamKeys, loading } = useLiveStandingsController();
-  const { standings: liveMatchStandings } = useLiveStandingsController({
-    forceLiveMatchStandings: true,
-  });
+  const { standings, liveMatchStandings, championBannerUrl, championRushTeamKeys, loading } = useLiveStandingsController();
   const { broadcastSettings } = useProjectTheme();
   const [testTeamId, setTestTeamId] = useState<string | number | null>(null);
   const [testEliminated, setTestEliminated] = useState(false);

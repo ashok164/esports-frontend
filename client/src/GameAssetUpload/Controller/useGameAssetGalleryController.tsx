@@ -17,7 +17,7 @@ const useGameAssetGalleryController = (getUrl: string) => {
     try {
       const result = await getAssetUploadsApi(getUrl);
       setRecords(result);
-      warmImageUrls(result.map((record) => record.imageUrl)).catch(() => undefined);
+      warmImageUrls(result.slice(0, 12).map((record) => record.imageUrl)).catch(() => undefined);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Failed to load assets.");
     } finally {

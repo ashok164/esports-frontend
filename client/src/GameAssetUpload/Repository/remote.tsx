@@ -9,6 +9,7 @@ export type AssetUploadRow = {
   description?: string;
   existingImageUrl?: string;
   image?: any;
+  isDirty?: boolean;
   readOnly?: boolean;
   isShared?: boolean;
   sourceTournamentName?: string;

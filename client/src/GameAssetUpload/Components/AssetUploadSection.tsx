@@ -24,6 +24,7 @@ const emptyRow = (): AssetUploadRow => ({
   code: "",
   description: "",
   image: null,
+  isDirty: false,
 });
 
 const rowFromFile = (file: File): AssetUploadRow => ({
@@ -33,6 +34,7 @@ const rowFromFile = (file: File): AssetUploadRow => ({
   code: "",
   description: "",
   image: file,
+  isDirty: true,
 });
 
 const rowFromRecord = (record: AssetGalleryRecord): AssetUploadRow => ({
@@ -43,6 +45,7 @@ const rowFromRecord = (record: AssetGalleryRecord): AssetUploadRow => ({
   description: record.description || "",
   existingImageUrl: record.imageUrl || "",
   image: null,
+  isDirty: false,
   readOnly: Boolean(record.readOnly),
   isShared: Boolean(record.isShared),
   sourceTournamentName: record.sourceTournamentName || "",
@@ -164,7 +167,7 @@ const AssetUploadSection = ({
   const updateRow = (index: number, nextRow: Partial<AssetUploadRow>) => {
     setRows((currentRows) =>
       currentRows.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, ...nextRow } : row,
+        rowIndex === index ? { ...row, ...nextRow, isDirty: true } : row,
       ),
     );
   };
@@ -238,7 +241,12 @@ const AssetUploadSection = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const activeRows = rows.filter((row) => !row.readOnly && !isRowEmpty(row));
+    const activeRows = rows.filter(
+      (row) =>
+        !row.readOnly &&
+        !isRowEmpty(row) &&
+        (row.operation !== "update" || row.isDirty),
+    );
     const invalidRows = activeRows.filter((row) => {
       if (row.operation === "update") return !row.recordId || !row.name.trim() || !row.code.trim();
       return !getFileName(row.image) || !row.name.trim() || !row.code.trim();
