@@ -153,3 +153,128 @@ export const MatchOverlay: React.FC<MatchOverlayProps> = ({
 };
 
 export default MatchOverlay;
+
+// Theme 4 lower third follows the compact gold broadcast reference.
+export const GoldMatchOverlay: React.FC<MatchOverlayProps> = ({
+  dayName,
+  gameNumber,
+  modeName,
+  logoUrl,
+}) => (
+  <GoldOverlay>
+    <GoldBrandPanel>
+      <GoldLogoFrame>
+        {logoUrl && <GoldTournamentLogo src={logoUrl} alt="Tournament logo" />}
+      </GoldLogoFrame>
+      <GoldBrandCaption>ESPORTS FESTIVAL<span>2026</span></GoldBrandCaption>
+    </GoldBrandPanel>
+    <GoldInfoPanel>
+      <GoldGameText>GAME {String(gameNumber).trim() || "1"}</GoldGameText>
+      <GoldSubtitle>
+        {(modeName.trim() || "CHAMPION RUSH").toUpperCase()} // {(dayName.trim() || "GRANDFINALS").toUpperCase()}
+      </GoldSubtitle>
+    </GoldInfoPanel>
+  </GoldOverlay>
+);
+
+const GoldOverlay = styled.div`
+  position: fixed;
+  right: 28px;
+  bottom: 40px;
+  display: flex;
+  width: min(489px, calc(100vw - 32px));
+  height: 108px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, Arial, sans-serif;
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none;
+  z-index: 999;
+
+  @media (max-width: 600px) {
+    right: 8px;
+    width: min(489px, calc(100vw - 16px));
+  }
+`;
+
+const GoldBrandPanel = styled.div`
+  box-sizing: border-box;
+  flex: 0 0 125px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 10px 10px;
+  background: #241704;
+`;
+
+const GoldLogoFrame = styled.div`
+  width: 101px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const GoldTournamentLogo = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+`;
+
+const GoldBrandCaption = styled.div`
+  color: #ffe99b;
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+
+  span {
+    display: block;
+    font-size: 10px;
+  }
+`;
+
+const GoldInfoPanel = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 12px;
+  background: linear-gradient(90deg, #f3ba50 0%, #fff7a5 80%);
+`;
+
+const GoldGameText = styled.div`
+  font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}, "Arial Black", sans-serif;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: #302100;
+  white-space: nowrap;
+
+  @media (max-width: 480px) {
+    font-size: clamp(28px, 10vw, 48px);
+  }
+`;
+
+const GoldSubtitle = styled.div`
+  max-width: 100%;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #302100;
+  text-align: center;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
+`;

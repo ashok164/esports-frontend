@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { warmImageUrls } from "../../BroadcastImageCache/imageCache";
 import TeamNotificationCard from "../../Components/EliminatedComponent/Eliminated";
 import StyleTwoEliminatedCard from "../../Components/EliminatedComponent/Eliminated2";
-import StyleThreeEliminatedCard from "../../Components/EliminatedComponent/Eliminated3";
+import StyleThreeEliminatedCard, { StyleFourEliminatedCard } from "../../Components/EliminatedComponent/Eliminated3";
 import useLiveStandingsController from "../../LiveStandingsTable/Controller/useLiveStandingsController";
 import { useProjectTheme } from "../../Theme";
 import TeamEliminationImageOverlay from "./TeamEliminationImageOverlay";
@@ -273,7 +273,14 @@ const TeamEliminatedView = () => {
 
   return (
     <>
-      {broadcastSettings.selectedBroadcastStyle === "theme3" ? (
+      {broadcastSettings.selectedBroadcastStyle === "theme4" ? (
+        <StyleFourEliminatedCard
+          key={activeTeamId || activeTeamName}
+          team={activeEliminatedTeam}
+          isExiting={isEliminationExiting}
+          showPlayers={broadcastSettings.teamEliminationPlayerEnabled}
+        />
+      ) : broadcastSettings.selectedBroadcastStyle === "theme3" ? (
         <StyleThreeEliminatedCard
           team={activeEliminatedTeam}
           isExiting={isEliminationExiting}
@@ -299,4 +306,45 @@ const TeamEliminatedView = () => {
   );
 };
 
-export default TeamEliminatedView;
+const TeamEliminationPreview = () => {
+  const [replay, setReplay] = useState(0);
+  const [showPlayers, setShowPlayers] = useState(false);
+  const [placement, setPlacement] = useState(12);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPlacement((value) => value > 1 ? value - 1 : 12);
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [replay]);
+
+  const team = {
+    id: "preview-theme4",
+    name: "HORAA ESPORTS",
+    teamTag: "HORAA",
+    eliminatedNumber: placement,
+    kills: 6,
+    totalPoints: 10,
+    players: Array.from({ length: 4 }, (_, index) => ({ name: `Player ${index + 1}` })),
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "radial-gradient(ellipse at center, #354237 0%, #17231d 55%, #0b1210 100%)" }}>
+      <StyleFourEliminatedCard key={`${replay}-${placement}`} team={team} showPlayers={showPlayers} />
+      <div style={{ position: "absolute", bottom: 40, left: 0, right: 0, textAlign: "center", color: "#fff7a5", fontFamily: "sans-serif" }}>
+        <p>THEME 4 · TEAM ELIMINATION PREVIEW</p>
+        <button onClick={() => { setPlacement(12); setReplay((value) => value + 1); }}>Replay eliminations 12 to 1</button>{" "}
+        <button onClick={() => { setShowPlayers((value) => !value); setReplay((value) => value + 1); }}>
+          {showPlayers ? "Show team card" : "Show player mode"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const TeamEliminatedRoute = () =>
+  new URLSearchParams(window.location.search).has("previewElimination")
+    ? <TeamEliminationPreview />
+    : <TeamEliminatedView />;
+
+export default TeamEliminatedRoute;

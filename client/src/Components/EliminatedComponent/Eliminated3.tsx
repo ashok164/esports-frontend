@@ -275,6 +275,248 @@ const Eliminated3: React.FC<Eliminated3Props> = ({
 
 export default Eliminated3;
 
+export const StyleFourEliminatedCard: React.FC<Pick<Eliminated3Props, "team" | "isExiting" | "showPlayers">> = ({
+  team,
+  isExiting = false,
+  showPlayers = false,
+}) => {
+  const label = getTeamLabel(team);
+  const kills = Math.max(0, Number(team?.kills ?? 0));
+  const totalPoints = getTotalPoints(team);
+
+  return (
+    <StyleFourOverlay $showPlayers={showPlayers} aria-label={`${label} team eliminated`}>
+      <LiveStandingsFont />
+      <StyleFourWrapper $isExiting={isExiting}>
+        {showPlayers && (
+          <StyleFourPlayers>
+            {Array.from({ length: 4 }, (_, index) => {
+              const player = team?.players?.[index];
+              const src = getPlayerImage(player);
+              return src ? (
+                <StyleFourPortrait key={index} $index={index} src={src} alt={player?.name || `Player ${index + 1}`} />
+              ) : (
+                <PlayerFallback key={index} $index={index}>{index + 1}</PlayerFallback>
+              );
+            })}
+          </StyleFourPlayers>
+        )}
+        <StyleFourMain>
+          <StyleFourContent>
+          <StyleFourLogoPanel>
+            {team?.countryFlag || team?.countryUrl ? <PlayerCountryFlag src={team.countryFlag || team.countryUrl} alt="" /> : null}
+            {team?.logoUrl ? <TeamLogo src={team.logoUrl} alt={label} /> : <StyleFourLogoFallback>{label}</StyleFourLogoFallback>}
+          </StyleFourLogoPanel>
+          <StyleFourBody>
+            <StyleFourTeamName title={label}>{label}</StyleFourTeamName>
+            <StyleFourTitle>ELIMINATED</StyleFourTitle>
+          </StyleFourBody>
+          <StyleFourRank aria-label={`Placement ${getPlacement(team)}`}>
+            <span>#</span><span>{getPlacement(team)}</span>
+          </StyleFourRank>
+          </StyleFourContent>
+          <StyleFourWipe><WipeText>ELIMINATED</WipeText></StyleFourWipe>
+        </StyleFourMain>
+        <StyleFourStats>
+          <span>KILLS <strong>{kills}</strong></span>
+          <span>PLACE <strong>{Math.max(0, totalPoints - kills)}</strong></span>
+          <span>POINTS <strong>{totalPoints}</strong></span>
+        </StyleFourStats>
+      </StyleFourWrapper>
+    </StyleFourOverlay>
+  );
+};
+
+const StyleFourOverlay = styled.section<{ $showPlayers: boolean }>`
+  position: fixed;
+  top: 30px;
+  left: 50%;
+  width: ${({ $showPlayers }) => $showPlayers ? 680 : 460}px;
+  max-width: calc(100vw - 32px);
+  transform: translateX(-50%);
+  transform-origin: top center;
+  z-index: 9999;
+  pointer-events: none;
+  font-family: "${LIVE_STANDINGS_FONT_FAMILY}", "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+
+  @media (min-width: 1920px) {
+    top: 34px;
+    transform: translateX(-50%) scale(1.35);
+  }
+  @media (min-width: 2560px) {
+    top: 42px;
+    transform: translateX(-50%) scale(1.72);
+  }
+`;
+
+const StyleFourWrapper = styled.div<{ $isExiting: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: ${({ $isExiting }) => $isExiting ? exit : enter}
+    ${({ $isExiting }) => $isExiting ? "420ms" : "620ms"}
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+`;
+
+const StyleFourMain = styled.div`
+  position: relative;
+  height: 108px;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+`;
+
+const StyleFourContent = styled.div`
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) 164px;
+  height: 100%;
+  animation: ${contentReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1) 850ms both;
+`;
+
+const StyleFourLogoPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  background: #241704;
+  color: #ffe99b;
+`;
+
+const StyleFourBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #f3ba50 0%, #fff7a5 80%);
+  color: #302100;
+`;
+
+const StyleFourLogoFallback = styled.span`
+  max-width: 100%;
+  color: #ffe99b;
+  -webkit-text-fill-color: #ffe99b;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
+`;
+
+const StyleFourTeamName = styled.span`
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}", "Arial Black", sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+`;
+
+const StyleFourTitle = styled.span`
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 10px;
+  background: linear-gradient(180deg, #38270c, #211603);
+  box-shadow: inset 0 1px 0 rgba(255, 233, 155, 0.55);
+  color: #fff3b0;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.8px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+`;
+
+const StyleFourRank = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0 8px;
+  background: linear-gradient(90deg, #fff7a5, #f3ba50);
+  color: #302100;
+  font-family: "${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}", "Arial Black", sans-serif;
+  font-size: 76px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+
+  span { flex-shrink: 0; }
+`;
+
+const StyleFourWipe = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #f3ba50 0%, #fff7a5 80%);
+  color: #241704;
+  font-size: 30px;
+  font-weight: 900;
+  animation: ${eliminatedWipe} 1.45s cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+`;
+
+const StyleFourStats = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  max-width: 100%;
+  height: 36px;
+  gap: 14px;
+  padding: 0 14px;
+  background: linear-gradient(90deg, #f3ba50 0%, #fff7a5 80%);
+  color: #302100;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  animation: ${contentReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1) 1050ms both;
+
+  span { white-space: nowrap; }
+  span + span {
+    padding-left: 14px;
+    border-left: 1px solid rgba(48, 33, 0, 0.35);
+  }
+  strong {
+    margin-left: 6px;
+    color: #241704;
+    -webkit-text-fill-color: #241704;
+    font-family: "${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY}", "Arial Black", sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+  }
+`;
+
+const StyleFourPlayers = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: 202px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #241704, #3a2808);
+  border-bottom: 3px solid #f3ba50;
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+`;
+
+const StyleFourPortrait = styled.img<{ $index: number }>`
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  object-fit: contain;
+  object-position: center bottom;
+  animation: ${playerCardReveal} 560ms cubic-bezier(0.22, 1, 0.36, 1)
+    ${({ $index }) => 120 + $index * 90}ms both;
+`;
+
 const Overlay = styled.div<{ $showPlayers: boolean }>`
   position: fixed;
   top: 26px;

@@ -536,6 +536,7 @@ const BoardHeader = styled.div<{ $width: number; $phase?: TableAnimationPhase; $
     ${({ $phase, $rowCount = 0 }) => ($phase === "exiting" ? 160 + $rowCount * 55 : 80)}ms
     both;
   clip-path: polygon(26px 0, 100% 0, 100% 100%, 0% 100%);
+
 `;
 
 const HeaderLabel = styled.span`
@@ -960,6 +961,7 @@ const Footer = styled.div`
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 0.7px;
+
 `;
 
 const AnimatedFooter = styled(Footer)<{ $phase?: TableAnimationPhase; $rowCount: number }>`

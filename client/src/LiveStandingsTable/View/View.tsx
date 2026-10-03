@@ -3,6 +3,7 @@ import useLiveStandingsController from "../Controller/useLiveStandingsController
 import StyleOneStandingsTable from "./LiveStandings1";
 import StyleTwoStandingsTable from "./LiveStandings2";
 import StyleThreeStandingsTable from "./LiveStandings3";
+import StyleFourStandingsTable from "./LiveStandings4";
 import { useProjectTheme } from "../../Theme";
 import { AnimatePresence } from "framer-motion";
 
@@ -124,7 +125,7 @@ const LiveStandingsView: React.FC = () => {
   const isLastFourPhase = aliveTeamsCount > 0 && aliveTeamsCount <= 4;
 
   const shouldShowStandings =
-    !loading &&
+    (!loading || displayStandings.length > 0) &&
     broadcastSettings.showResultStandings &&
     !isLastFourPhase;
 
@@ -152,6 +153,8 @@ const LiveStandingsView: React.FC = () => {
       <StyleTwoStandingsTable teams={displayStandings} animationPhase={tableAnimationPhase} />
     ) : selectedStyle === "theme3" ? (
       <StyleThreeStandingsTable teams={displayStandings} animationPhase={tableAnimationPhase} />
+    ) : selectedStyle === "theme4" ? (
+      <StyleFourStandingsTable teams={displayStandings} />
     ) : (
       <StyleOneStandingsTable
         teams={displayStandings}
@@ -162,6 +165,8 @@ const LiveStandingsView: React.FC = () => {
     );
 
   return (
+    new URLSearchParams(window.location.search).has("previewElimination") ?
+    <StyleFourStandingsTable preview /> :
     <AnimatePresence mode="wait">
       {shouldRenderStandings && (
         <div

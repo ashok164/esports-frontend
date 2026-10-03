@@ -88,6 +88,7 @@ const normalizeThemePayload = (data: Partial<ProjectColorTheme>): ProjectColorTh
 });
 
 const presetOptions: Array<{ id: BroadcastThemePreset; label: string; description: string }> = [
+  { id: "theme4", label: "Style 4", description: "Twelve-team standings with a gold first-place highlight." },
   { id: "theme1", label: "Style 1", description: "Current broadcast overlay layout." },
   { id: "theme2", label: "Style 2", description: "Reference-style standings, final-four, and elimination layout." },
   { id: "theme3", label: "Style 3", description: "Live standings 3 table format." },
@@ -785,7 +786,7 @@ const DisplaySettings = styled.section`
 
 const PresetGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 
