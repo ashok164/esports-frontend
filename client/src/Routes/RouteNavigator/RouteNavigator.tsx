@@ -325,6 +325,12 @@ const routeGroups: RouteGroup[] = [
         type: "Broadcast",
       },
       {
+        title: "Champion Rush",
+        path: "/champion-rush",
+        note: "Activated teams with 110 or more overall points, with crowns and live updates.",
+        type: "Broadcast",
+      },
+      {
         title: "Last Four Teams",
         path: "/last-four-teams",
         note: "Endgame last teams notification.",

@@ -1,4 +1,5 @@
 import React from "react";
+import ChampionRushView from "../../ChampionRush/view/index";
 import BooyahTeamStatsPage from "../../Result/view/BooyahTeamStatsPage";
 import MatchNumberImageSettingsView from "../../BroadcastImageSettings/View/MatchNumberImageSettingsView";
 import TeamEliminationImageSettingsView from "../../BroadcastImageSettings/View/TeamEliminationImageSettingsView";
@@ -61,6 +62,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   { path: "/notification", element: <LiveNotificationView />, isBroadcast: true },
   { path: "/players-mode", element: <PlayersModeView />, isBroadcast: true },
   { path: "/team-eliminated", element: <TeamEliminatedView />, isBroadcast: true },
+  { path: "/champion-rush", element: <ChampionRushView />, isBroadcast: true },
   { path: "/last-four-teams", element: <LastTeamNotification />, isBroadcast: true },
   { path: "/match-number", element: <MatchNumber />, isBroadcast: true },
   { path: "/zone-shrink", element: <ZoneShrinkBroadcastView />, isBroadcast: true },

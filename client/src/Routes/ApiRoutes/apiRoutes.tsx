@@ -2,6 +2,7 @@
 export const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL || "https://api.freefireesportsnepal.com";
 export const REAL_TIME_API = "/tablestandings";
+export const CHAMPION_RUSH_TARGET_POINTS = 110;
 export const GET_REALTIME_SETTINGS = "/settings";
 export const UPDATE_REALTIME_SETTINGS = "/settings";
 export const TEAMS = "/teams";

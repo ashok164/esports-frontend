@@ -12,6 +12,7 @@ import {
   getActiveGameDetails,
 } from "../../GameDetails/gameDetailsState";
 import useSyncGameDetails from "../../GameDetails/useSyncGameDetails";
+import { selectChampionRushTeams } from "../../ChampionRush/repository/remote";
 import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 
 const RECONNECT_DELAY_MS = 500;
@@ -162,7 +163,7 @@ const collectChampionRushTeamKeys = (overallRows: any[]) => {
   const keys = new Set<string>();
 
   overallRows.forEach((team) => {
-    if (getOverallScore(team) !== CHAMPION_RUSH_TARGET_SCORE) return;
+    if (getOverallScore(team) < CHAMPION_RUSH_TARGET_SCORE) return;
     getTeamKeys(team).forEach((key) => keys.add(key));
   });
 
@@ -242,6 +243,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
   const [liveMatchStandings, setLiveMatchStandings] = useState<Team[]>([]);
   const [championBannerUrl, setChampionBannerUrl] = useState("");
   const [championRushTeamKeys, setChampionRushTeamKeys] = useState<string[]>([]);
+  const [championRushTeams, setChampionRushTeams] = useState<ReturnType<typeof selectChampionRushTeams>>([]);
   const [loading, setLoading] = useState(true);
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -296,6 +298,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
     const overallRows = collectOverallRows(result);
     const championSourceRows = overallRows.length > 0 ? overallRows : historicalRowsRef.current;
     setChampionRushTeamKeys(collectChampionRushTeamKeys(championSourceRows));
+    setChampionRushTeams(selectChampionRushTeams(championSourceRows));
 
     const nextChampionBanner = collectChampionBanner(result);
     if (nextChampionBanner) setChampionBannerUrl(String(nextChampionBanner));
@@ -366,6 +369,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
   }, [forceLiveMatchStandings, publishStandings]);
 
   const publishSelectedTeamRows = useCallback(() => {
+    setChampionRushTeams(selectChampionRushTeams(historicalRowsRef.current));
     const selectedRows = historicalRowsRef.current.filter((team: any) =>
       Boolean(team?.is_playing ?? team?.isPlaying),
     );
@@ -518,6 +522,7 @@ const useLiveStandingsController = (options: LiveStandingsControllerOptions = {}
     liveMatchStandings,
     championBannerUrl,
     championRushTeamKeys,
+    championRushTeams,
     loading,
     refresh,
     matchNumber,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import LiveStandingsFont, { LIVE_STANDINGS_FONT_FAMILY } from "./LiveStandingsFont";
 
 type Player = {
@@ -25,6 +25,8 @@ type Team = {
   playersAlive?: number;
   isEliminated?: boolean;
   is_eliminated?: boolean;
+  isCrowned?: boolean;
+  is_crowned?: boolean;
   players?: Player[];
 };
 
@@ -44,7 +46,7 @@ const playerState = (player?: Player): "alive" | "knocked" | "dead" => {
   return "alive";
 };
 
-const EliminationRow: React.FC<React.PropsWithChildren<{ eliminated: boolean; index: number }>> = ({ eliminated, index, children }) => {
+const EliminationRow: React.FC<React.PropsWithChildren<{ eliminated: boolean; crowned: boolean; index: number }>> = ({ eliminated, crowned, index, children }) => {
   const entranceIndex = useRef(index);
   const [hasEntered, setHasEntered] = useState(false);
   const wasEliminated = useRef(eliminated);
@@ -54,18 +56,21 @@ const EliminationRow: React.FC<React.PropsWithChildren<{ eliminated: boolean; in
     if (!eliminated) setShowBanner(false);
     wasEliminated.current = eliminated;
   }, [eliminated]);
-  return <RowShell
+  return <CrownedRow
     $index={entranceIndex.current}
     style={hasEntered ? { animation: "none" } : undefined}
     onAnimationEnd={(event) => {
       if (event.target === event.currentTarget) setHasEntered(true);
     }}
   >
+    {crowned && <CrownIcon src="/images/crown.png" alt="Champion Rush crown" />}
+    <RowShell $index={entranceIndex.current}>
     {children}
     {showBanner && <EliminationBanner onAnimationEnd={() => setShowBanner(false)}>
       ELIMINATED
     </EliminationBanner>}
-  </RowShell>;
+  </RowShell>
+  </CrownedRow>;
 };
 
 const LiveStandings4: React.FC<{ teams?: Team[]; preview?: boolean }> = ({ teams = [], preview = false }) => {
@@ -77,8 +82,9 @@ const LiveStandings4: React.FC<{ teams?: Team[]; preview?: boolean }> = ({ teams
     const timer = window.setTimeout(() => setPreviewEliminated(false), 3500);
     return () => window.clearTimeout(timer);
   }, [preview, previewEliminated]);
+  const previewThreeDigitPoints = preview && new URLSearchParams(window.location.search).get("pointsDigits") === "3";
   const previewTeams: Team[] = ["JE", "HORAA", "CME", "HC", "TRE", "S9X", "BB", "VS", "UN", "GR", "MBXNF", "BG"].map((name, index) => ({
-    id: index, name, kills: 0, totalPoints: 0,
+    id: index, name, kills: 0, totalPoints: previewThreeDigitPoints ? 999 - index * 73 : 0,
     isEliminated: index === 0 && previewEliminated,
     players: Array.from({ length: 4 }, () => ({ hp: index === 0 && previewEliminated ? 0 : 100 })),
   }));
@@ -104,8 +110,8 @@ const LiveStandings4: React.FC<{ teams?: Team[]; preview?: boolean }> = ({ teams
               (team.playersAlive != null && numberOf(team.playersAlive) <= 0) ||
               (players.length > 0 && players.every((player) => playerState(player) === "dead"));
             return (
-              <EliminationRow key={team.id} eliminated={eliminated} index={index}>
-              <TeamRow $first={index === 0} $eliminated={eliminated}>
+              <EliminationRow key={team.id} eliminated={eliminated} crowned={Boolean(team.isCrowned ?? team.is_crowned)} index={index}>
+              <TeamRow $first={index === 0} $eliminated={eliminated} $crowned={Boolean(team.isCrowned ?? team.is_crowned)}>
                 <Rank>{index + 1}</Rank>
                 <TeamCell>
                   {team.logoUrl ? <TeamLogo src={team.logoUrl} alt="" /> : <LogoFallback>{(team.teamTag || team.name || "T").slice(0, 2)}</LogoFallback>}
@@ -139,6 +145,30 @@ const LiveStandings4: React.FC<{ teams?: Team[]; preview?: boolean }> = ({ teams
 
 export default LiveStandings4;
 
+const crownedRowPulse = keyframes`
+  0% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.95; }
+  52% { opacity: 0.7; }
+  100% { transform: translateX(215%) skewX(-18deg); opacity: 0; }
+`;
+
+const booyahNeededSweep = keyframes`
+  0%, 84% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  86% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(51%);
+    opacity: 0;
+  }
+`;
+
 const eliminationSlide = keyframes`
   0% { transform: translateX(105%); }
   20%, 75% { transform: translateX(0); }
@@ -170,12 +200,34 @@ const footerReveal = keyframes`
   100% { opacity: 1; transform: translate3d(0, 0, 0); clip-path: inset(0); }
 `;
 
-const RowShell = styled.div<{ $index: number }>`
+const CrownedRow = styled.div<{ $index: number }>`
   position: relative;
-  overflow: hidden;
   transform-origin: right center;
   animation: ${tableFlyIn} 720ms cubic-bezier(0.16, 1, 0.3, 1)
     ${({ $index }) => 180 + $index * 65}ms both;
+`;
+
+const CrownIcon = styled.img`
+  position: absolute;
+  left: -60px;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 5px;
+  background: linear-gradient(180deg, #8b5e3c 0%, #5c3822 50%, #2f1b10 100%);
+  border: 1px solid #f5c84f;
+  border-radius: 6px;
+  box-shadow: 0 0 12px rgba(255, 211, 90, 0.35);
+  object-fit: contain;
+  transform: translateY(-50%);
+  z-index: 40;
+  pointer-events: none;
+`;
+
+const RowShell = styled.div<{ $index: number }>`
+  position: relative;
+  overflow: hidden;
 
   &::after {
     content: "";
@@ -245,7 +297,7 @@ const Rows = styled.div`
   flex-direction: column;
 `;
 
-const TeamRow = styled.div<{ $first: boolean; $eliminated: boolean }>`
+const TeamRow = styled.div<{ $first: boolean; $eliminated: boolean; $crowned: boolean }>`
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 82px 62px 62px;
   min-height: 50px;
@@ -253,6 +305,70 @@ const TeamRow = styled.div<{ $first: boolean; $eliminated: boolean }>`
   background: #ffffff;
   opacity: ${({ $eliminated }) => ($eliminated ? 0.45 : 1)};
   transition: opacity 300ms ease;
+  ${({ $crowned }) =>
+    $crowned &&
+    css`
+      position: relative;
+      box-shadow:
+        inset 3px 0 0 rgba(255, 211, 90, 0.88),
+        0 10px 24px rgba(0, 0, 0, 0.32),
+        0 0 22px rgba(255, 211, 90, 0.28);
+      z-index: 35;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 48%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 211, 90, 0.12),
+          rgba(255, 255, 255, 0.34),
+          rgba(255, 211, 90, 0.18),
+          transparent
+        );
+        mix-blend-mode: screen;
+        pointer-events: none;
+        z-index: 18;
+        animation: ${crownedRowPulse} 2.2s ease-in-out infinite;
+      }
+
+      &::before {
+        content: "BOOYAH RACE";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          90deg,
+          rgba(5, 5, 5, 0),
+          rgba(5, 5, 5, 0.96) 18%,
+          #242018 50%,
+          rgba(5, 5, 5, 0.96) 82%,
+          rgba(5, 5, 5, 0)
+        );
+        box-shadow: inset 0 2px 0 #f5c84f, inset 0 -2px 0 #d59b25;
+        color: #fff1a8;
+        font-size: 22px;
+        font-weight: 1000;
+        letter-spacing: 1.8px;
+        text-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.76),
+          0 0 12px rgba(245, 200, 79, 0.34);
+        pointer-events: none;
+        z-index: 19;
+        animation: ${booyahNeededSweep} 30s ease-in-out infinite;
+      }
+    `}
+
 
   @media (max-width: 600px) {
     grid-template-columns: 40px minmax(0, 1fr) 72px 54px 56px;
@@ -353,7 +469,7 @@ const HealthBar = styled.span<{ $state: "alive" | "knocked" | "dead"; $hp: numbe
 const Points = styled.div`
   display: grid;
   place-items: center;
-  font-size: 29px;
+  font-size: 26px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 `;
