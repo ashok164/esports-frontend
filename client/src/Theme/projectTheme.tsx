@@ -21,7 +21,7 @@ export type ProjectColorTheme = {
   danger: string;
 };
 
-export type BroadcastThemePreset = "theme1" | "theme2" | "theme3";
+export type BroadcastThemePreset = "theme1" | "theme2" | "theme3" | "theme4";
 
 export type MatchNumberImageEntry = {
   id: string;
@@ -107,7 +107,7 @@ export const DEFAULT_BROADCAST_DISPLAY_SETTINGS: BroadcastDisplaySettings = {
 };
 
 const isBroadcastStyle = (value: unknown): value is BroadcastThemePreset =>
-  value === "theme1" || value === "theme2" || value === "theme3";
+  value === "theme1" || value === "theme2" || value === "theme3" || value === "theme4";
 
 const normalizeMatchNumberImageEntries = (value: unknown): MatchNumberImageEntry[] =>
   Array.isArray(value)
@@ -153,7 +153,9 @@ const normalizeTeamEliminationImageEntries = (value: unknown): TeamEliminationIm
 
 export const normalizeBroadcastDisplaySettings = (value: unknown): BroadcastDisplaySettings => {
   const settings = value && typeof value === "object" ? value as Record<string, unknown> : {};
-  const selectedStyle = settings.selectedBroadcastStyle ?? settings.selectedBroadcastTheme;
+  // selectedBroadcastTheme is the original persisted field. Prefer it when both
+  // fields are present so a stale compatibility field cannot revert a newer style.
+  const selectedStyle = settings.selectedBroadcastTheme ?? settings.selectedBroadcastStyle;
   const style = isBroadcastStyle(selectedStyle) ? selectedStyle : "theme1";
   const speed = Number(settings.circleAnalysisAnimationSpeed ?? settings.circle_analysis_animation_speed ?? 1);
   const showResultStandings =
@@ -182,7 +184,7 @@ export const mergeBroadcastDisplaySettings = (
   const remote = responseSettings && typeof responseSettings === "object"
     ? responseSettings as Record<string, unknown>
     : {};
-  const remoteStyle = remote.selectedBroadcastStyle ?? remote.selectedBroadcastTheme;
+  const remoteStyle = remote.selectedBroadcastTheme ?? remote.selectedBroadcastStyle;
 
   return normalizeBroadcastDisplaySettings({
     ...savedSettings,
@@ -271,6 +273,22 @@ export const BROADCAST_THEME_PRESETS: Record<BroadcastThemePreset, ProjectColorT
     success: "#10b981",
     warning: "#f97316",
     danger: "#dc2626",
+  },
+  theme4: {
+    useDefaultColors: false,
+    primary: "#c49a55",
+    secondary: "#e0bd7a",
+    accent: "#d5a94f",
+    background: "#100c06",
+    surface: "#21180d",
+    surfaceAlt: "#382814",
+    textPrimary: "#fff8e8",
+    textSecondary: "#c8b58f",
+    textInverse: "#170f05",
+    border: "#765323",
+    success: "#20c933",
+    warning: "#d5a94f",
+    danger: "#e01818",
   },
 };
 

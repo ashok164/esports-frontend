@@ -17,7 +17,7 @@ import { getTeamTableApi } from "../../TeamRecordTable/Repositary/remote";
 const RECONNECT_DELAY_MS = 500;
 const WS_STALE_LIMIT_MS = 5000;
 const TEAM_IDENTITY_MATCHES_STORAGE_KEY = "team_identity_matches";
-const CHAMPION_RUSH_TARGET_SCORE = 90;
+const CHAMPION_RUSH_TARGET_SCORE = 110;
 
 type LiveStandingsControllerOptions = {
   forceLiveMatchStandings?: boolean;

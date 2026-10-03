@@ -31,6 +31,7 @@ const ZoneShrinkBroadcastView: React.FC = () => {
   const timeoutRef = React.useRef<number | null>(null);
   const intervalRef = React.useRef<number | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const countdownDurationRef = React.useRef(10);
 
   const clearTimers = () => {
     if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
@@ -41,6 +42,7 @@ const ZoneShrinkBroadcastView: React.FC = () => {
 
   const openOverlay = React.useCallback((nextState: ZoneShrinkState) => {
     clearTimers();
+    countdownDurationRef.current = nextState.durationSeconds;
     setVisible(true);
     setIsDissolving(false);
     setSecondsLeft(nextState.durationSeconds);
@@ -150,6 +152,7 @@ const ZoneShrinkBroadcastView: React.FC = () => {
 
   const isStyle2 = broadcastSettings.selectedBroadcastStyle === "theme2";
   const isStyle3 = broadcastSettings.selectedBroadcastStyle === "theme3";
+  const isStyle4 = broadcastSettings.selectedBroadcastStyle === "theme4";
   const style2Colors = {
     base: broadcastSettings.liveStandings2Color1,
     bar: broadcastSettings.liveStandings2Color2,
@@ -168,7 +171,31 @@ const ZoneShrinkBroadcastView: React.FC = () => {
         </SoundUnlockButton>
       )}
       {visible && (
-        isStyle3 ? (
+        isStyle4 ? (
+          <ZoneCardStyle4 $dissolving={isDissolving}>
+            <Style4ClockPanel>
+              <Style4Clock viewBox="0 0 100 100" aria-label="Animated zone countdown clock">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="4" />
+                <path d="M50 8v8 M92 50h-8 M50 92v-8 M8 50h8" stroke="currentColor" strokeWidth="4" />
+                <line x1="50" y1="50" x2="68" y2="38" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+                <Style4ClockHand x1="50" y1="50" x2="50" y2="20" />
+                <circle cx="50" cy="50" r="4" fill="currentColor" />
+              </Style4Clock>
+            </Style4ClockPanel>
+            <Style4InfoPanel>
+              <Style4CountdownFill
+                key={lastTriggerId.current}
+                $duration={countdownDurationRef.current}
+                aria-hidden="true"
+              >
+                <Style4Title>{secondsLeft <= 0 ? "ZONE COLLAPSED" : "ZONE SHRINK"}</Style4Title>
+                <Style4Timer>{Math.max(0, secondsLeft)}<span>SEC</span></Style4Timer>
+              </Style4CountdownFill>
+              <Style4Title>{secondsLeft <= 0 ? "ZONE COLLAPSED" : "ZONE SHRINK"}</Style4Title>
+              <Style4Timer>{Math.max(0, secondsLeft)}<span>SEC</span></Style4Timer>
+            </Style4InfoPanel>
+          </ZoneCardStyle4>
+        ) : isStyle3 ? (
           <ZoneCardStyle3 $dissolving={isDissolving}>
             <Style3MainBanner $border={STYLE3_ALERT_RED}>
               <Style3LogoZone $background={STYLE3_ALERT_RED}>
@@ -240,7 +267,6 @@ const ZoneShrinkBroadcastView: React.FC = () => {
             <BrandPanel>
               <TopLine>Zone</TopLine>
               <MainLine>Shrink</MainLine>
-              <BottomLine>Closing In</BottomLine>
             </BrandPanel>
             <TimerPanel $singleDigit={secondsLeft < 10}>
               <Number $singleDigit={secondsLeft < 10}>{secondsLeft}</Number>
@@ -327,6 +353,128 @@ const Stage = styled.main`
   overflow: hidden;
   background: transparent;
   font-family: ${LIVE_STANDINGS_FONT_FAMILY};
+`;
+
+const ZoneCardStyle4 = styled.section<{ $dissolving: boolean }>`
+  position: fixed;
+  right: 28px;
+  bottom: 40px;
+  display: flex;
+  width: min(396px, calc(100vw - 32px));
+  height: 108px;
+  overflow: hidden;
+  isolation: isolate;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  font-family: ${LIVE_STANDINGS_FONT_FAMILY}, Arial, sans-serif;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 999;
+  animation: ${({ $dissolving }) => ($dissolving ? dissolveOut : slideIn)}
+    ${({ $dissolving }) => ($dissolving ? "700ms" : "360ms")} ease-out both;
+
+  @media (max-width: 600px) {
+    right: 8px;
+    width: min(360px, calc(100vw - 16px));
+  }
+`;
+
+const Style4ClockPanel = styled.div`
+  box-sizing: border-box;
+  flex: 0 0 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px;
+  background: #241704;
+  color: #ffe99b;
+`;
+
+const Style4Clock = styled.svg`
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: min(84px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+`;
+
+const Style4ClockHand = styled.line`
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform-origin: 50px 50px;
+  animation: ${style3ClockRotate} 2s linear infinite;
+`;
+
+const Style4InfoPanel = styled.div`
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 14px;
+  background: linear-gradient(90deg, #f3ba50 0%, #fff7a5 80%);
+  color: #302100;
+
+  @media (max-width: 380px) {
+    padding: 6px 10px;
+  }
+`;
+
+const style4CountdownFill = keyframes`
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+`;
+
+const Style4CountdownFill = styled(Style4InfoPanel)<{ $duration: number }>`
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #e98724;
+  color: #fff0b3;
+  animation: ${style4CountdownFill} ${({ $duration }) => Math.max(0, $duration)}s linear forwards;
+`;
+
+const Style4Title = styled.div`
+  position: relative;
+  z-index: 2;
+  font-family: "Segoe UI", Helvetica, sans-serif;
+  font-size: clamp(14px, 8cqi, 22px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 1.2px;
+  text-align: center;
+`;
+
+const Style4Timer = styled.div`
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  font-family: "Segoe UI", Helvetica, sans-serif;
+  font-size: clamp(40px, 24cqi, 62px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0;
+
+  span {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    line-height: 1;
+  }
 `;
 
 const SoundUnlockButton = styled.button`
@@ -425,7 +573,7 @@ const Style3MainBanner = styled.div<{ $border: string }>`
 `;
 
 const Style3LogoZone = styled.div<{ $background: string }>`
-  width: 28%;
+  width: 20%;
   position: relative;
   display: flex;
   justify-content: center;
@@ -463,11 +611,12 @@ const Style3ClockHand = styled.line`
 `;
 
 const Style3TextZone = styled.div`
-  width: 46%;
+  box-sizing: border-box;
+  width: 42%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-left: 14px;
+  padding-left: 10px;
   z-index: 1;
 `;
 
@@ -484,7 +633,7 @@ const Style3TimerSub = styled.div<{ $color: string }>`
 const Style3AlertMain = styled.div`
   margin-top: 2px;
   font-family: ${LIVE_STANDINGS_FONT_FAMILY};
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 900;
   color: #ffffff;
   text-transform: uppercase;
@@ -494,7 +643,7 @@ const Style3AlertMain = styled.div`
 `;
 
 const Style3TimerZone = styled.div`
-  width: 26%;
+  width: 38%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -504,14 +653,16 @@ const Style3TimerZone = styled.div`
 
 const Style3TimerStack = styled.div`
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   gap: 4px;
 `;
 
 const Style3TimerCountdown = styled.div<{ $urgent: boolean }>`
   font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY};
-  font-size: 38px;
+  font-size: 64px;
+  font-variant-numeric: tabular-nums;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: 0;
@@ -521,7 +672,7 @@ const Style3TimerCountdown = styled.div<{ $urgent: boolean }>`
 `;
 
 const Style3TimerUnit = styled.div`
-  margin-bottom: 6px;
+  margin-bottom: 0;
   font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY};
   font-size: 10px;
   font-weight: 900;
@@ -656,7 +807,7 @@ const Style2TimerPanel = styled.div<{ $base: string }>`
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 8px 14px 10px 16px;
+  padding: 4px 10px 6px;
   background: ${({ $base }) => $base};
 `;
 
@@ -669,7 +820,8 @@ const Style2NumberRow = styled.div<{ $text: string }>`
 
 const Style2Number = styled.div`
   font-family: ${GFF_LATIN_EXTRA_BOLD_FONT_FAMILY};
-  font-size: 60px;
+  font-size: 76px;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: 0.78;
   letter-spacing: -1px;
@@ -679,9 +831,9 @@ const Style2Number = styled.div`
 const Style2Secs = styled.div`
   margin-bottom: 7px;
   font-family: ${LIVE_STANDINGS_FONT_FAMILY};
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.8px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
 `;
 
@@ -722,16 +874,6 @@ const MainLine = styled.div`
   text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
 `;
 
-const BottomLine = styled.div`
-  width: fit-content;
-  margin-top: 4px;
-  padding: 3px 9px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--project-primary, #4c1d95);
-  font-size: 15px;
-  line-height: 1;
-`;
-
 const TimerPanel = styled.div<{ $singleDigit: boolean }>`
   position: relative;
   z-index: 2;
@@ -750,7 +892,9 @@ const TimerPanel = styled.div<{ $singleDigit: boolean }>`
 const Number = styled.div<{ $singleDigit: boolean }>`
   min-width: 86px;
   text-align: right;
-  font-size: 82px;
+  font-size: 104px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 0.8;
   letter-spacing: -2px;
   text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.22);

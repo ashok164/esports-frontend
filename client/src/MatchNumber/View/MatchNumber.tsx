@@ -10,7 +10,7 @@ import {
   getTournamentLogoUrl,
   isTournamentLogoActive,
 } from "../../TournamentLogo/Repository/remote";
-import MatchOverlay from "./Component/MatchNumberDesign";
+import MatchOverlay, { GoldMatchOverlay } from "./Component/MatchNumberDesign";
 import MatchNumberDesign2 from "./Component/MatchNumberDesign2";
 import MatchNumberDesign3 from "./Component/MatchNumberDesign3";
 import MatchNumberImageOverlay from "./Component/MatchNumberImageOverlay";
@@ -106,7 +106,9 @@ const MatchNumber = () => {
   return (
     <>
       <LiveStandingsFont />
-      {broadcastSettings.selectedBroadcastStyle === "theme2" ? (
+      {broadcastSettings.selectedBroadcastStyle === "theme4" ? (
+        <GoldMatchOverlay {...overlayProps} />
+      ) : broadcastSettings.selectedBroadcastStyle === "theme2" ? (
         <MatchNumberDesign2
           {...overlayProps}
           color1={broadcastSettings.liveStandings2Color1}

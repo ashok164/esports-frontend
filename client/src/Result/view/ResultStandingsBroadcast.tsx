@@ -108,7 +108,18 @@ const ResultStandingsBroadcast: React.FC<ResultStandingsBroadcastProps> = ({ mod
   const rightRows = displayRows.slice(6, 12);
   const title = mode === "game" ? "GAME STANDINGS" : "OVERALL STANDINGS";
   const style = broadcastSettings.selectedBroadcastStyle;
-  const colors = (style === "theme1"
+  const colors = (style === "theme4"
+    ? {
+        "--result2-1": "#24180a",
+        "--result2-2": "#d5a94f",
+        "--result2-3": "#382814",
+        "--result2-4": "#100c06",
+        "--result2-5": "#e0bd7a",
+        "--result2-t1": "#fff8e8",
+        "--result2-t2": "#170f05",
+        "--result2-t3": "#fff8e8",
+      }
+    : style === "theme1"
     ? {
         "--result2-1": "var(--project-surface, #111116)",
         "--result2-2": "var(--project-secondary, #ff003c)",
@@ -223,7 +234,7 @@ const animationState = css<{ $order: number }>`
   }
 `;
 
-const Board = styled.section<{ $style: "theme1" | "theme2" | "theme3" }>`
+const Board = styled.section<{ $style: "theme1" | "theme2" | "theme3" | "theme4" }>`
   position: fixed;
   top: 50%;
   left: 50%;
@@ -249,6 +260,13 @@ const Board = styled.section<{ $style: "theme1" | "theme2" | "theme3" }>`
 
   ${({ $style }) => $style === "theme3" && css`
     background: linear-gradient(135deg, #f4f6f8, #c99a2e);
+  `}
+
+  ${({ $style }) => $style === "theme4" && css`
+    background: linear-gradient(135deg, #d5a94f, #e0bd7a);
+    border: 2px solid #765323;
+    border-radius: 4px;
+    box-shadow: 0 0 60px rgba(213, 169, 79, 0.32);
   `}
 
   @media (min-width: 2560px) {
